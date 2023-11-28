@@ -1,0 +1,2626 @@
+Procedure GLLRM_estim(var outfile      : Textfile;
+                Nitems                 : byte;
+                Item_labels            : Cvector;
+                LeastScore             : integer;   // defines the score group in which
+                LargestScore           : integer;   // parameters will be estimated
+                largest_possible_score : integer;   // should be equal to the highest possible score
+
+                Nexogene               : byte;
+                EXO_labels             : Cvector;
+                EXO_DIM                : Bvector;   // number of categories of exogenous variables
+                EXO_Vtype              : Bvector;
+
+                GLLRMnames             : Svector;
+                GLLRMcategories        : TGLLRMcategories;
+
+                LocalDependence        : Bmatrix;    // Localdependency(.i,j.) = 1 if local dependency assumed
+                ItemBias               : Bmatrix;    // ItemBias(.i,x.) = 1 if item bias assumed
+
+                MaxStep                : integer;   // in most cases set to 5000
+                MaxDelta               : extended;  // in most cases set to 0.0001
+
+            var Personstatus           : Ivector;
+            var Nvalid                 : longint;       // the number of persons with complete responses
+            var ValidItem              : Bool_vector;   // used to identify
+            var Invalidscore           : integer;       // degenerate items
+
+            var Imarg                  : TitemMargin;
+            var Xmarg                  : TexoMargin;
+            Var Scdist                 : TScoredist;
+            var Igamma                 : ItemParameterArray;
+            var Nij                    : Integer;
+            var IJinfo                 : item_by_item_info;
+            var Nix                    : integer;
+            var IXinfo                 : item_by_exo_info;
+            var NumberOfBiasedItems    : bvector;
+            var RaschLoglike           : extended;
+            var Nparameters            : integer;
+            var Convergence            : Boolean;
+            var Nstep                  : integer;
+            var delta                  : extended);
+
+label slut,videre,
+      NewTruescores,TrueScoresFinished,
+      NewBiaskomb,BiasKombFinished,nsjl_klar;
+
+var  i,j,EXOvalue, j1,exo,selected_item : byte;
+
+     (**** similar to global variables in BIASvars ***)
+
+     NGammaArrays               : byte;
+     Bfactor                    : Lvector;
+     BfactorSum                 : longint;
+     BiasedGammaValuesAllocated : boolean;
+     BiasedGammaValues          : Extended_data_array;
+     BiasedGammaValuesReady     : boolean;
+
+     (************************************************)
+
+     c                        : char;
+     v                        : bvector;
+     s,s1,s2,s3,s4            : string;
+     Difference               : Longint;
+     Fra,Til,score,df,ii      : integer;
+     Finish                   : boolean;
+     Nfinish,nn               : integer;
+     initial_delta,MinDelta   : extended;
+     Deltavalues              : array(.-4..5000.) of extended;
+     MinDeltaStep, fejl       : integer;
+     previous_delta           : extended;
+     Exp_marg,exp_marg0       : Ematrix;
+     loglike0,min2loglike,CLR : extended;
+     Warning                  : Twarning;
+     ScoreMean                : extended;
+
+     AntalDIFfactors          : byte;
+
+     NgammaGroups             : longint;
+
+     Gammavalues,
+     RefGammaValues,
+     Igammavalues             : TGammavalues;
+
+     ngroups,ncols,ntabs,tabnr  : integer;
+
+     printprobs                 : Boolean;
+
+     // the following arrays will be used during analysis
+     // for a given group, to save values of the score distribution
+     // item parameters and score gamma values
+
+     Sgam,sgam1,sgam2 : Tscorearray;         //Sgam will be used for inexpensive Gamma calculation
+     Igam             : ItemParameterArray; // used for inexpensive Gamma calculation
+
+     p               : real;
+
+     IterationSuccess : Boolean;
+
+     NItemComponents   : Byte;
+     ItemComps         : Bmatrix;
+     ItemComponents    : Bmatrix;
+     UseItemComponents : Bool_vector;
+     ItemIScomponent,
+     NIJcombInComp     : Bvector;
+     IJcombInComp      : Imatrix;
+
+     TempInvalidscore : integer;
+
+
+     (* ================================================== *)
+     (*  The following arrays for the sufficient margins   *)
+     (*  are included among parameters of the procedure    *)
+     (*                                                    *)
+     (* Scdist                                             *)
+     (* Imarg                                              *)
+     (* Xmarg                                              *)
+     (* IJinfo and IXinfo                                  *)
+     (* ================================================== *)
+
+     IscoreRef,Iref,Jref,xref   : Byte;      // the most frequent item score
+     Iscoredist                 : Ivector;   // the distribution of item scores across all items
+
+
+     //  variables and arrays for the table with distribution of score by exogeneous variables    ---
+     //  remember that the number of cells and the factors defining cell numbers are the same as  ---
+     //  for BiasedGammavalues
+
+     // BiasedGammaValues and EXOtables with conditional scoredistributions are
+     // organized as (score+1,BiasValues) arrays
+
+     EXOtable          : Longint_data_array;
+     NExoarrays        : byte;
+     EXOtableAllocated : boolean;
+     Tab0              : Longint_data; // an array containing zeros
+
+     //----------------- variables and arrays for the set of biased Gamma values -------
+
+     Gamma0                     : Extended_data;  // an array containing zeros
+
+     //----------------- arrays for local gamma values ---------
+
+     SGamma      : TGammavalues;
+     Ifra,Itil   : Bvector;
+     NvalidItems : byte;
+     Sfra,Stil   : integer;
+
+     //------------------ arrays used by calculateExpectedValues1 -------------
+
+     Biasedparameters      : ItemParameterArray;
+     idim,ivalues          : bvector;
+     ItemIsInComponent     : bool_Vector;
+
+
+     // variables for temporary (item ignoring gammavalues)
+     // TempGammaValues will have the same dimension and same address function
+     // as BiasedGammavalues
+
+     TempGammaValuesAllocated : Boolean;
+     Ntempvalues              : Longint;
+     NTempArrays              : Byte;
+     TempGammaValues          : Extended_data_array;
+
+     // the following arrays are needed to define starting values
+
+     CurrentIgamma  : ItemParameterArray;
+     NijCurrent     : Integer;
+     IJCurrent      : item_by_item_info;
+     NixCurrent     : integer;
+     IXCurrent      : item_by_exo_info;
+
+
+     Error                     : boolean;
+     Expected_item_totals      : evector;
+
+     MissingItems,MissingExo                   : Boolean;
+
+     Rowsum,colsum                             : Ivector;
+     Nrows,Nsjl                                : integer;
+
+     procedure CalculateBiasedGammaValues2(Nitems       : Byte;
+                                      item_max          : byte;
+                                      ValidItem         : Bool_vector;
+                                      invalidscore      : integer;
+                                      largest_possible_score : integer;
+                                      Nexogene          : byte;
+                                      Biasdim           : Bvector;
+                                      Igamma            : ItemParameterArray;
+                                      Nij               : Integer;
+                                      IJinfo            : item_by_item_info;
+                                      Nix               : integer;
+                                      IXinfo            : item_by_exo_info;
+                                      NitemComponents   : byte;
+                                      ItemComponents    : Bmatrix;
+                                      UseItemComponents : Bool_vector;
+                                      NgammaArrays      : Byte;
+                                      Bfactor           : Lvector;
+                                      BfactorSum        : Longint;
+                                  Var BiasedgammaValues : Extended_data_array;
+                                      check             : boolean);
+
+     // This procedure calculates and save Gamma values for all combinations of values of DIFsources.
+
+     label slut,igen1,igen2;
+     VAR I          : integer;
+         BiasedIG   : ItemParameterArray;
+         Sgam       : TscoreArray;
+         Gamma0     : Extended_data;  // an array containing zeros
+         BiasValues : Bvector;
+
+         procedure FindGammaValues2;
+         var score,nr : integer;
+         begin
+
+            FindBiasedItemParameters1(Igamma,Nix,IXinfo,BiasValues,BiasedIG);
+
+            Gamma_Calculation(Nitems,item_max,ValidItem,invalidscore,
+                           BiasedIG,Nij,IJinfo,
+                           NitemComponents,ItemComponents,
+                           useitemcomponents,Sgam,check);
+
+            if (Nexogene=0) or (Nix=0) then
+            begin
+                for score:=0 to largest_possible_score do
+                BiasedGammaValues(.1.)^(.score+1.):=Sgam(.score.);
+            end
+            else
+            begin
+                for score:=0 to largest_possible_score do
+                begin
+                    nr:=BgammaNr(score,BiasValues,Nexogene,Bfactor,Bfactorsum);
+                    BiasedGammaAddress(nr,array_no,point);
+                    BiasedGammaValues(.array_no.)^(.point.):=Sgam(.score.);
+                end;
+            end;
+         end;  // of FindGammaValues2
+
+        //..................................................................
+
+     BEGIN // Main procedure CalculateBiasedGammaValues2
+
+        (* ***************************** *)
+        (* Initialize BiasedGammaValues  *)
+        (* *******************************)
+
+        new(Gamma0);
+        
+        for i:=0 to Max_Number_of_extended do gamma0^(.i.):=0.0;  // used to initialize BiasedGammavalues
+
+        for i:=1 to NgammaArrays do BiasedGammaValues(.i.)^:=Gamma0^;
+
+        begin                       
+            biasvalues:=onebytes;
+            FindGammaValues2;
+
+        igen2:
+
+            if LastBiasCombination(BiasValues,BiasDim) then goto slut;
+
+            for i:=1 to nexogene do
+            begin
+                if biasvalues(.i.)<biasdim(.i.) then
+                begin
+                    inc(biasvalues(.i.));
+                    FindGammavalues2;
+                    goto igen2;
+                end
+                else biasvalues(.i.):=1;
+            end;
+        end;
+     slut:
+        Dispose(gamma0);
+
+     END; (* of CalculateBiasedGammaValues2 *)
+
+     //.........................................................................
+
+     Function Item_name(item : byte): string;
+     begin
+         Item_name:=GLLRMnames(.item.);
+     end;
+
+     //.......................................................
+
+     Function Item_category(item : byte; iscore: byte): string;
+     begin
+         Item_category:=GLLRMcategories(.item,iscore.);
+     end;
+
+     //.......................................................
+
+     Function EXO_name(exovar: byte): string;
+     begin
+         EXO_name:=GLLRMnames(.exovar+nitems.);
+     end;
+
+     //.......................................................
+
+     Function EXO_category(exovar : byte; exo: byte): string;
+     begin
+         EXO_category:=GLLRMcategories(.exovar+nitems,exo.);
+     end;
+
+     //.......................................................
+
+     Function RecurringDeltaValues: boolean;
+     begin
+         RecurringDeltaValues:=false;
+         if Nstep>5 then
+         begin
+             if  (Deltavalues(.Nstep.)-Deltavalues(.Nstep-2.)>=0.00001)
+             and (Deltavalues(.Nstep.)-Deltavalues(.Nstep-4.)>=0.00001)
+             and (DeltaValues(.Nstep.)>=2)
+             then RecurringDeltavalues:=true;
+         end;
+     end;  // of RecurringDeltaValues
+
+     //.........................................................................
+
+     Function GammaCellnr1(ScoreAndEXOvalues : Bvector): longint;
+     var i   : Byte;
+         Cnr : Longint;
+     begin
+         Cnr:=ScoreAndEXOValues(.1.)-BfactorSUM;
+
+         FOR I:=2 TO Nexogene+1 DO
+         CNR:=CNR+ScoreAndEXOValues(.I.)*BFACTOR(.I.);
+
+         Gammacellnr1:=Cnr;
+
+         (*********************************************************************************)
+         (*** This was insead of                                                        ***)
+         (*** Gammacellnr1:=BTcellenr(ScoreAndEXOValues,Nexogene+1,Bfactor,Bfactorsum); ***)
+         (*********************************************************************************)
+
+     end; // of GammaCellnr1
+
+     //.........................................................................
+
+     function BiasedGammaValueX(Values: Bvector; BiasedGammaValues: Extended_data_array): extended;
+     var array_no : byte;
+         point : longint;
+     begin
+         array_no := GammaCellnr1(Values) div max_number_of_extended;
+         point    := GammaCellnr1(Values) mod max_number_of_extended;
+         if point=0 then point:=max_number_of_extended
+         else inc(array_no);
+
+         BiasedGammaValueX:=BiasedGammaValues(.array_no.)^(.point.);
+
+     end; // BiasedGammaValueX
+
+     //.........................................................................
+
+     Procedure EXOcellAddress(nr : longint;
+                          var array_no : byte;
+                          var point    : integer);
+     begin
+         array_no := nr div max_number_of_longint;
+         point    := nr mod max_number_of_longint;
+         if point=0 then point:=max_number_of_longint
+                    else inc(array_no);
+     end;  // of EXOcellAddress
+
+     //......................................................
+
+     //.......................................................
+
+     Function EXOcellnr(ScoreAndExovalues : Bvector;
+                        Bfactor           : Lvector;
+                        Bfactorsum        : Longint): longint;
+     begin
+
+         EXOcellnr:=GammaCellnr1(ScoreAndExoValues);
+
+         (*********************************************************************************)
+         (***                          This was instead of                              ***)
+         (*** EXOcellnr:=BTcellenr(ScoreAndExoValues,Nexogene+1,bfactor,bfactorsum);    ***)
+         (*********************************************************************************)
+     end;
+
+     //.........................................................................
+
+     function EXOtableValue(ScoreAndExovalues : bvector;
+                            Bfactor           : Lvector;
+                            Bfactorsum        : Longint): longint;
+     var array_no : byte; point : longint;
+     begin
+         EXOcellAddress(EXOcellnr(ScoreAndExovalues,Bfactor,Bfactorsum),array_no,point);
+         EXOtableValue:=EXOtable(.array_no.)^(.point.);
+     end;
+
+     //-------------------------------------------------------------------------
+
+     procedure CompressEXOvalues(Score             : byte;
+                               Exovalues         : Bvector;
+                          var  ScoreAndExovalues : Bvector);
+     var i : byte;
+     begin
+         ScoreAndExoValues:=OneBytes;
+         ScoreAndExovalues(.1.):=score+1;
+         for i:=1 to nexogene do
+         if BiasDim(.i.)>1 then ScoreAndExoValues(.i+1.):=Exovalues(.i.);
+     end; // of CompressEXOvalues
+
+     //.........................................................................
+
+     function LBiasedGammaValue(ScoreAndExovalues : bvector;
+                               Bfactor           : Lvector;
+                               Bfactorsum        : Longint): extended; // EXOvalues must be compressed
+     var array_no : byte;
+         point : longint;
+     begin
+         array_no := EXOcellnr(ScoreAndExovalues,Bfactor,Bfactorsum) div max_number_of_extended;
+         point    := EXOcellnr(ScoreAndExovalues,Bfactor,Bfactorsum) mod max_number_of_extended;
+         if point=0 then point:=max_number_of_extended else inc(array_no);
+
+         //BiasedGammaAddress(EXOcellnr(ScoreAndExovalues,Bfactor,Bfactorsum),array_no,point);
+
+         LBiasedGammaValue:=BiasedGammaValues(.array_no.)^(.point.);
+     end;
+
+     //.........................................................................
+
+     Procedure Count_GLLRM_Margins;
+     label slut,nextcase,l1,l2,getExo, continue, next;
+
+     VAR I,J,k,point,Nrecords                       : INTEGER;
+         array_no,scoregrp,status                   : byte;
+         THE_ITEMS,THE_EXOGENE,ScoreAndExoValues    : BVECTOR;
+
+         validItems,ValidExos                       : integer;
+
+         indfil                                     : textfile;
+
+         nyttig                                     : boolean;
+
+         //.....................................................................
+
+     begin // main procedure Count_GLLRM_Margins
+
+         (********************)
+         (** initialization **)
+         (********************)
+
+         for i:=1 to 4 do personstatus(.i.):=0;
+
+         Nvalid            :=0;
+
+         for i:=0 to topscore do scdist(.i.):=0;
+
+         IscoreDist:=zeroIntegers;
+
+         for i:=1 to maxitems do for j:=0 to item_topscore do Imarg(.i,j.):=0;
+         for i:=1 to largedim do for j:=0 to dimtop do        Xmarg(.i,j.):=0;
+
+         for i:=1 to Nij do
+         begin
+             for j:=0 to item_topscore do
+             for k:=0 to item_topscore do IJinfo(.i.)^.obsmarg(.j,k.):=0;
+             IJinfo(.i.)^.df:=0;
+         end;
+
+         for i:=1 to Nix do
+         begin
+             for j:=0 to item_topscore do
+             for k:=1 to dimtop do IXinfo(.i.)^.obsmarg(.j,k.):=0;
+             IXinfo(.i.)^.df:=0;
+         end;
+
+         For i:=1 to NEXOarrays do EXOtable(.i.)^:=Tab0^;
+
+         (************************)
+         (** Read GLLRMdata.txt **)
+         (************************)
+
+         assignfile(indfil,'GLLRMdata.txt');
+         reset(indfil);
+         readln(indfil,s);
+
+         while not eof(indfil) do
+         begin
+             for I:=1 to nitems do read(indfil,the_items(.i.));
+
+             if nexogene>0 then
+             for i:=1 to nexogene do read(indfil,the_exogene(.i.));
+
+             readln(indfil,score);
+
+             ValidItems:=0;
+             for i:=1 to nitems do
+             if the_items(.i.)<=highest_item_score(.i.) then inc(ValidItems);
+
+             ValidExos:=0;
+             for i:=1 to nexogene do
+             if (the_exogene(.i.)>=1) and (the_exogene(.i.)<=exo_dim(.i.)) then inc(ValidExos);
+
+
+             if ValidItems+ValidExos=nitems+nexogene then
+             begin
+                 if (leastScore<=score)
+                 and (score<=largestScore)
+                 then nyttig:=true
+                 else nyttig:=false;
+
+                 if nyttig and (nexogene>0) then
+                 for i:=1 to nexogene do
+                 if (The_exogene(.i.)<1)
+                 or (The_exogene(.i.)>Exo_DIM(.i.))
+                 then nyttig:=false;
+
+                 If nyttig then status:=1 else status:=2;
+             end
+             else if ValidItems+ValidExos = 0
+             then status:=4    // all items & exo are missing
+             else status:=3;   // som items or exos are missing
+
+             inc(personstatus(.status.));
+
+             if status>1 then goto next;
+
+             (**********************************************)
+             (** add to IscoreDist,SCdist,Imarg and Xmarg **)
+             (**********************************************)
+
+             for i:=1 to nitems do
+             begin
+                 inc(IscoreDist(.the_items(.i.).));
+                 inc(Imarg(.i,the_items(.i.).));
+             end;
+
+             inc(nvalid);
+
+             inc(SCdist(.score.));
+
+             if nexogene>0 then
+             for i:=1 to nexogene do inc(Xmarg(.i,the_exogene(.i.).));
+
+             if Nij>0 then
+             for k:=1 to Nij do
+             begin
+                 i:=The_items(.IJinfo(.k.)^.item1.);
+                 j:=The_items(.IJinfo(.k.)^.item2.);
+                 IJinfo(.k.)^.obsmarg(.i,j.):=
+                 IJinfo(.k.)^.obsmarg(.i,j.)+1;
+
+                 IJinfo(.k.)^.IJSobs(.i,j,scoregrp.):=
+                 IJinfo(.k.)^.IJSobs(.i,j,scoregrp.)+1;
+             end;
+
+             if Nix>0 then
+             for k:=1 to Nix do
+             begin
+                 i:=The_items(.IXinfo(.k.)^.item.);
+                 j:=The_exogene(.IXinfo(.k.)^.exo.);
+                 IXinfo(.k.)^.obsmarg(.i,j.):=
+                 IXinfo(.k.)^.obsmarg(.i,j.)+1;
+
+                 IXinfo(.k.)^.IXSobs(.i,j,scoregrp.):=
+                 IXinfo(.k.)^.IXSobs(.i,j,scoregrp.)+1;
+             end;
+
+             (** Add 1 to EXOtable **)
+
+             CompressEXOvalues(Score,the_exogene,ScoreAndEXOValues);
+
+             EXOcellAddress(EXOcellnr(ScoreAndEXOValues,Bfactor,Bfactorsum),array_no,point);
+
+             EXOtable(.array_no.)^(.point.):=
+             EXOtable(.array_no.)^(.point.)+1;
+
+
+         next:
+         end;
+
+         closefile(indfil);
+
+     continue:
+
+         IscoreRef:=0;
+         for i:=1 to item_max do
+         if IscoreDist(.i.)>IscoreDist(.IscoreRef.) then IscoreRef:=i;
+
+         (********************************************************)
+         (** calculate degrees of freedom in IJ and IX obsmargs **)
+         (********************************************************)
+
+         if Nij>0 then
+         for k:=1 to Nij do
+         begin
+             colsum:=zerointegers;
+             rowsum:=zerointegers;
+
+             for i:=0 to item_max do
+             for j:=0 to item_max do
+             if IJinfo(.k.)^.obsmarg(.i,j.)>0 then
+             begin
+                 Colsum(.i.):=colsum(.i.)+IJinfo(.k.)^.obsmarg(.i,j.);
+                 Rowsum(.j.):=Rowsum(.i.)+IJinfo(.k.)^.obsmarg(.i,j.);
+             end;
+
+             Nrows:=-1;  Ncols:=-1;
+             for i:=0 to item_max do
+             begin
+                 if colsum(.i.)>0 then inc(Ncols);
+                 if rowsum(.i.)>0 then inc(Nrows);
+             end;
+
+             IJinfo(.k.)^.df:=Nrows*ncols;
+
+             for scoregrp:=1 to scoredim do
+             begin
+                 colsum:=zerointegers;
+                 rowsum:=zerointegers;
+                 for i:=0 to item_max do
+                 for j:=0 to item_max do
+                 if IJinfo(.k.)^.IJSobs(.i,j,scoregrp.)>0 then
+                 begin
+                     Colsum(.i.):=colsum(.i.)+IJinfo(.k.)^.IJSobs(.i,j,scoregrp.);
+                     Rowsum(.j.):=Rowsum(.i.)+IJinfo(.k.)^.IJSobs(.i,j,scoregrp.);
+                 end;
+
+                 Nrows:=-1;  Ncols:=-1;
+                 for i:=0 to item_max do
+                 begin
+                     if colsum(.i.)>0 then inc(Ncols);
+                     if rowsum(.i.)>0 then inc(Nrows);
+                 end;
+
+                 IJinfo(.k.)^.IJS_df(.scoregrp.):=Nrows*ncols;
+             end;
+         end;
+
+         If Nix>0 then
+         for k:=1 to Nix do
+         begin
+             exo:=IXinfo(.k.)^.exo;
+             colsum:=zerointegers;
+             rowsum:=zerointegers;
+             for i:=0 to item_max do
+             for j:=1 to exo_dim(.exo.) do
+             if IXinfo(.k.)^.obsmarg(.i,j.)>0 then
+             begin
+                 Colsum(.i.):=colsum(.i.)+IXinfo(.k.)^.obsmarg(.i,j.);
+                 Rowsum(.j.):=Rowsum(.j.)+IXinfo(.k.)^.obsmarg(.i,j.);
+             end;
+
+             Nrows:=-1;  Ncols:=-1;
+             for i:=0 to item_max do
+             begin
+                 if colsum(.i.)>0 then inc(Ncols);
+             end;
+
+             for j:=1 to exo_dim(.exo.) do
+             begin
+                 if rowsum(.j.)>0 then inc(Nrows);
+             end;
+
+             IXinfo(.k.)^.df:=Nrows*ncols;
+
+             for scoregrp:=1 to scoredim do
+             begin
+                 colsum:=zerointegers;
+                 rowsum:=zerointegers;
+                 for i:=0 to item_max do
+                 for j:=1 to exo_dim(.exo.) do
+                 if IXinfo(.k.)^.IXSobs(.i,j,scoregrp.)>0 then
+                 begin
+                     Colsum(.i.):=colsum(.i.)+IXinfo(.k.)^.IXSobs(.i,j,scoregrp.);
+                     Rowsum(.j.):=Rowsum(.j.)+IXinfo(.k.)^.IXSobs(.i,j,scoregrp.);
+                 end;
+
+                 Nrows:=-1;  Ncols:=-1;
+
+                 for i:=0 to item_max do
+                 begin
+                     if colsum(.i.)>0 then inc(Ncols);
+                 end;
+
+                 for j:=1 to exo_dim(.exo.) do
+                 begin
+                     if rowsum(.j.)>0 then inc(Nrows);
+                 end;
+
+                 IXinfo(.k.)^.IXS_df(.scoregrp.):=Nrows*ncols;
+             end;
+         end;
+
+     slut:
+
+     end; // of COUNT_GLLRM_MARGINS
+
+     //........................................................
+
+
+     procedure InitializeParameters;
+     label videre1,videre2;
+     var i,j,k: byte;
+     begin
+         // item parameters
+
+         Igamma:=initial_item_parameters;
+         for i:=1 to Nitems do
+         for j:=0 to item_topscore do
+         if Imarg(.i,j.)>0 then Igamma(.i,j.):=1.0 else Igamma(.i,j.):=0.0;
+
+         for i:=Nitems+1 to maxitems do
+         for j:=0 to item_topscore do Igamma(.i,j.):=0.0;
+
+         // item-by-item parameters
+
+         if Nij>0 then
+         for k:=1 to Nij do
+         begin
+             for i:=0 to item_topscore do
+             for j:=0 to item_topscore do
+             if IJinfo(.k.)^.obsmarg(.i,j.)>0 then IJinfo(.k.)^.parameters(.i,j.):=1.0
+                                              else IJinfo(.k.)^.parameters(.i,j.):=0.0;
+         end;
+
+         // item-by-exo parameters
+
+         if Nix>0 then
+         for k:=1 to Nix do
+         begin
+             for i:=0 to item_topscore do
+             for j:=0 to dimtop do
+             if IXinfo(.k.)^.obsmarg(.i,j.)>0 then IXinfo(.k.)^.parameters(.i,j.):=1.0
+                                              else IXinfo(.k.)^.parameters(.i,j.):=0.0;
+         end;
+
+         fillchar(ifra,sizeof(ifra),0);
+         Itil:=ifra;
+         for i:=1 to nitems do itil(.i.):=item_max;
+
+         for i:=1 to Nitems do
+         begin
+             for j:=0 to item_max do
+             begin
+                if Imarg(.i,j.)>0 then goto videre1 else Ifra(.i.):=j+1;
+             end;
+         videre1:
+         end;
+
+         for i:=1 to Nitems do
+         begin
+             for j:=item_max downto 0 do
+             begin
+                 if Imarg(.i,j.)>0 then goto videre2 else Itil(.i.):=j-1;
+             end;
+         videre2:
+         end;
+
+         NvalidItems:=0;
+         ValidItem:=TrueVector;
+         invalidscore:=0;
+
+         for i:=1 to nitems do
+         if ifra(.i.)=itil(.i.) then
+         begin
+             ValidItem(.i.):=false;
+             invalidscore:=invalidscore+ifra(.i.);
+         end
+         else inc(NvalidItems);
+
+         sfra:=0;
+         stil:=0;
+
+         for i:=1 to nitems do
+         begin
+             sfra:=sfra+ifra(.i.);
+             stil:=stil+itil(.i.);
+         end;
+     end; // of InitializeParameters
+
+     //....................................................................
+
+     Procedure IPFstep1(Nstep: integer; var error: boolean);
+                      // error will be true if expected item totals differ
+
+     (*********************************************************************)
+     (*** the first step of the IPF calculates expected values of the   ***)
+     (*** sufficient statistics                                         ***)
+     (***            exp_marg(.item,itemscore.)                         ***)
+     (***            IXinfo(.k.)^.expmarg(.itemscore,exovalue.)         ***)
+     (***            IJinfo(.k.)^.expmarg(.i1,i2.)                      ***)
+     (*********************************************************************)
+
+     label videre;
+     var i,j,k,score,sc,scfra,sctil : integer;
+         ItemComp     : byte;
+         UseItemComp  : Bool_vector;
+         sc1,sc2,n    : integer;
+         g,g1,g2,e    : extended;
+
+         BiasedIfra,BiasedItil,BiasedIdim : Bvector;
+
+         //....................................................................
+
+         Procedure CalculateBiasedParameters; // invoked by RunThroughBiasvalues
+         label videre1,videre2;
+         var i,exovar,item,first,last : byte;
+             k             : integer;
+         begin
+             Biasedparameters:=Igamma;
+             BiasedIfra:=Ifra;
+             BiasedItil:=Itil;
+             BiasedIdim:=Idim;
+
+             if Nix>0 then
+             for k:=1 to Nix do
+             begin
+                 item:=IXinfo(.k.)^.item;
+                 If ItemIsInComponent(.item.) then
+                 begin
+                     exovar:=IXinfo(.k.)^.exo;
+                     exovalue:=BiasValues(.exovar.);
+
+                     for i:=0 to item_max do
+                     BiasedParameters(.item,i.):=BiasedParameters(.item,i.)
+                                                *IXinfo(.k.)^.parameters(.i,exovalue.);
+                     First:=Ifra(.item.);
+                     Last:=Itil(.item.);
+
+                     for I:=ifra(.item.) to Itil(.item.) do
+                     if BiasedParameters(.item,i.)>0.0 then
+                     begin
+                         First:=i;
+                         goto videre1;
+                     end;
+
+                 videre1:
+
+                     BiasedIfra(.item.):=first;
+
+                     for I:=itil(.item.) downto Ifra(.item.) do
+                     if BiasedParameters(.item,i.)>0.0 then
+                     begin
+                         last:=i;
+                         goto videre2;
+                     end;
+                 videre2:
+
+                     BiasedItil(.item.):=last;
+                 end;
+
+             end;
+
+         end; // of CalculateBiasedParameters in IPFstep
+
+         // ..................................................................
+
+         procedure RunThroughItemComponent;
+         label igen,videre,slut;
+         var i                    : byte;
+             continue             : boolean;
+             firstscore,lastscore : integer;
+
+             procedure CalculateSubscoreAndG1;
+             var i,j,item1,item2,k : byte;
+
+             begin
+                 sc1 := 0;
+                 k   := 0;
+                 g1  := 1.0;
+
+                 for i:=1 to nitems do
+                 if itemisincomponent(.i.) then
+                 begin
+                     sc1:=sc1+ivalues(.i.);
+                     inc(k);
+                     g1:=g1*BiasedParameters(.i,ivalues(.i.).);
+                 end;
+
+                 // multiply local dependence parameters here
+
+                 if (NijCombInComp(.itemComp.)>0) then
+                 for i:=1 to NijCombInComp(.itemComp.) do
+                 begin
+                     j:=IJcombInComp(.itemcomp,i.);
+                     item1:=IJinfo(.j.)^.item1;
+                     item2:=IJinfo(.j.)^.item2;
+                     g1:=g1*IJinfo(.j.)^.parameters(.ivalues(.item1.),ivalues(.item2.).);
+                 end;
+
+                 // there are k items in component and nitems-k items outside
+                 // the obtainable scores with this combination is therefore
+                 // given by the following limits:
+
+                 firstscore:=sc1;
+                 if firstscore<scfra then firstscore:=scfra;
+
+                 lastscore:=sc1+(nitems-k)*item_max;
+                 if lastscore>Sctil then lastscore:=sctil;
+
+             end; // of CalculateSubscoreAndG1 in RunThroughItemComponent
+
+             //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+             procedure AddExpectedCountToItemMargins(score: integer; expected: extended);
+                                                 // score is the total score on all items
+
+             var i,item,item1,item2,exovar,exovalue,i1,i2,itemscore   : byte;
+                 k                                                    : integer;
+             begin
+                 // first item margins and IX margins
+
+                 for item:=1 to nitems do
+                 IF ItemIsInComponent(.item.) and validItem(.item.) then
+                 begin
+                     itemscore:=ivalues(.item.);
+
+                     exp_marg(.item,itemscore.):=
+                     exp_marg(.item,itemscore.)+expected;
+
+                     if Nix>0 then
+                     for k:=1 to Nix do
+                     if item=IXinfo(.k.)^.item then
+                     begin
+                         exovar:=IXinfo(.k.)^.exo;
+                         exovalue:=Biasvalues(.exovar.);
+                         IXinfo(.k.)^.expmarg(.itemscore,exovalue.):=
+                         IXinfo(.k.)^.expmarg(.itemscore,exovalue.)+expected;
+                     end;
+                 end;
+
+                 // then the IJ margins
+
+                 if NIJcombincomp(.itemcomp.)>0 then
+                 begin
+                     for i:=1 to NIJcombINComp(.itemcomp.) do
+                     begin
+                         k:=IJcombinComp(.itemcomp,i.);
+                         item1:=IJinfo(.k.)^.item1;
+                         item2:=IJinfo(.k.)^.item2;
+                         if validItem(.item1.) and ValidItem(.item2.) then
+                         begin
+                             i1:=ivalues(.item1.);
+                             i2:=ivalues(.item2.);
+                             IJinfo(.k.)^.expmarg(.i1,i2.):=
+                             IJinfo(.k.)^.expmarg(.i1,i2.)+expected;
+                         end;
+                     end;
+                 end;
+             end; // of AddExpectedCountToItemMargins in RunThroughItemComponent
+
+             //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+             Procedure CalculateExpectedCounts;
+             var sc   : integer;
+                 values : Bvector;
+             begin
+                 CalculateSubscoreAndG1;
+
+                 // G1 := the product of parameters relating to the component
+
+                 for sc:=firstscore to lastscore do
+                 begin
+                     sc2:=sc-sc1;
+
+                     if Nis=0
+                     then
+                     CompressExoValues(Sc,Biasvalues,Values)
+                     else
+                     CompressExoValues1(Sc,Biasvalues,Values);
+
+
+                     n := EXOTableValue(Values,Bfactor,BfactorSum);
+
+                     if n>0 then
+                     begin
+                         CompressExoValues(Sc,Biasvalues,Values);
+
+                         g   := BiasedGammaValueX(Values,BiasedGammaValues);
+
+                         if g>0.0 then
+                         begin
+                             sc2 := sc-sc1;
+
+                             CompressExoValues(Sc2,Biasvalues,Values);
+
+                             g2  := BiasedgammaValuex(Values,TempGammaValues);
+                             e:=g1*g2*(n/g);
+                         end
+                         else e:=0.0;
+
+                         AddExpectedCountToItemMargins(sc,e);
+
+                     end;
+                 end;
+             end; // of CalculateExpectedCounts in RunThroughItemComponent
+
+             //. . . .  . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+         begin  // RunThroughItemComponent starts here
+
+             // idim has been defined
+
+             ivalues:=BiasedIfra; //ifra;
+
+             CalculateExpectedCounts;
+
+         igen:
+
+             continue:=false;
+             for i:=1 to nitems do
+             if ivalues(.i.)<idim(.i.) then
+             begin
+                 continue:=true;
+                 goto videre;
+             end;
+
+         videre:
+
+             if not continue then goto slut;
+
+             for i:=1 to nitems do
+             if ivalues(.i.)<idim(.i.) then
+             begin
+                 inc(ivalues(.i.));
+                 CalculateExpectedCounts;
+                 goto igen;
+             end
+             else
+             if ivalues(.i.)>BiasedIfra(.i.) then ivalues(.i.):=BiasedIfra(.i.);
+
+         slut:
+         end; // of RunThroughItemComponent in IPFstep
+
+         //.....................................................................
+
+         procedure RunThroughBiasValues; // IPFstep1
+         label igen,videre,slut;
+         var i          : byte;
+             continue   : boolean;
+             xtra       : byte;
+         begin
+             if Nis>0 then
+             begin
+                 xtra:=1;
+                 BiasDim(.nexogene+1.):=scoredim;
+             end
+             else xtra:=0;
+
+
+             Biasvalues:=OneBytes;
+
+             CalculateBiasedParameters;
+
+             // BiasedParameters(.item,i.) = Itemparameters multiplied by the effect of bias
+
+             RunThroughItemComponent;
+
+             If Nix=0 then goto slut;
+
+         igen:
+             // check that we are not finished
+
+             continue:=false;
+
+             for i:=1 to nexogene+xtra do
+             if BiasValues(.i.)<BiasDim(.i.) then
+             begin
+                 continue:=true;
+                 goto videre;
+             end;
+
+             if not continue then goto slut;
+
+         videre:
+
+             For I:=1 to nexogene+xtra do
+             begin
+                 if BiasValues(.i.)<BiasDim(.i.) then
+                 begin
+                     inc(BiasValues(.i.));
+
+                     calculateBiasedParameters;
+                     RunThroughItemComponent;
+                     goto igen;
+                 end
+                 else
+                 if BiasValues(.i.)>1 then BiasValues(.i.):=1;
+             end;
+
+         slut:
+         end; // of RunThroughBiasValues in IPFstep
+
+         // ....................................................................
+
+     begin // IPFstep1 procedure
+
+         exp_marg:=exp_marg0;
+
+
+         // initialize margins in IJinfo and IXinfo
+         // IJiit and IXinit are global records
+         // defined in BiasVars with varables equal to zero
+
+         if Nij>0 then for k:=1 to Nij do
+         begin
+             IJinfo(.k.)^.expmarg:=IJinit.expmarg;
+             IJinfo(.k.)^.IJSobs:=IJinit.IJSobs;
+             IJinfo(.k.)^.IJSexp:=IJinit.IJSexp;
+         end;
+
+         if Nix>0 then for k:=1 to Nix do
+         begin
+             IXinfo(.k.)^.expmarg:=IXinit.expmarg;
+             IXinfo(.k.)^.IXSobs:=IXinit.IXSobs;
+             IXinfo(.k.)^.IXSexp:=IXinit.IXSexp;
+         end;
+
+         // define scorelimits within which expected values will be calculated
+
+         Scfra:=LeastScore;      // used to define Firstscore  in RunThroughItemComoponent
+         Sctil:=largestScore;    // used to define Lastscore   in most cases = Highest_possible_score
+                                 // LeastScore and LargestScore are parameters of estimate_GLLRM
+
+
+         (*************************************************************************)
+         (**** expected counts will be calculated separately for each component ***)
+         (**** conditionally given total scores and values of DIF sources       ***)
+         (*************************************************************************)
+
+
+        (***********************************************************************
+        (***                                                                 ***
+        (*** Estimation starts here - one item component at a time           ***)
+        (***                                                                 ***)
+        (***********************************************************************)
+
+         for itemcomp:=1 to NitemComponents do
+         begin
+             (*****************************************)
+             (*** collect info on the item component **)
+             (*****************************************)
+
+             idim:=ifra;
+             ItemIsIncomponent := falseVector;
+
+             // define idim controlling itemvalues (ivalues) for the component
+
+             for i:=1 to nitems do
+             if itemcomponents(.itemcomp,i.)>0 then
+             begin
+                 idim(.i.):=itil(.i.);
+                 ItemIsInComponent(.i.):=true;
+             end;
+
+
+             (*****************************************************)
+             (** calculate TempGammaValues without the component **)
+             (*****************************************************)
+
+             TempInvalidscore:=0;
+
+             for i:=1 to nitems do
+             if not ItemIsInComponent(.i.) and not ValidItem(.i.)
+             then TempInvalidScore:=TempInvalidScore+Itil(.i.);
+
+             UseItemComp:=TrueVector;
+             UseItemComp(.itemcomp.):=false;
+
+             CalculateBiasedGammaValues2(Nitems,item_max,ValidItem,TempInvalidscore,largest_possible_score,
+                                         Nexogene,BiasDim,Igamma,
+                                         Nij,IJinfo,Nix,IXinfo,
+                                         NitemComponents,ItemComponents,UseItemComp,
+                                         NTempArrays,Bfactor,BfactorSum,TempGammaValues,false);  // no check
+             RunThroughBiasValues; // Uses CalculateBiasedParameters
+                                   // and  RunThroughItemComponent
+         end; // of an itemcomp
+
+
+        (***********************************************************************)
+        (** Results are ready. We just have to set observed equal to expected **)
+        (** for invalid items and check that no errors have been made         **)
+        (***********************************************************************)
+
+        for i:=1 to nitems do
+        if not ValidItem(.i.) then
+        begin
+            for j:=0 to item_max do exp_marg(.i,j.):=Imarg(.i,j.);
+        end;
+
+        // remember IJ and IX for invalid items
+
+        if Nij>0 then
+        for k:=1 to Nij do
+        begin
+            i:=IJinfo(.k.)^.item1;
+            j:=IJinfo(.k.)^.item2;
+            if not ValidItem(.i.) or not ValidItem(.j.) then
+            for i:=0 to item_max do
+            for j:=0 to item_max do
+            IJInfo(.k.)^.expmarg(.i,j.):=IJinfo(.k.)^.obsmarg(.i,j.);
+        end;
+
+        if Nix>0 then
+        for k:=1 to Nix do
+        begin
+            i:=IXinfo(.k.)^.item;
+            j:=IXinfo(.k.)^.exo;
+
+            if not ValidItem(.i.) then
+            for i:=0 to item_max do
+            for j:=1 to dimtop do
+            IXInfo(.k.)^.expmarg(.i,j.):=IXinfo(.k.)^.obsmarg(.i,j.);
+        end;
+
+        for i:=1 to nitems do expected_item_totals(.i.):=0;
+
+        for k:=0 to Item_Max do
+        for i:=1 to nitems do
+        expected_item_totals(.i.):=expected_item_totals(.i.)+ Exp_marg(.i,k.);
+
+
+        error:=false;
+        for i:=1 to nitems do
+        if abs(expected_item_totals(.i.)-nvalid) > 0.0000000001 then
+        begin
+            error:=true;
+        end;
+
+     end; // of IPFstep1
+
+     //.........................................................................
+
+     Procedure FIND_NEW_GAMMA;
+     var i,j : byte;
+         d   : extended;
+     begin
+        FOR I:=1 TO NITEMS DO
+        if ValidItem(.i.) then
+        BEGIN
+            FOR J:=ifra(.i.) to itil(.i.) DO
+            if Imarg(.i,j.)>0 then
+            begin
+                D:=ABS(EXP_MARG(.I,J.)-IMARG(.I,J.));
+                IF D>DELTA THEN DELTA:=D;
+
+                If Exp_marg(.i,j.)>0.0 then
+                IGAMMA(.I,J.):=
+                IGAMMA(.I,J.)*(IMARG(.I,J.)/EXP_MARG(.I,J.));
+            end
+            ELSE IGAMMA(.I,J.):=0;
+        END;
+     end; // of FIND_NEW_GAMMA;
+
+     //.........................................................................
+
+     Procedure FIND_NEW_IGAMMA;
+     var i,j : byte;
+         d   : extended;
+     begin
+        FOR I:=1 TO NITEMS DO
+        if ValidItem(.i.) then
+        BEGIN
+            FOR J:=ifra(.i.)+1 to itil(.i.) DO     // the onlu difference compared to Find_new_gamma is here
+            if Imarg(.i,j.)>0 then                 // where J steps from ifra(.i.)+1 insteda of Ifra(.i.)
+            begin
+                D:=ABS(EXP_MARG(.I,J.)-IMARG(.I,J.));
+                IF D>DELTA THEN DELTA:=D;
+
+                If Exp_marg(.i,j.)>0.0 then
+                IGAMMA(.I,J.):=
+                IGAMMA(.I,J.)*(IMARG(.I,J.)/EXP_MARG(.I,J.));
+            end
+            ELSE IGAMMA(.I,J.):=0;
+        END;
+     end; // of FIND_NEW_IGAMMA
+
+     //........................................................
+
+     procedure Find_new_IJparameters;
+     label videre;
+     var k   : integer;
+         i,j,item1,item2 : byte;
+         d : extended;
+     begin
+         for k:=1 to Nij do
+         begin
+             item1:=IJinfo(.k.)^.item1;
+             if not validitem(.item1.) then goto videre;
+             item2:=IJinfo(.k.)^.item2;
+             if not validitem(.item2.) then goto videre;
+
+             for i:=0 to item_max do
+             for j:=0 to item_max do
+             if (IJinfo(.k.)^.obsmarg(.i,j.)>0) and (IJinfo(.k.)^.expmarg(.i,j.)>0.0)
+             then
+             begin
+                 d:=abs(IJinfo(.k.)^.obsmarg(.i,j.)-IJinfo(.k.)^.expmarg(.i,j.));
+                 if d>delta then delta:=d;
+                 IJinfo(.k.)^.parameters(.i,j.):=
+                 IJinfo(.k.)^.parameters(.i,j.)*
+                 (IJinfo(.k.)^.obsmarg(.i,j.)/IJinfo(.k.)^.expmarg(.i,j.));
+             end
+             else
+             IJinfo(.k.)^.parameters(.i,j.):=0.0;
+         videre:
+         end;
+     end; // of Find_new_IJparameters
+
+     //........................................................
+
+     procedure Find_new_IXparameters;
+     label videre;
+     var k          : integer;
+         i,j,exovar,item : byte;
+         d               : extended;
+     begin
+         if Nix>0 then
+         for k:=1 to Nix do
+         begin
+             item   := IXinfo(.k.)^.item;
+
+             if not validitem(.item.) then goto videre;
+
+             exovar := IXinfo(.k.)^.exo;
+
+             for i:=0 to item_max do
+             //for j:=LeastExovalues(.exovar.) to LargestEXOvalues(.exovar.) do
+             for j:=1 to EXO_dim(.exovar.) do
+             if IXinfo(.k.)^.expmarg(.i,j.)>0.00 then
+             begin
+                 d:=abs(IXinfo(.k.)^.obsmarg(.i,j.)-IXinfo(.k.)^.expmarg(.i,j.));
+                 if d>delta then delta:=d;
+                 IXinfo(.k.)^.parameters(.i,j.):=
+                 IXinfo(.k.)^.parameters(.i,j.)*
+                 (IXinfo(.k.)^.obsmarg(.i,j.)/IXinfo(.k.)^.expmarg(.i,j.));
+             end
+             else
+             IXinfo(.k.)^.parameters(.i,j.):=0.0;
+         videre:
+         end;
+     end; // of Find_new_IXparameters
+
+     //.........................................................
+
+(**) Procedure ADJUST_GAMMA0;
+     label Ividere;
+     VAR I,J               : BYTE;
+         LAST_SGAMMA,ALPHA : EXTENDED;
+         Smax,Smin         : integer;
+     BEGIN
+         LAST_SGAMMA:=1;  // the value of the score gamma for the largest score
+                          // equal to the product of the item gamma values for the
+                          // largest item score
+
+         Smax:=0;
+         Smin:=0;
+
+         FOR I:=1 TO NITEMS DO
+         if validitem(.i.) then
+         BEGIN
+             FRA:=Ifra(.i.);
+             TIL:=Itil(.i.);
+             Smax:=Smax+til;
+             Smin:=Smin+fra;
+
+             ALPHA:=IGAMMA(.I,FRA.);
+
+             if alpha>0.0 then
+             FOR J:=FRA TO TIL DO
+             IGAMMA(.I,J.):=IGAMMA(.I,J.)/ALPHA;
+
+             if IGAMMA(.I,TIL.)>0.00 then
+             LAST_SGAMMA:=LAST_SGAMMA*IGAMMA(.I,til.);
+
+         Ividere:
+         END;
+
+
+         if Smax-Smin>0 then
+         ALPHA:=-LN(LAST_SGAMMA)/(Smax-Smin);   // Dived by Smax if Smin = 0
+
+         // finally adjust Iparms so that Last_sgamma = 1
+
+         FOR I:=1 TO NITEMS DO
+         if validItem(.i.) then
+         BEGIN
+             FRA:=Ifra(.i.);
+             TIL:=Itil(.i.);
+
+             FOR J:=FRA TO TIL DO
+             IGAMMA(.I,J.):=EXP((J-fra)*ALPHA)*IGAMMA(.I,J.);
+         END
+         else
+         Igamma(.i,itil(.i.).):=1; // the only observed item value
+     END; (* of ADJUST_GAMMA0 *)
+
+     //.........................................................................
+
+     Procedure Adjust_IJparameters(var Iref,Jref : byte);
+     label videre,Ividere,Jvidere;
+     var i,j,i1,i2 : byte;
+         k         : integer;
+         ad,bc     : extended;
+         oldparm   : item_by_item_exparray;
+         oldIXparm   : item_by_exo_exparray;
+
+         Ifirst,Jfirst : evector;
+         IJfirst,IJref : extended;
+
+         Icells,Jcells : bvector; // the number of cells with positive counts
+         Ipos,Jpos     : byte;
+         PositiveIJref,CompleteRef : boolean;
+
+     begin
+         for k:=1 to Nij do
+         begin
+             i1:=IJinfo(.k.)^.item1;
+             i2:=IJinfo(.k.)^.item2;
+
+             Icells:=ZeroBytes;
+             Jcells:=ZeroBytes;
+
+             for i:=0 to item_max do
+             for j:=0 to item_max do
+             if IJinfo(.k.)^.obsmarg(.i,j.)>0.0 then
+             begin
+                 inc(Icells(.i.));
+                 inc(Jcells(.j.));
+             end;
+
+             if Icells(.Iref.)<item_max+1 then
+             begin
+                 if icells(.itil(.i1.).)= item_max+1
+                 then Iref:=itil(.i1.)
+                 else
+                 for i:=0 to item_max do
+                 if Icells(.i.)>Icells(.Iref.) then Iref:=i;
+             end;
+
+             if Jcells(.Jref.)<item_max+1 then
+             begin
+                 if jcells(.itil(.i2.).)= item_max+1
+                 then Jref:=itil(.i2.)
+                 else
+                 for j:=0 to item_max do
+                 if Jcells(.j.)>Jcells(.Jref.) then Jref:=j;
+             end;
+
+             IJref:=IJinfo(.k.)^.parameters(.iref,Jref.);
+             If IJref>0.0 then PositiveIJref:=true else PositiveIJref:=false;
+
+             If  (Icells(.iref.)=item_max+1)
+             and (Jcells(.jref.)=item_max+1)
+             then CompleteRef:=true else CompleteRef:=false;
+
+             Ipos:=0;
+             Jpos:=0;
+
+             for i:=0 to item_max do
+             begin
+                 If Icells(.i.)>0 then Inc(Ipos);
+                 If Jcells(.i.)>0 then Inc(Jpos);
+             end;
+
+             // find reference parameter values for I
+
+             for i:=0 to item_max do
+             begin
+                 Ifirst(.i.):=IJinfo(.k.)^.parameters(.i,jref.);
+                 If Ifirst(.i.)=0.0 then
+                 for j:=0 to item_max do
+                 begin
+                     if IJinfo(.k.)^.obsmarg(.i,j.)>0.0 then
+                     begin
+                         Ifirst(.i.):=IJinfo(.k.)^.parameters(.i,j.);
+                         goto Ividere;
+                     end;
+                 end;
+             Ividere:
+             end;
+
+             for j:=0 to item_max do
+             begin
+                 Jfirst(.j.):=IJinfo(.k.)^.parameters(.iref,j.);
+                 If Jfirst(.j.)=0.0 then
+                 for i:=0 to item_max do
+                 begin
+                     if IJinfo(.k.)^.obsmarg(.i,j.)>0 then
+                     begin
+                         Jfirst(.j.):=IJinfo(.k.)^.parameters(.i,j.);
+                         goto Jvidere;
+                     end;
+                 end;
+             Jvidere:
+             end;
+
+         videre:
+
+             If CompleteRef then
+             begin
+                 oldparm:=IJinfo(.k.)^.parameters;
+
+                 for i:=0 to item_max do
+                 for j:=0 to item_max do
+                 if IJinfo(.k.)^.obsmarg(.i,j.)>0 then
+                 begin
+                     ad:=(oldparm(.i,j.)*IJref);
+                     bc:=(Jfirst(.j.)*Ifirst(.i.));
+                     if bc>0 then
+                     IJinfo(.k.)^.parameters(.i,j.):=ad/bc
+                     else
+                     IJinfo(.k.)^.parameters(.i,j.):=0;
+                 end
+                 else IJinfo(.k.)^.parameters(.i,j.):=0.0;
+             end
+             else
+             If (Ipos>1) and (Jpos>1) and PositiveIJref then
+             begin
+                 oldparm:=IJinfo(.k.)^.parameters;
+
+
+                 for i:=0 to item_max do
+                 for j:=0 to item_max do
+                 if IJinfo(.k.)^.obsmarg(.i,j.)>0 then
+                 begin
+                     ad:=(oldparm(.i,j.)*IJref);
+                     bc:=(Jfirst(.j.)*Ifirst(.i.));
+
+                     IJinfo(.k.)^.parameters(.i,j.):=ad/bc;
+                 end
+                 else IJinfo(.k.)^.parameters(.i,j.):=0.0;
+             end
+             else
+             for i:=0 to item_max do
+             for j:=0 to item_max do
+             if IJinfo(.k.)^.obsmarg(.i,j.)>0.0
+             then IJinfo(.k.)^.parameters(.i,j.):=1
+             else IJinfo(.k.)^.parameters(.i,j.):=0;
+         end;
+     end; // of Adjust_IJparameters
+
+     //......................................................
+
+     Procedure Adjust_IJparameters0(newIref, NewJref : Byte; var Iref,Jref : byte);
+
+     // This procedure readjust IJ parameters to a new set of reference values
+     // Item parameters are also adjusted
+
+     label videre,Ividere,Jvidere;
+     var i,j,i1,i2                    : byte;
+         k                            : integer;
+         ad,bc                        : extended;
+         oldparm                      : item_by_item_exparray;
+         oldIXparm                    : item_by_exo_exparray;
+
+         Ifirst,Jfirst                : evector;
+         IJfirst,IJref                : extended;
+
+         Icells,Jcells                : bvector; // the number of cells with positive counts
+         OldIref,OldJref              : byte;
+         Ipos,Jpos                    : byte;
+         PositiveIJref,CompleteRef    : boolean;
+
+     begin
+
+         OldIref:=Iref;  Iref:=newIref;
+         OldJref:=Jref;  Jref:=newJref;
+
+
+         for k:=1 to Nij do
+         begin
+             OldIref:=Iref;  Iref:=newIref;
+             OldJref:=Jref;  Jref:=newJref;
+             i1:=IJinfo(.k.)^.item1;
+             i2:=IJinfo(.k.)^.item2;
+
+             Icells:=ZeroBytes;
+             Jcells:=ZeroBytes;
+
+             for i:=0 to item_max do
+             for j:=0 to item_max do
+             if IJinfo(.k.)^.obsmarg(.i,j.)>0.0 then
+             begin
+                 inc(Icells(.i.));
+                 inc(Jcells(.j.));
+             end;
+
+             if Icells(.Iref.)<item_max+1 then
+             begin
+                 if icells(.itil(.i1.).)= item_max+1
+                 then Iref:=itil(.i1.)
+                 else
+                 for i:=1 to item_max do
+                 if Icells(.i.)>Icells(.Iref.) then Iref:=i;
+             end;
+
+             if Jcells(.Jref.)<item_max+1 then
+             begin
+                 if jcells(.itil(.i2.).)= item_max+1
+                 then Jref:=itil(.i2.)
+                 else
+                 for j:=1 to item_max do
+                 if Jcells(.j.)>Jcells(.Jref.) then Jref:=j;
+             end;
+
+             IJref:=IJinfo(.k.)^.parameters(.iref,Jref.);
+             If IJref>0.0 then PositiveIJref:=true else PositiveIJref:=false;
+
+             If  (Icells(.iref.)=item_max+1)
+             and (Jcells(.jref.)=item_max+1)
+             then CompleteRef:=true else CompleteRef:=false;
+
+             Ipos:=0;
+             Jpos:=0;
+
+             for i:=0 to item_max do
+             begin
+                 If Icells(.i.)>0 then Inc(Ipos);
+                 If Jcells(.i.)>0 then Inc(Jpos);
+             end;
+
+             // find reference parameter values for I
+
+             for i:=0 to item_max do
+             begin
+                 Ifirst(.i.):=IJinfo(.k.)^.parameters(.i,jref.);
+                 If Ifirst(.i.)=0.0 then
+                 for j:=0 to item_max do
+                 begin
+                     if IJinfo(.k.)^.obsmarg(.i,j.)>0.0 then
+                     begin
+                         Ifirst(.i.):=IJinfo(.k.)^.parameters(.i,j.);
+                         goto Ividere;
+                     end;
+                 end;
+             Ividere:
+             end;
+
+             for j:=0 to item_max do
+             begin
+                 Jfirst(.j.):=IJinfo(.k.)^.parameters(.iref,j.);
+                 If Jfirst(.j.)=0.0 then
+                 for i:=0 to item_max do
+                 begin
+                     if IJinfo(.k.)^.obsmarg(.i,j.)>0 then
+                     begin
+                         Jfirst(.j.):=IJinfo(.k.)^.parameters(.i,j.);
+                         goto Jvidere;
+                     end;
+                 end;
+             Jvidere:
+             end;
+
+         videre:
+
+             If CompleteRef then
+             begin
+                 oldparm:=IJinfo(.k.)^.parameters;
+
+                 for i:=0 to item_max do
+                 for j:=0 to item_max do
+                 if IJinfo(.k.)^.obsmarg(.i,j.)>0 then
+                 begin
+                     ad:=(oldparm(.i,j.)*IJref);
+                     bc:=(Jfirst(.j.)*Ifirst(.i.));
+                     if bc>0 then
+                     IJinfo(.k.)^.parameters(.i,j.):=ad/bc
+                     else
+                     IJinfo(.k.)^.parameters(.i,j.):=0;
+                 end
+                 else IJinfo(.k.)^.parameters(.i,j.):=0.0;
+                 for i:=0 to item_max do
+                 begin
+                     Igamma(.i1,i.):=Igamma(.i1,i.)*Ifirst(.i.);
+                     Igamma(.i2,i.):=Igamma(.i2,i.)*Jfirst(.i.);
+                 end;
+             end
+             else
+             If (Ipos>1) and (Jpos>1) and PositiveIJref then
+             begin
+                 oldparm:=IJinfo(.k.)^.parameters;
+
+                 for i:=0 to item_max do
+                 for j:=0 to item_max do
+                 if IJinfo(.k.)^.obsmarg(.i,j.)>0 then
+                 begin
+                     ad:=(oldparm(.i,j.)*IJref);
+                     bc:=(Jfirst(.j.)*Ifirst(.i.));
+
+                     IJinfo(.k.)^.parameters(.i,j.):=ad/bc;
+                 end
+                 else IJinfo(.k.)^.parameters(.i,j.):=0.0;
+
+                 for i:=0 to item_max do
+                 begin
+                     Igamma(.i1,i.):=Igamma(.i1,i.)*Ifirst(.i.);
+                     Igamma(.i2,i.):=Igamma(.i2,i.)*Jfirst(.i.);
+                 end;
+             end
+             else
+             for i:=0 to item_max do
+             for j:=0 to item_max do
+             if IJinfo(.k.)^.obsmarg(.i,j.)>0.0
+             then IJinfo(.k.)^.parameters(.i,j.):=1
+             else IJinfo(.k.)^.parameters(.i,j.):=0;
+         end;
+     end; // of Adjust_IJparameters0
+
+     //......................................................
+
+(**) Procedure Adjust_IXparameters(var Iref,xref : byte);
+     label videre,Ividere,Xvidere;
+     var i,j,i1,i2 : byte;
+         k         : integer;
+         ad,bc     : extended;
+         oldparm   : item_by_exo_exparray;
+
+         Ifirst,Xfirst : evector;
+         IXfirst,IXref : extended;
+
+         edim    : byte;
+
+         Icells,Xcells : bvector; // the number of cells with positive counts
+         Ipos,Xpos     : byte;
+         PositiveIXref : boolean;
+
+     begin
+         for k:=1 to Nix do
+         begin
+             i1:=IXinfo(.k.)^.item;
+             i2:=IXinfo(.k.)^.exo;
+
+             edim:=LargestEXOvalues(.i2.)-LeastEXOvalues(.i2.)+1;
+
+             Icells:=ZeroBytes;
+             Xcells:=ZeroBytes;
+
+             for i:=0 to item_max do
+             for j:=LeastExovalues(.i2.) to LargestEXOvalues(.i2.) do
+             if IXinfo(.k.)^.obsmarg(.i,j.)>0.0 then
+             begin
+                 inc(Icells(.i.));
+                 inc(Xcells(.j.));
+             end;
+
+             Iref:=0;
+             Xref:=LeastEXOvalues(.i2.);
+
+             If Icells(.0.)<Edim then
+             begin
+                 for i:=1 to item_max do
+                 if Icells(.i.)>Icells(.Iref.) then Iref:=i;
+             end;
+
+             If Xcells(.0.)<Item_max+1 then
+             begin
+                 for j:=LeastExoValues(.i2.) to LargestEXOvalues(.i2.) do
+                 if Xcells(.j.)>Xcells(.Xref.) then Xref:=j;
+             end;
+
+             IXref:=IXinfo(.k.)^.parameters(.iref,xref.);
+             if IXref>0.0 then PositiveIXref:=true else PositiveIXref:=false;
+
+             Ipos:=0;
+             Xpos:=0;
+
+             for i:=0 to item_max do
+             if Icells(.i.)>0 then inc(Ipos);
+
+             for j:=LeastExoValues(.i2.) to LargestEXOvalues(.i2.) do
+             if Xcells(.j.)>0 then inc(Xpos);
+
+             // find reference parameter values for I
+
+             for i:=0 to item_max do
+             begin
+                 Ifirst(.i.):=IXinfo(.k.)^.parameters(.i,xref.);
+                 If Ifirst(.i.)=0.0 then
+                 for j:=LeastExoValues(.i2.) to LargestEXOvalues(.i2.) do
+                 begin
+                     if IXinfo(.k.)^.obsmarg(.i,j.)>0.0 then
+                     begin
+                         Ifirst(.i.):=IXinfo(.k.)^.parameters(.i,j.);
+                         goto Ividere;
+                     end;
+                 end;
+             Ividere:
+             end;
+
+             for j:=LeastExoValues(.i2.) to LargestEXOvalues(.i2.) do
+             begin
+                 Xfirst(.j.):=IXinfo(.k.)^.parameters(.iref,j.);
+                 If Xfirst(.j.)=0.0 then
+                 for i:=0 to item_max do
+                 begin
+                     if IXinfo(.k.)^.obsmarg(.i,j.)>0 then
+                     begin
+                         Xfirst(.j.):=IXinfo(.k.)^.parameters(.i,j.);
+                         goto Xvidere;
+                     end;
+                 end;
+             Xvidere:
+             end;
+
+         videre:
+
+             If (Ipos>1) and (Xpos>1) and PositiveIXref then
+             begin
+                 oldparm:=IXinfo(.k.)^.parameters;
+
+                 for i:=0 to item_max do
+                 for j:=LeastExoValues(.i2.) to LargestEXOvalues(.i2.) do
+                 if IXinfo(.k.)^.obsmarg(.i,j.)>0 then
+                 begin
+                     ad:=(oldparm(.i,j.)*IXref);
+                     bc:=(Xfirst(.j.)*Ifirst(.i.));
+                     if bc>0 then
+                     IXinfo(.k.)^.parameters(.i,j.):=ad/bc
+                     else IXinfo(.k.)^.parameters(.i,j.):=0;
+                 end
+                 else IXinfo(.k.)^.parameters(.i,j.):=0.0;
+             end
+             else
+             for i:=0 to item_max do
+             for j:=LeastExoValues(.i2.) to LargestEXOvalues(.i2.) do
+             if IXinfo(.k.)^.obsmarg(.i,j.)>0.0
+             then IXinfo(.k.)^.parameters(.i,j.):=1
+             else IXinfo(.k.)^.parameters(.i,j.):=0;
+         end;
+     end; // of Adjust_IXparameters
+
+     //......................................................
+
+     Procedure Take_an_IPF_step;
+     var Iref,Jref,xref : byte;
+     begin
+         finish:=false;
+         previous_delta:=delta;
+         delta:=0;
+
+         CalculateBiasedGammaValues2(Nitems,item_max,ValidItem,Invalidscore,largest_possible_score,
+                                     Nexogene,BiasDim,
+          (** from SKbias12 **)      Igamma,
+                                     Nij,IJinfo,
+                                     Nix,IXinfo,
+                                     NitemComponents,ItemComponents,TrueVector,
+                                     NGammaArrays,Bfactor,BfactorSum,BiasedGammaValues,false);
+
+
+         IPFstep1(nstep,error); // The first step of the IPF calculates expected sufficient statistics
+
+         (*****************************************************)
+         (*** Then follows the second step of the IPF       ***)
+         (*** where item, DIF and LD parameters are updated ***)
+         (*****************************************************)
+
+         if Nij>0 then
+         begin
+             Find_new_IJparameters;
+         end;
+
+         if Nix>0 then
+         begin
+             Find_new_IXparameters;
+         end;
+
+         // find new Igamma values
+
+         Find_new_gamma;
+
+         (*************************************************************)
+         (*** define the reference categories and adjust parameters ***)
+         (*************************************************************)
+
+         Iref:=IscoreRef;
+         Jref:=Iscoreref;
+         xref:=1;
+
+         if Nij>0 then Adjust_IJparameters(Iref,Jref);
+
+         Iref:=IscoreRef;
+         if Nix>0 then Adjust_IXparameters(Iref,Xref);
+
+         Adjust_Gamma0;
+
+         if Nstep=1 then
+         begin
+             initial_delta:=delta;
+             MinDelta:=delta;
+             MinDeltaStep:=1;
+         end;
+
+         if delta<MinDelta then
+         begin
+             Mindelta:=delta;
+             Mindeltastep:=Nstep;
+         end;
+
+         if (previous_delta<=delta) then
+         begin
+             finish:=true;
+             inc(nfinish);
+         end
+         else
+         begin
+             finish:=false;
+             nfinish:=0;
+         end;
+
+         deltavalues(.nstep.):=delta;
+
+     end; // of Take_a_LL_step
+
+     //..................................................
+
+     Function Iteration_stop: Boolean;
+     begin
+        IF (DELTA<MaxDelta)
+        OR (NSTEP=MaxStep)
+        or (Nstep mod 1000 = 0) // (Nstep mod 250 = 0)
+        or (delta=previous_delta)
+        or ((nstep>5) and (delta=deltavalues(.Nstep-2.)))  // new stop rule
+        or ((nstep mod 50 = 0) and (delta>10))             // new stop rule
+        THEN
+        BEGIN
+            ITERATION_STOP:=TRUE;
+            If Delta>maxdelta then Convergence:=false;
+        END
+        else
+        if finish and (Nfinish>10) then
+        begin
+            iteration_stop:=true;
+            convergence:=false;
+        end
+        ELSE
+        begin
+            if Nstep=1 then initial_delta:=delta;
+            ITERATION_STOP:=FALSE;
+        end;
+     end; // of Iteration_stop
+
+     //...........................................................
+
+     Procedure MakeIRTcopy;
+     var k: byte;
+
+         Procedure DestroyIRTcopy;
+         var k: byte;
+         begin
+           if IRTparameters_ready then
+           begin
+             if NijCopy>0 then
+             for k:=1 to NijCopy do dispose(IJcopy(.k.));
+             if NixCopy>0 then
+             for k:=1 to NixCopy do dispose(IXcopy(.k.));
+             NijCopy:=0;
+             NixCopy:=0;
+
+             InfoCopyAssigned:=false;
+             InfoCopyExists:=false;
+             UseIRTcopy:=false;
+           end;
+         end;
+
+         //. . . . . . . . . . . . .
+
+     begin //MakeIRTcopy;
+         if IRTparameters_ready and InfoCopyAssigned then DestroyIRTcopy;
+
+         ItemParmCopy:=ItemParameters;
+
+         NijCopy:=Nij;
+         NixCopy:=Nix;
+
+         if NijCopy>0 then
+         for k:=1 to NijCopy do
+         begin
+             new(IJcopy(.k.));
+             IJcopy(.k.)^:=IJinfo(.k.)^;
+         end;
+
+         if NixCopy>0 then
+         for k:=1 to NixCopy do
+         begin
+            new(IXcopy(.k.));
+            IXcopy(.k.)^:=IXinfo(.k.)^;
+         end;
+
+         IRTparameters_ready:=true;
+
+         InfoCopyAssigned:=true;
+         InfoCopyExists:=true;
+
+     end; // of MakeIRTcopy
+
+     //..............................................................
+
+
+     Procedure Estimate_LL_parameters;
+     label NextStep,StepSlut,Forfra;
+     var i,iref,jref,nrecycles : byte;
+         ii                    : integer;
+
+     (*************************************************)
+     (*** This procedure invokes Take_a_LL_step.    ***)
+     (***                                           ***)
+     (*** Take_a_LL_step invokes                    ***)
+     (***                                           ***)
+     (***    CalculateBiasedGammavalues2 (SKbias12) ***)
+     (***    IPFstep                                ***)
+     (***    Find_New_IJparameters                  ***)
+     (***    Find_new_IXparameters                  ***)
+     (***    Adjust_IJparameters                    ***)
+     (***    Adjust_IXparameters                    ***)
+     (***                                           ***)
+     (*** IPFstep uses local procedures:            ***)
+     (***                                           ***)
+     (***    CalculateBiasedParameters              ***)
+     (***    RunThoughItemComponent with            ***)
+     (***       AddExpectedCountToItemMargins       ***)
+     (***       CalculateExpectedCounts             ***)
+     (***    RunThroughBiasvalues                   ***)
+     (*************************************************)
+
+     begin // Estimate_LL_parameters;
+
+        for ii:=-4 to 0 do Deltavalues(.i.):=9999;
+
+        Delta       := Nvalid*1.0;   // why??
+        Convergence := true;
+        Nstep       := 0;
+
+        MakeIRTcopy;
+
+        (***************************************************)
+        (*** MakeIRTcopy is in DGRirt                    ***)
+        (*** It copies ItemParameters -> ItemParmCopy    ***)
+        (***              Nij,IJinfo  -> NijCopy, IJcopy ***)
+        (***              Nix,IXinfo  -> NixCopy, IXcopy ***)
+        (***************************************************)
+
+        Nrecycles:=0;
+
+     Forfra:
+
+        if Nstep=maxstep then
+        begin
+            Nstep  := 0;
+        end;
+
+        Finish := false;
+        Nfinish:=0;
+
+        (*********************************************************************)
+        (*** Folowing this we estimate the item, DIF and LD parameters by  ***)
+        (*** application of the IPF algorithm fitting expected sufficient  ***)
+        (*** statistics to observed statistic, one IPF_step at a time      ***)
+        (*********************************************************************)
+
+     NextStep:
+
+         Inc(Nstep);
+
+         Take_an_IPF_step;
+
+         if RecurringDeltaValues and (Nstep>50) then  // instead of the global Minimumsteps from DGRirt
+         begin
+             str(Nstep,s);
+
+             If Delta>maxDelta then Convergence:=false;
+             goto stepslut;
+         end;
+
+         if Iteration_stop then goto stepslut else goto nextStep;
+
+         (***********************************************************************)
+         (*** Iteration_stop is a function depending on criteria for stopping ***)
+         (***********************************************************************)
+
+     StepSlut:
+
+         (***********************************************)
+         (*** If necessary, adjust parameters to      ***)
+         (*** appropriat reference categories         ***)
+         (***                                         ***)
+         (*** This has nothing to do with convergence ***)
+         (***********************************************)
+
+         If (IscoreRef<>0) and (Nij>0) then
+         begin
+             Iref:=0; Jref:=0; xref:=1;
+
+             Adjust_IJparameters0(0,0,Iref,Jref);
+
+             Adjust_IXparameters(Iref,xref);
+
+             Adjust_gamma0;
+         end;
+
+
+         CalculateBiasedGammaValues2(Nitems,item_max,ValidItem,Invalidscore,largest_possible_score,
+                                     Nexogene,BiasDim,
+                                     Igamma,
+                                     Nij,IJinfo,
+                                     Nix,IXinfo,
+                                     NitemComponents,ItemComponents,TrueVector,
+                                     NGammaArrays,Bfactor,BfactorSum,BiasedGammaValues,false);
+
+
+         (*** Do something if the IPF did not converge ***)
+
+         DestroyIRTcopy;
+
+         (*** accept convergens if delta <0.1 ***)
+
+         If delta<0.1 then convergence:=true;
+
+     end; // of Estimate_LL_parameters;
+
+     //.................................................
+
+     Procedure Calculate_loglikelihood_in_GLLRM;  // loglike = - ln(likelihood)
+     label videre,next;
+     var nrecords,k                             : integer;
+         i,j,score,validItems, validExos        : byte;
+         itemvalues,Exovalues,ScoreAndExovalues : bvector;
+         e,g                                    : extended;
+         indfil                                 : textfile;
+         s                                      : string;
+
+     begin
+         // Initialization
+
+         Raschloglike := 0.0;
+
+         CalculateBiasedGammaValues2(Nitems,item_max,ValidItem,Invalidscore,largest_possible_score,
+                                     Nexogene,BiasDim,
+                                     Igamma,
+                                     Nij,IJinfo,
+                                     Nix,IXinfo,
+                                     NitemComponents,ItemComponents,TrueVector,
+                                     NGammaArrays,Bfactor,BfactorSum,BiasedGammaValues,false);
+
+         Nrecords:=0;
+         Assignfile(indfil,'GLLRMdata.txt');
+         reset(indfil);
+
+         readln(indfil,s);
+
+         while not eof(indfil) do
+         begin
+             validItems:=0;
+             for i:=1 to nitems do
+             begin
+                 read(indfil,itemValues(.i.));
+                 if itemvalues(.i.)<= highest_item_score(.i.) then inc(ValidItems);
+             end;
+
+             ValidExos:=0;
+             if nexogene>0 then
+             begin
+                 for i:=1 to nexogene do
+                 begin
+                     read(indfil,exovalues(.i.));
+                     if  (Exovalues(.i.)>=LeastExovalues(.i.))
+                     and (Exovalues(.i.)<=LargestExovalues(.i.)) then inc(ValidExos);
+                 end;
+             end;
+
+             readln(indfil,score);
+
+             if (validitems+validExos < nitems+nexogene)
+             or (score<leastScore)
+             or (score>largestScore) then goto next;
+
+             inc(Nrecords);
+
+             CompressExoValues(score,EXOvalues,ScoreAndEXOvalues);
+
+             g:=LBiasedGammaValue(ScoreAndEXOvalues,Bfactor,Bfactorsum);
+
+             If g<=0.0 then e:=0
+             else
+             begin
+                 E:=1/g;
+
+                 for i:=1 to nitems do e:=e*Igamma(.i,itemvalues(.i.).);
+
+                 // include item-by-item parameters
+
+                 if Nij>0 then
+                 for k:=1 to Nij do
+                 begin
+                     i:=IJinfo(.k.)^.item1;
+                     j:=IJinfo(.k.)^.item2;
+                     e:=e*IJinfo(.k.)^.parameters(.itemvalues(.i.),itemvalues(.j.).);
+                 end;
+
+                 // include item-by-exo parameters
+
+                 if Nix>0 then
+                 for k:=1 to Nix do
+                 begin
+                     i:=IXinfo(.k.)^.item;
+                     j:=IXinfo(.k.)^.exo;
+                     e:=e*IXinfo(.k.)^.parameters(.itemvalues(.i.),EXOvalues(.j.).);
+                 end;
+             end;
+
+             //add to loglikelihood
+
+             if (E>0.0) then RaschLogLike:=RaschLogLike-ln(e);
+         next:
+         end;
+
+         closefile(indfil);
+         
+     end; // of Calculate_loglikelihood_in_GLLRM
+
+     //-------------------------------------------------------------
+
+     procedure calculate_Nparameters;
+     var i,j,k,bidrag : integer;
+         exovar,edim,col,colsum,row,rowsum,sum  : byte;
+     begin
+         Nparameters := -1;
+
+         for i:=1 to nitems do
+         begin
+             bidrag:=-1;
+
+             for j:=0 to highest_item_score(.i.) do
+             if imarg(.i,j.)>0 then inc(bidrag);
+
+             Nparameters:=Nparameters+bidrag;
+         end;
+
+         if Nij>0 then
+         for k:=1 to Nij do
+         begin
+             col:=0; colsum:=0;
+             for i:=0 to item_max do
+             begin
+                 sum:=0;
+                 for j:=0 to item_max do
+                 if IJinfo(.k.)^.obsmarg(.i,j.)>0 then inc(sum);
+                 if sum>colsum then
+                 begin
+                     col:=i;
+                     colsum:=sum;
+                 end;
+             end;
+             row:=0; rowsum:=0;
+             for j:=0 to item_max do
+             begin
+                 sum:=0;
+                 for i:=0 to item_max do
+                 if IJinfo(.k.)^.obsmarg(.i,j.)>0 then inc(sum);
+                 if sum>rowsum then
+                 begin
+                     row:=j;
+                     rowsum:=sum;
+                 end;
+             end;
+
+             bidrag:=0;
+             for i:=0 to item_max do
+             for j:=0 to item_max do
+             if (i<>col) and (j<>row) and (IJinfo(.k.)^.obsmarg(.i,j.)>0) then inc(bidrag);
+
+             Nparameters:=Nparameters+bidrag;
+         end;
+
+         if Nix>0 then
+         for k:=1 to Nix do
+         begin
+             exovar:=IXinfo(.k.)^.exo;
+             edim:=Exo_dim(.exovar.);
+             //edim:=LargestEXOvalues(.exovar.)-LeastEXOvalues(.exovar.)+1;
+
+             col:=0; colsum:=0;
+             for i:=0 to item_max do
+             begin
+                 sum:=0;
+                 for j:=0 to edim do
+                 if IXinfo(.k.)^.obsmarg(.i,j.)>0 then inc(sum);
+                 if sum>colsum then
+                 begin
+                     col:=i;
+                     colsum:=sum;
+                 end;
+             end;
+
+             row:=0; rowsum:=0;
+             for j:=0 to edim do
+             begin
+                 sum:=0;
+                 for i:=0 to item_max do
+                 if IXinfo(.k.)^.obsmarg(.i,j.)>0 then inc(sum);
+                 if sum>rowsum then
+                 begin
+                     row:=j;
+                     rowsum:=sum;
+                 end;
+             end;
+
+             bidrag:=0;
+             for i:=0 to item_max do
+             for j:=0 to edim do
+             if (i<>col) and (j<>row) and (IXinfo(.k.)^.obsmarg(.i,j.)>0) then inc(bidrag);
+
+             Nparameters:=Nparameters+bidrag;
+         end;
+     end; // of calculate_Nparameters
+
+     //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+begin // ****** the main procedure GLLRM_estim starts here  ******************
+
+    (*********************************************************)
+    (** We need to initialize a lot of stuff before we start **
+    (**********************************************************)
+
+
+    (*===============================================*)
+    (* Initialize model arrays if they have not been *)
+    (* initialized before GLLRM was invoked.         *)
+    (*===============================================*)
+
+    Initialize_gllrminfo(nitems,nexogene,LocalDependence,ItemBias,Nij,Ijinfo,Nix,IXinfo,NumberOfBiasedItems);
+
+    (***********************************************************************)
+    (*** Initialize_gllrminfo is a local procedure in this unit           **)
+    (***                                                                  **)
+    (*** It defines Nij and Nix and creates the IJinfo and IXinfo records **)
+    (*** Except for the information on items and exogenous variables,     **)
+    (*** all other information is reset at zero                           **)
+    (***                                                                  **)
+    (*** NumberOfBiasedItems is reset as a zerobytes vector               **)
+    (***********************************************************************)
+
+
+    //__________________________________________________________________________
+
+
+
+    (*****************************************************)
+    (*** Next, define the item components of the GLLRM ***)
+    (*****************************************************)
+
+    Initialize_ItemComponents(Nitems,LocalDependence,Nij,IJinfo,
+                              NItemComponents,ItemComponents,
+                              NIJcombInComp,IJcombInComp,ItemIScomponent);
+
+    (*******************************************************************************
+    (** Initialize_ItemComponents is in SKbias2. It defines                       **
+    (** NitemComponents and ItemComponents(.component,item.) = 0 or 1             **
+    (**                                                                           **
+    (** NumberOfIJcombinationsInComponent                                         **
+    (** IJCombinationsINComponent(.Component,j.) = IJrecord number                **
+    (**                                                                           **
+    (** ItemIsComponent(.i.) = item number if the i'th component is a single item **
+    (** ItemIsComponent(.i.) = 0 if the i'th component contains dependent items   **
+    (*******************************************************************************)
+
+
+    UseItemComponents:=TrueVector; // because GLLRM estimates  all item parameters
+
+
+    //__________________________________________________________________________
+
+
+    (* ====================================================== *)
+    (* Allocate memory for initial gamma values and EXOtables *)
+    (*                                                        *)
+    (* Max_number_of_extended = 65400                         *)
+    (* Max_number_of_longint = 162230                         *)
+    (* ====================================================== *)
+
+
+    (* ================================================================================ *)
+    (* Initialize BiasDim and allocate memory for BiasedGammaValues and TempGammaValues *)
+    (*                                                                                  *)
+    (* BiasDim is a vector with information on the number of categories of DIF factors  *)
+    (* If BiasDim(.i.)=1 then the i'th exogenous variable is not a DIF factor           *)
+    (*                                                                                  *)
+    (* AntalDIFfactors = the number of exogenous variables that are sources of DIF      *)
+    (*================================================================================= *)
+
+    BiasDim:=OneBytes;
+
+    for i:=1 to Nix do
+    begin
+        j:=IXinfo(.i.)^.exo;
+        BiasDim(.j.):=Exo_dim(.j.);  // EXO_dim is a global variable connected to exogenous variables
+    end;
+
+    AntalDIFfactors:=0;       (** AntalDIFfactors is a local variable used by Output procedure **)
+
+    for i:=1 to nexogene do if BiasDim(.i.)>1 then inc(AntalDIFfactors);
+
+    AllocateBiasedGammaValues4GLLRM(Nexogene,
+                              BiasDim,false,     // useISinfo is false in this procedure
+                              largest_possible_score,
+                              NgammaGroups,
+                              NgammaArrays,
+                              BiasedGammaValues,
+                              BiasedGammaValuesAllocated);
+
+    (*******************************************************************************
+    (** AllocateBiaseGammavalues4GLLRM is local in this unit. It allocates        **
+    (** a number of vectors that we will use to save the gammavalues in a         **
+    (** multiway tables with one cell for each combination of DIF factors and     **
+    (** score. During allocation all cells are empty, but gammavalues will be     **
+    (** during and after estimation of item parameters.                           **
+    (**                                                                           **
+    (** Largest_possible_score is a parameter of Estimate_GLLRM                   **
+    (**                                                                           **
+    (** NgammaGroups = the number of groups defined combinations of DIF sources   **
+    (** Nganmmavalues is NgammaGroups*(Highest_possible_score+1)                  **
+    (**                                                                           **
+    (** Each GammaArray contain 65,400 values in the current version              **
+    (** NgammaArrays = the number of arrays needed to save gamma functions        **
+    (**                for all combinations of DIF sources                        **
+    (** BiasedGammaArrays = extended_data_arrays with gamma functions             **
+    (** is the GammaArrays allocated to to contain all gamma functions            **)
+    (**                                                                           **
+    (*******************************************************************************)
+
+    TempGammaValuesAllocated:=false;
+
+
+    AllocateBiasedGammaValues4GLLRM(Nexogene,
+                              BiasDim,false,             // useISinfo always false
+                              largest_possible_score,    // highest_possible_score
+                              Ntempvalues,NTempArrays,
+                              TempGammaValues,
+                              TempGammaValuesAllocated);
+
+     //_________________________________________________________________________
+
+
+
+    (**************************************************************)
+    (* allocate EXOtable using information on NgammaGroups which  *)
+    (* is equal to the number of groups defined by DIF sources    *)
+    (*                                                            *)
+    (**************************************************************)
+
+
+    nEXOarrays := NgammaGroups div Max_number_of_longint;
+
+    Difference        := NgammaGroups mod Max_number_of_longint;
+    if Difference>0 then inc(NEXOarrays);
+
+    If NEXOarrays<=Max_data_arrays then
+    begin
+        for i:=1 to NEXOarrays do new(EXOtable(.i.));
+
+        for i:=NEXOarrays+1 to Max_data_arrays do EXOtable(.i.):=nil;
+
+        EXOTableAllocated := true;
+    end
+    else
+    begin
+        (** Too large table needed for analysis of DIF **)
+        NEXOarrays:=0;
+        EXOTableAllocated:=false;
+    end;
+
+
+    if not BiasedGammaValuesAllocated then
+    begin
+        (** we have to give up because Biasedgammavalues were not allocated **)
+        goto slut;
+    end;
+
+
+    //__________________________________________________________________________
+
+
+    (*****************************************************************************
+    (** allocate and initialize empty vectors of gamma values and table counts  **
+    (** that we ar going to use during estimation of item parameters            **
+    (*****************************************************************************)
+
+    New(gamma0);
+    for ii:=0 to Max_Number_of_extended do gamma0^(.ii.):=0.0;  // used to initialize BiasedGammavalues
+
+    New(Tab0);
+    for ii:=1 to max_number_of_longint do tab0^(.ii.):=0;       // used to initialize EXOtables
+
+
+    //__________________________________________________________________________
+
+
+
+    (* =================================================================== *)
+    (* calculate values that we need need to identify spcific cells in the *)
+    (* BiasedGammaValues                                                   *)
+    (*                                                                     *)
+    (* BiasedGammaInit is in SKbias12. It is a procedure that we developed *)
+    (* for analysis od multidimensional tables, that came in handy for the *)
+    (* arrays with gamms functions                                         *)
+    (* =================================================================== *)
+
+    BiasedGammaInit(Nexogene,BiasDim,largest_possible_score,Bfactor,Bfactorsum);
+
+    //__________________________________________________________________________
+
+
+videre:
+
+    (*******************************************)
+    (** Finally, we are ready to do something **)
+    (*******************************************)
+
+    (* =================================================================== *)
+    (* Count margins and find local score limits (Ifra, Itil & Sfra, Stil) *)
+    (* given by the observed item-margins                                  *)
+    (* =================================================================== *)
+
+    count_gllrm_margins;
+
+    (* ======================================= *)
+    (* Count_gllrm_margins counts the margins  *)
+    (* for persons with complete responses to  *)
+    (* items and exogenous variables that are  *)
+    (* valid because it satisfies the criteria *)
+    (* defined by the score and the exogenous  *)
+    (* variables                               *)
+    (*                                         *)
+    (* All other records are ignored by this   *)
+    (* procedure                               *)
+    (*                                         *)
+    (* The information needed to estimate the  *)
+    (* item, LD and DIF parameters include     *)
+    (*                                         *)
+    (*        Nvalid                           *)
+    (*        ScDist(.score.)                  *)
+    (*        Iscoredist                       *)
+    (*        Imarg(.item,itemscore.)          *)
+    (*        Xmarg(.exovar,exovalue.)         *)
+    (*        IJinfo^.obsmarg(.i,j.)           *)
+    (*        IJinfo^.df                       *)
+    (*        IXinfo^.obsmarg(.i,x.)           *)
+    (*        IXinfo^.df                       *)
+    (*        EXOtable(.array_no.)^(.point.)   *)
+    (*                                         *)
+    (* The procedure is also supposed to count *)
+    (*      IJinfo^.ijsobs(.i,j.)              *)
+    (*      IXinfo^.ixsobs(.i,x.)              *)
+    (* and add them to IJ- and IXinfo          *)
+    (* ======================================= *)
+
+    //_________________________________________________________________
+
+
+    (* ============================================================== *)
+    (* Initialize parameters before they are estimated                *)
+    (* Parameters = 1 for observed values and 0 for unobserved values *)
+    (* ============================================================== *)
+
+    InitializeParameters;
+
+
+    (* ========================================== *)
+    (* The following has been initialized         *)
+    (*                                            *)
+    (*      Igamma(.i,j.)                         *)
+    (*      IJinfo^.parameters(.i,j.)             *)
+    (*      IXinfo^.parameters(.i,j.)             *)
+    (*                                            *)
+    (*      ifra(.i.) and itil(.i.)               *)
+    (*      NvalidItems                           *)
+    (*      ValidItem(.i.)  false if Ifra=Itil    *)
+    (*      InvalidScore                          *)
+    (*                                            *)
+    (*      sfra and stil                         *)
+    (* ========================================== *)
+
+
+    //__________________________________________________________________________
+
+
+    (* =====================================*)
+    (* estimate the parameters of the model *)
+    (* =====================================*)
+
+    for i:=0 to largedim do for j:=0 to largedim do exp_marg0(.i,j.):=0.0;
+
+    Estimate_LL_parameters;
+
+    //__________________________________________________________________________
+
+
+    (* ======================= *)
+    (* calculate loglikelihood *)
+    (* ======================= *)
+
+    Count_GLLRM_margins;    // because margins were destroyed during estimation
+
+    calculate_nparameters;
+
+    Calculate_loglikelihood_in_GLLRM;
+
+    //__________________________________________________________________________
+
+
+slut:
+    if BiasedGammaValuesAllocated then
+    begin
+        DisposeBiasedGammaValues(NgammaGroups,NgammaArrays,BiasedGammaValues,
+                                 BiasedGammaValuesAllocated);
+        DisposeBiasedGammaValues(Ntempvalues,NTempArrays,TempGammaValues,
+                                 TempGammaValuesAllocated);
+        Dispose(Gamma0);
+        Dispose(Tab0);
+    end;
+
+    if EXOtableAllocated then
+    begin
+        for i:=1 to NEXOarrays do
+        begin
+            dispose(EXOtable(.i.));
+            EXOtable(.i.):=nil;
+        end;
+    end;
+
+end; // of GLLRM_estim
+
+//-------------------------------------------------------------------------------
