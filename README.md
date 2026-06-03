@@ -3,7 +3,29 @@
 `gRm` is a native R implementation of the GLLRM-oriented parts of DIGRAM.
 The public API is a compact statistical modeling workflow:
 
+## Installation
+
+Install the development version from GitHub from inside R:
+
 ```r
+install.packages("remotes")
+remotes::install_github("ERRTG/gRm")
+```
+
+If you are already working from a local checkout, install that checkout from R
+with:
+
+```r
+install.packages(".", repos = NULL, type = "source")
+```
+
+## Usage
+
+Load the package and fit a model:
+
+```r
+library(gRm)
+
 analysis <- gRm(data, items = c("I1", "I2", "I3"), exogenous = "group")
 model <- gllrm(analysis, ld = ~ I1:I2, dif = ~ I3:group)
 fit0 <- fit(model)
@@ -19,9 +41,9 @@ summary(score_effects(analysis), which = "tests")
 
 The installed package computes numeric results from data and model objects. It
 does not generate DIGRAM fixed-width output files, parse historical DIGRAM
-runtime output, or compare package output to oracle files. Repository-level
-validation against historical DIGRAM output lives under
-`validation/digram_oracle/`.
+runtime output, or compare package output to oracle files. Historical DIGRAM
+oracle parsing and semantic comparison belong in repository-level validation
+tooling, not in the installed package namespace.
 
 ## Public API
 
@@ -62,4 +84,4 @@ Rscript -e "library(gRm); testthat::test_dir('gRm/tests/testthat', reporter='sum
 
 Production R code must keep implementing algorithms directly from the original
 source material. Oracle report parsing and semantic comparison belong in
-`validation/digram_oracle/`, not in the installed package namespace.
+repository-level validation tooling, not in the installed package namespace.
