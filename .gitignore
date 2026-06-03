@@ -1,0 +1,19 @@
+*.Rproj
+.Rproj.user/
+.DS_Store
+
+# R package build/check artifacts
+*.tar.gz
+*.log
+*.out
+*.aux
+*.toc
+*.synctex.gz
+
+# Compiled native artifacts
+src/*.o
+src/*.so
+
+# Test and coverage artifacts
+coverage/
+.covr/

@@ -1,0 +1,25 @@
+Package: gRm
+Title: Parallel R Implementation of Non-GUI DIGRAM
+Version: 0.0.0.9000
+Authors@R: c(
+    person("DIGRAM", "Reimplementation", role = c("aut", "cre"), email = "noreply@example.com")
+  )
+Author: DIGRAM Reimplementation
+Maintainer: DIGRAM Reimplementation <noreply@example.com>
+Description: Experimental native R implementation of selected non-GUI DIGRAM
+    GLLRM computations. The package exposes source-faithful numeric model,
+    screening, and diagnostic results through a compact statistical modeling
+    API centered on summary(). Historical DIGRAM output parsing and validation
+    live in repository-level tooling outside the installed package.
+License: MIT + file LICENSE
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.3
+Imports:
+    Rcpp
+Suggests:
+    knitr,
+    rmarkdown,
+    testthat (>= 3.0.0)
+VignetteBuilder: knitr
+Config/testthat/edition: 3
