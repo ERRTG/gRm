@@ -67,11 +67,43 @@ global_homogeneity_score_group_lookup <- function(groups, max_score) {
   lookup
 }
 
+global_homogeneity_uniform_score_group_lookup <- function(groups, max_score) {
+  # Source trace: the extended active uniform LD/DIF block calls
+  # Count_IJX_tabel/Count_IXZ_tabel before the subgroup refits. Those table
+  # counters use ScoreGruppe(score, scoredim, minscore, maxscore, scorecuts),
+  # where cutpoint-defined score groups keep minscore = 0. The subgroup
+  # homogeneity refits still clip displayed groups to LeastScore = 1.
+  source_groups <- groups
+  if (nrow(source_groups) > 0L) {
+    source_groups$from_score[[1L]] <- 0L
+  }
+  global_homogeneity_score_group_lookup(source_groups, max_score)
+}
+
 global_homogeneity_lookup_score <- function(lookup, score) {
   if (score < 0L || score >= length(lookup)) {
     return(NA_integer_)
   }
   lookup[[score + 1L]]
+}
+
+active_uniform_complete_rows <- function(context, score_group_lookup) {
+  item_complete <- rowSums(context$item_matrix < 0L) == 0L
+  background_complete <- if (context$n_backgrounds > 0L) {
+    rowSums(context$background_matrix < 1L) == 0L
+  } else {
+    rep(TRUE, nrow(context$item_matrix))
+  }
+  rows <- which(item_complete & background_complete)
+  if (!length(rows)) {
+    return(integer())
+  }
+  in_group <- vapply(
+    context$score[rows],
+    function(score) !is.na(global_homogeneity_lookup_score(score_group_lookup, score)),
+    logical(1L)
+  )
+  rows[in_group]
 }
 
 gRm_default_global_homogeneity_score_cuts <- function(project) {
@@ -731,8 +763,9 @@ active_uniform_ld_scoregroup_tables_all <- function(context, groups, probability
     return(tables_by_ld)
   }
 
-  score_group_lookup <- global_homogeneity_score_group_lookup(groups, context$max_total_score)
-  for (row in context$valid_rows) {
+  score_group_lookup <- global_homogeneity_uniform_score_group_lookup(groups, context$max_total_score)
+  uniform_rows <- active_uniform_complete_rows(context, score_group_lookup)
+  for (row in uniform_rows) {
     group_index <- global_homogeneity_lookup_score(score_group_lookup, context$score[[row]])
     if (is.na(group_index)) {
       next
@@ -746,8 +779,9 @@ active_uniform_ld_scoregroup_tables_all <- function(context, groups, probability
     }
   }
 
-  for (group_index in seq_len(nrow(context$score_exo_groups))) {
-    group <- context$score_exo_groups[group_index, , drop = FALSE]
+  score_exo_groups <- gllrm_score_exo_groups(context, rows = uniform_rows)
+  for (group_index in seq_len(nrow(score_exo_groups))) {
+    group <- score_exo_groups[group_index, , drop = FALSE]
     score <- group$score[[1L]]
     homogeneity_group <- global_homogeneity_lookup_score(score_group_lookup, score)
     if (is.na(homogeneity_group)) {
@@ -906,9 +940,10 @@ active_uniform_dif_scoregroup_tables <- function(context, groups, spec, probabil
   observed <- array(0, dim = dimensions)
   expected <- array(0, dim = dimensions)
 
-  score_group_lookup <- global_homogeneity_score_group_lookup(groups, context$max_total_score)
+  score_group_lookup <- global_homogeneity_uniform_score_group_lookup(groups, context$max_total_score)
 
-  for (row in context$valid_rows) {
+  uniform_rows <- active_uniform_complete_rows(context, score_group_lookup)
+  for (row in uniform_rows) {
     group_index <- global_homogeneity_lookup_score(score_group_lookup, context$score[[row]])
     if (is.na(group_index)) {
       next
@@ -919,8 +954,9 @@ active_uniform_dif_scoregroup_tables <- function(context, groups, spec, probabil
       observed[item_score, background_value, group_index] + 1
   }
 
-  for (group_index in seq_len(nrow(context$score_exo_groups))) {
-    group <- context$score_exo_groups[group_index, , drop = FALSE]
+  score_exo_groups <- gllrm_score_exo_groups(context, rows = uniform_rows)
+  for (group_index in seq_len(nrow(score_exo_groups))) {
+    group <- score_exo_groups[group_index, , drop = FALSE]
     score <- group$score[[1L]]
     homogeneity_group <- global_homogeneity_lookup_score(score_group_lookup, score)
     if (is.na(homogeneity_group)) {

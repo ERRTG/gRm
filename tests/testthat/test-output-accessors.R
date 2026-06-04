@@ -4,7 +4,7 @@ output_accessor_data <- function() {
     I1 = c(1L, 1L, 2L, 3L, 1L, 0L, 2L),
     I2 = c(1L, 2L, 2L, 3L, 3L, 1L, NA_integer_),
     I3 = c(1L, 3L, 2L, 3L, 1L, 2L, 2L),
-    group = c(1L, NA_integer_, 2L, 1L, 2L, 1L, NA_integer_)
+    site = c(1L, NA_integer_, 2L, 1L, 2L, 1L, NA_integer_)
   )
 }
 
@@ -12,7 +12,7 @@ test_that("summary is the public output accessor for analysis objects", {
   ia <- gRm(
     output_accessor_data(),
     items = c("I1", "I2", "I3"),
-    exogenous = "group",
+    exogenous = "site",
     id = "ID"
   )
 
@@ -30,7 +30,7 @@ test_that("summary which exposes model, fit, screen, and diagnostic sections", {
   ia <- gRm(
     output_accessor_data(),
     items = c("I1", "I2", "I3"),
-    exogenous = "group",
+    exogenous = "site",
     id = "ID"
   )
   model <- gllrm(ia)
@@ -44,11 +44,31 @@ test_that("summary which exposes model, fit, screen, and diagnostic sections", {
   expect_true(is.data.frame(summary(item_fit(fit_obj), which = "tests")$tests))
 })
 
+test_that("item-fit items summary is empty when extended item summaries are not computed", {
+  ia <- gRm(
+    output_accessor_data(),
+    items = c("I1", "I2", "I3"),
+    exogenous = "site",
+    id = "ID"
+  )
+  fit_obj <- fit(gllrm(ia), max_step = 50L)
+  ifit <- item_fit(fit_obj, include_extended = FALSE)
+
+  tests <- summary(ifit, which = "tests")$tests
+  items <- summary(ifit, which = "items")$items
+
+  expect_true(is.data.frame(tests))
+  expect_gt(nrow(tests), 0L)
+  expect_true(is.data.frame(items))
+  expect_equal(nrow(items), 0L)
+  expect_false(identical(names(items), names(tests)))
+})
+
 test_that("internal value details remain available for source-faithful validation helpers", {
   ia <- gRm(
     output_accessor_data(),
     items = c("I1", "I2", "I3"),
-    exogenous = "group",
+    exogenous = "site",
     id = "ID"
   )
   values <- item_fits_values(ia$project, include_extended = TRUE)

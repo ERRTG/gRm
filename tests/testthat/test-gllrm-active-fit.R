@@ -129,13 +129,11 @@ scalar_active_uniform_ld_scoregroup_tables_reference <- function(context, state,
   observed <- array(0, dim = dimensions)
   expected <- array(0, dim = dimensions)
 
-  score_group_index <- function(score) {
-    hit <- which(groups$from_score <= score & score <= groups$to_score)
-    if (length(hit) > 0L) hit[[1L]] else NA_integer_
-  }
+  score_group_lookup <- global_homogeneity_uniform_score_group_lookup(groups, context$max_total_score)
+  uniform_rows <- active_uniform_complete_rows(context, score_group_lookup)
 
-  for (row in context$valid_rows) {
-    group_index <- score_group_index(context$score[[row]])
+  for (row in uniform_rows) {
+    group_index <- global_homogeneity_lookup_score(score_group_lookup, context$score[[row]])
     if (is.na(group_index)) {
       next
     }
@@ -144,10 +142,11 @@ scalar_active_uniform_ld_scoregroup_tables_reference <- function(context, state,
     observed[score1, score2, group_index] <- observed[score1, score2, group_index] + 1
   }
 
-  for (group_index in seq_len(nrow(context$score_exo_groups))) {
-    group <- context$score_exo_groups[group_index, , drop = FALSE]
+  score_exo_groups <- gllrm_score_exo_groups(context, rows = uniform_rows)
+  for (group_index in seq_len(nrow(score_exo_groups))) {
+    group <- score_exo_groups[group_index, , drop = FALSE]
     score <- group$score[[1L]]
-    homogeneity_group <- score_group_index(score)
+    homogeneity_group <- global_homogeneity_lookup_score(score_group_lookup, score)
     if (is.na(homogeneity_group)) {
       next
     }
@@ -232,6 +231,25 @@ test_that("active fit summaries expose source-shaped parameter and expected-marg
   ) %in% names(tables)))
   expect_true(all(c("term", "score1", "score2", "gamma") %in% names(tables$ld_parameters)))
   expect_true(all(c("item", "exogenous", "score", "value", "gamma") %in% names(tables$dif_parameters)))
+})
+
+test_that("LD reference adjustment scans source-style strict improvements", {
+  observed <- matrix(0, nrow = 4L, ncol = 4L)
+  observed[1:3, 1L] <- 1
+  observed[1:4, 2L] <- 1
+  observed[1:4, 3L] <- 1
+  observed[1:2, 4L] <- 1
+
+  adjustment <- adjust_ld_gamma_source_reference_details(
+    observed,
+    matrix(1, nrow = 4L, ncol = 4L),
+    i_ref = 4L,
+    j_ref = 4L,
+    preserve_current_ties = TRUE
+  )
+
+  expect_equal(adjustment$i_ref, 1L)
+  expect_equal(adjustment$j_ref, 2L)
 })
 
 test_that("single LD general fit agrees with existing local-independence candidate fitter", {
@@ -504,6 +522,22 @@ test_that("active GLLRM global homogeneity refits the active model in score grou
   expect_false(any(values$items$residual_runtime_source_backed))
   expect_false(any(values$items$marker_runtime_source_backed))
   expect_true(all(c("summary", "groups", "items") %in% detail_names(values)))
+})
+
+test_that("active uniform DIF score-group tables follow source minscore convention", {
+  ia <- gRm(active_lid_data(), items = c("I1", "I2", "I3", "I4"), exogenous = "X1", id = "ID")
+  fit <- fit(gllrm(ia, dif = ~ I4:X1), max_step = 200L, max_delta = 1e-6)
+  context <- fit$fit$context
+  groups <- global_homogeneity_score_groups(context$bundle, c(2L, 4L))
+  cache <- new_active_gllrm_probability_cache(context, fit$fit)
+
+  tables <- active_uniform_dif_scoregroup_tables(context, groups, context$dif_specs[[1L]], cache)
+  complete_rows <- which(rowSums(context$item_matrix < 0L) == 0L & context$background_matrix[, 1L] >= 1L)
+  expected_first_group_n <- sum(context$score[complete_rows] >= 0L & context$score[complete_rows] <= 2L)
+  valid_first_group_n <- sum(context$score[context$valid_rows] >= 1L & context$score[context$valid_rows] <= 2L)
+
+  expect_gt(expected_first_group_n, valid_first_group_n)
+  expect_equal(sum(tables$observed[, , 1L]), expected_first_group_n)
 })
 
 test_that("batched uniform LD scoregroup tables match scalar source-faithful references", {

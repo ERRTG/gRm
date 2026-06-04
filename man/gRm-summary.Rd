@@ -64,20 +64,32 @@ Available sections are class-specific:
 \item \code{gRm_screen}: \code{"tests"}, \code{"selected"}, \code{"all"}, \code{"score_effects"}, \code{"bh"}.
 \item \code{gRm_score_effects}: \code{"selected"}, \code{"tests"}, \code{"bh"}.
 \item \code{gRm_item_parameters}: \code{"tests"}, \code{"coefficients"}, \code{"items"}, \code{"thresholds"}, \code{"fit"}.
-\item \code{gRm_item_fit}: \code{"tests"}, \code{"items"}, \code{"bh"}.
+\item \code{gRm_item_fit}: \code{"tests"} returns compact inferential item-fit
+statistics for outfit, infit, and item-restscore gamma; \code{"items"}
+returns the extended per-item outfit/infit diagnostic summary when the
+item-fit object was created with \code{include_extended = TRUE}; \code{"bh"}
+returns Benjamini-Hochberg thresholds for the compact test family.
 \item \code{gRm_local_dependence}: \code{"selected"}, \code{"tests"}, \code{"bh"}.
 \item \code{gRm_dif}: \code{"selected"}, \code{"tests"}, \code{"active"}, \code{"bh"}.
 \item \code{gRm_global_homogeneity}: \code{"tests"}, \code{"summary"}, \code{"groups"}, \code{"items"}.
 }
+
+For \code{gRm_item_fit}, the distinction between \code{"tests"} and \code{"items"} is
+intentional. The \code{"tests"} section is the compact inferential output and is
+always available. The \code{"items"} section is the extended per-item diagnostic
+decomposition and is populated only when the item-fit object was created by
+\code{item_fit(..., include_extended = TRUE)}, which is the default. If
+\code{include_extended = FALSE}, the \code{"items"} section is an empty data frame
+rather than a fallback copy of the test table.
 }
 \examples{
 data <- data.frame(
   ID = 1:8,
   I1 = c(0, 1, 0, 1, 0, 1, 1, 0),
   I2 = c(1, 0, 1, 0, 1, 0, 1, 0),
-  group = c(0, 0, 1, 1, 0, 1, 0, 1)
+  site = c(0, 0, 1, 1, 0, 1, 0, 1)
 )
-analysis <- gRm(data, items = c("I1", "I2"), exogenous = "group", id = "ID")
+analysis <- gRm(data, items = c("I1", "I2"), exogenous = "site", id = "ID")
 model <- gllrm(analysis)
 summary(analysis, which = "data")
 summary(model, which = "model")

@@ -10,8 +10,12 @@
 #'   DIGRAM's one-based raw categories before fitting.
 #' @param exogenous_levels Exogeneous/person-factor levels, with the same
 #'   conventions as `item_levels`.
-#' @param groups `"auto"` for source-faithful automatic score groups, or an
-#'   integer-like vector of explicit score cuts.
+#' @param score_cuts `"auto"` for source-faithful automatic score cuts, or an
+#'   integer-like vector of explicit upper total-score cut values. The cuts are
+#'   stored with the analysis and later define score groups as consecutive
+#'   intervals: the first group runs from the source-valid lowest score through
+#'   the first cut, the next group starts at the following score and runs through
+#'   the next cut, and so on.
 #' @param name Optional project name.
 #' @return A `gRm_analysis` object.
 #' @export
@@ -20,9 +24,9 @@
 #'   ID = 1:6,
 #'   I1 = c(0, 1, 0, 1, 0, 1),
 #'   I2 = c(1, 0, 1, 0, 1, 0),
-#'   group = c(0, 0, 1, 1, 0, 1)
+#'   site = c(0, 0, 1, 1, 0, 1)
 #' )
-#' analysis <- gRm(data, items = c("I1", "I2"), exogenous = "group", id = "ID")
+#' analysis <- gRm(data, items = c("I1", "I2"), exogenous = "site", id = "ID")
 #' summary(analysis)
 gRm <- function(data,
                     items,
@@ -30,7 +34,7 @@ gRm <- function(data,
                     id = NULL,
                     item_levels = "observed",
                     exogenous_levels = "observed",
-                    groups = "auto",
+                    score_cuts = "auto",
                     name = NULL) {
   if (!is.data.frame(data)) {
     stop("`data` must be a data frame.", call. = FALSE)
@@ -70,7 +74,7 @@ gRm <- function(data,
     project = project,
     data = data,
     id = id,
-    groups = groups,
+    score_cuts = score_cuts,
     name = name %||% "gRm",
     call = match.call()
   )
@@ -82,8 +86,12 @@ gRm <- function(data,
 #' @param items Character vector of item variable names.
 #' @param exogenous Character vector of exogeneous/person-factor variable names.
 #' @param id Identifier column name. Defaults to the first CSV column.
-#' @param groups `"auto"` for source-faithful automatic score groups, or an
-#'   integer-like vector of explicit score cuts.
+#' @param score_cuts `"auto"` for source-faithful automatic score cuts, or an
+#'   integer-like vector of explicit upper total-score cut values. The cuts are
+#'   stored with the analysis and later define score groups as consecutive
+#'   intervals: the first group runs from the source-valid lowest score through
+#'   the first cut, the next group starts at the following score and runs through
+#'   the next cut, and so on.
 #' @param name DIGRAM file prefix.
 #' @return A `gRm_analysis` object.
 #' @export
@@ -92,7 +100,7 @@ gRm <- function(data,
 #' analysis <- read_digram_project(
 #'   "path/to/DIGRAM",
 #'   items = c("I1", "I2"),
-#'   exogenous = "group",
+#'   exogenous = "site",
 #'   id = "id"
 #' )
 #' }
@@ -100,7 +108,7 @@ read_digram_project <- function(path,
                                 items,
                                 exogenous = character(),
                                 id = NULL,
-                                groups = "auto",
+                                score_cuts = "auto",
                                 name = "DIGRAM") {
   path <- normalizePath(path, mustWork = TRUE)
   if (missing(items) || is.null(items) || length(items) == 0L) {
@@ -118,7 +126,7 @@ read_digram_project <- function(path,
     project = project,
     data = project$source_data,
     id = project$import$idvar,
-    groups = groups,
+    score_cuts = score_cuts,
     name = basename(path),
     call = match.call()
   )
@@ -159,11 +167,11 @@ score_groups_cut <- function(cut_values) {
   structure(list(type = "cut", cuts = cuts), class = "gRm_score_group_spec")
 }
 
-new_gRm_item_analysis <- function(project, data, id, score = sum_score(), groups = score_groups_auto(), name, call) {
-  new_gRm_analysis(project, data, id, groups, name, call)
+new_gRm_item_analysis <- function(project, data, id, score = sum_score(), score_cuts = score_groups_auto(), name, call) {
+  new_gRm_analysis(project, data, id, score_cuts, name, call)
 }
 
-new_gRm_analysis <- function(project, data, id, groups, name, call) {
+new_gRm_analysis <- function(project, data, id, score_cuts, name, call) {
   out <- list(
     data = data,
     project = project,
@@ -171,7 +179,7 @@ new_gRm_analysis <- function(project, data, id, groups, name, call) {
     items = project$items$name,
     exogenous = project$backgrounds$name,
     id = id,
-    score_groups = normalize_gRm_groups(groups, project),
+    score_groups = normalize_gRm_score_cuts(score_cuts, project),
     source_trace = c(project$source_trace %||% character(), api = "gRm_analysis"),
     validation = list(status = "not_validated", corpus = NA_character_),
     unmodeled = character(),
@@ -189,33 +197,33 @@ validate_score_spec <- function(score) {
   score
 }
 
-validate_score_group_spec <- function(groups) {
-  if (!inherits(groups, "gRm_score_group_spec")) {
-    stop("`groups` must be created by `score_groups_auto()` or `score_groups_cut()`.", call. = FALSE)
+validate_score_group_spec <- function(score_cuts) {
+  if (!inherits(score_cuts, "gRm_score_group_spec")) {
+    stop("`score_cuts` must be created by `score_groups_auto()` or `score_groups_cut()`.", call. = FALSE)
   }
-  groups
+  score_cuts
 }
 
-resolve_gRm_score_groups <- function(project, groups) {
-  normalize_gRm_groups(groups, project)
+resolve_gRm_score_groups <- function(project, score_cuts) {
+  normalize_gRm_score_cuts(score_cuts, project)
 }
 
-normalize_gRm_groups <- function(groups, project) {
-  if (identical(groups, "auto")) {
+normalize_gRm_score_cuts <- function(score_cuts, project) {
+  if (identical(score_cuts, "auto")) {
     return(resolve_auto_score_groups(project))
   }
-  if (is.numeric(groups) || is.integer(groups)) {
-    return(resolve_explicit_score_groups(project, groups))
+  if (is.numeric(score_cuts) || is.integer(score_cuts)) {
+    return(resolve_explicit_score_groups(project, score_cuts))
   }
-  if (inherits(groups, "gRm_score_group_spec")) {
-    if (identical(groups$type, "auto")) {
+  if (inherits(score_cuts, "gRm_score_group_spec")) {
+    if (identical(score_cuts$type, "auto")) {
       return(resolve_auto_score_groups(project))
     }
-    if (identical(groups$type, "cut")) {
-      return(resolve_explicit_score_groups(project, groups$cuts))
+    if (identical(score_cuts$type, "cut")) {
+      return(resolve_explicit_score_groups(project, score_cuts$cuts))
     }
   }
-  stop("`groups` must be \"auto\" or an integer-like vector of score cuts.", call. = FALSE)
+  stop("`score_cuts` must be \"auto\" or an integer-like vector of score cuts.", call. = FALSE)
 }
 
 resolve_auto_score_groups <- function(project) {
@@ -225,17 +233,17 @@ resolve_auto_score_groups <- function(project) {
   )
 }
 
-resolve_explicit_score_groups <- function(project, groups) {
-  if (length(groups) == 0L || anyNA(groups) || any(groups != as.integer(groups))) {
-    stop("`groups` cut values must be non-missing integer-like values.", call. = FALSE)
+resolve_explicit_score_groups <- function(project, score_cuts) {
+  if (length(score_cuts) == 0L || anyNA(score_cuts) || any(score_cuts != as.integer(score_cuts))) {
+    stop("`score_cuts` cut values must be non-missing integer-like values.", call. = FALSE)
   }
-  cuts <- as.integer(groups)
+  cuts <- as.integer(score_cuts)
   if (is.unsorted(cuts, strictly = TRUE)) {
-    stop("`groups` cut values must be strictly increasing.", call. = FALSE)
+    stop("`score_cuts` cut values must be strictly increasing.", call. = FALSE)
   }
   max_score <- sum(project$items$raw_max - 1L)
   if (any(cuts < 0L | cuts > max_score)) {
-    stop("`groups` cut values must lie within the possible score range 0..", max_score, ".", call. = FALSE)
+    stop("`score_cuts` cut values must lie within the possible score range 0..", max_score, ".", call. = FALSE)
   }
   cuts
 }

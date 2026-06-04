@@ -5,17 +5,27 @@
 #' @param dif One-sided formula of DIF item:exogeneous terms.
 #' @return A `gRm_model` object. This function specifies a model; it
 #'   does not fit it.
+#' @details
+#' A GLLRM model defines a score-inclusive IRT graph. Every item is connected
+#' to the score node, LD terms add item:item edges, and DIF terms add
+#' item:exogenous edges. Use [model_graph()] to return that graph as an
+#' `igraph` object, or `plot(model)` to draw it with the score node on the left.
+#' @seealso [model_graph()], [fit()], [update.gRm_model()]
 #' @export
 #' @examples
 #' data <- data.frame(
 #'   ID = 1:6,
 #'   I1 = c(0, 1, 0, 1, 0, 1),
 #'   I2 = c(1, 0, 1, 0, 1, 0),
-#'   group = c(0, 0, 1, 1, 0, 1)
+#'   site = c(0, 0, 1, 1, 0, 1)
 #' )
-#' analysis <- gRm(data, items = c("I1", "I2"), exogenous = "group", id = "ID")
-#' model <- gllrm(analysis, ld = ~ I1:I2, dif = ~ I1:group)
+#' analysis <- gRm(data, items = c("I1", "I2"), exogenous = "site", id = "ID")
+#' model <- gllrm(analysis, ld = ~ I1:I2, dif = ~ I1:site)
 #' summary(model)
+#' graph <- model_graph(model)
+#' \donttest{
+#' plot(model)
+#' }
 gllrm <- function(project,
                   ld = NULL,
                   dif = NULL) {
@@ -91,7 +101,7 @@ as_gRm_analysis <- function(x) {
       project = x,
       data = x$source_data %||% data.frame(),
       id = x$import$idvar %||% NULL,
-      groups = "auto",
+      score_cuts = "auto",
       name = x$paths$input_dir %||% "gRm_project",
       call = match.call()
     ))
@@ -164,11 +174,11 @@ selected_screen_terms <- function(screen) {
 #'   ID = 1:8,
 #'   I1 = c(0, 1, 0, 1, 0, 1, 1, 0),
 #'   I2 = c(1, 0, 1, 0, 1, 0, 1, 0),
-#'   group = c(0, 0, 1, 1, 0, 1, 0, 1)
+#'   site = c(0, 0, 1, 1, 0, 1, 0, 1)
 #' )
-#' analysis <- gRm(data, items = c("I1", "I2"), exogenous = "group", id = "ID")
+#' analysis <- gRm(data, items = c("I1", "I2"), exogenous = "site", id = "ID")
 #' model <- gllrm(analysis)
-#' updated <- update(model, ld = ~ I1:I2, dif = ~ I1:group)
+#' updated <- update(model, ld = ~ I1:I2, dif = ~ I1:site)
 #' summary(updated, which = "model")
 #' @seealso [gllrm()], [fit()]
 #' @export

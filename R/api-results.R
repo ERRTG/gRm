@@ -19,9 +19,9 @@
 #'   ID = 1:8,
 #'   I1 = c(0, 1, 0, 1, 0, 1, 1, 0),
 #'   I2 = c(1, 0, 1, 0, 1, 0, 1, 0),
-#'   group = c(0, 0, 1, 1, 0, 1, 0, 1)
+#'   site = c(0, 0, 1, 1, 0, 1, 0, 1)
 #' )
-#' analysis <- gRm(data, items = c("I1", "I2"), exogenous = "group", id = "ID")
+#' analysis <- gRm(data, items = c("I1", "I2"), exogenous = "site", id = "ID")
 #' effects <- score_effects(analysis)
 #' summary(effects, which = "tests")
 #' }
@@ -102,10 +102,58 @@ item_parameters <- function(fit, ...) {
 
 #' Item fit diagnostics
 #'
-#' @param fit A fitted DIGRAM model.
+#' Compute item-fit statistics for a fitted gRm model. Use
+#' `summary(result, which = "tests")` for compact outfit, infit, and
+#' item-restscore gamma tests. Use `summary(result, which = "items")` for the
+#' per-item outfit/infit diagnostic summary produced by the extended item-fit
+#' calculation.
+#'
+#' @param fit A fitted gRm model.
 #' @param include_extended Whether to compute extended item-fit detail tables.
+#'   When `FALSE`, `summary(result, which = "items")` returns an empty data
+#'   frame because the per-item extended diagnostic summaries were not
+#'   computed. The compact `summary(result, which = "tests")` table remains
+#'   available.
 #' @param ... Reserved for S3 dispatch compatibility; ignored.
 #' @return A `gRm_item_fit` result object.
+#' @details
+#' The item-fit result has two different public summary layers. The
+#' `summary(result, which = "tests")` layer is always available and returns one
+#' row per item with the compact inferential statistics: outfit, infit,
+#' item-restscore gamma, standard errors, p-values, FDR labels, and direction.
+#' Its columns are `item_label`, `item_name`, `outfit`, `outfit_sd`,
+#' `p_outfit`, `outfit_fdr`, `infit`, `infit_sd`, `p_infit`, `infit_fdr`,
+#' `observed_gamma`, `expected_gamma`, `gamma_sd`, `p_gamma`, `gamma_fdr`,
+#' and `direction`.
+#'
+#' The `summary(result, which = "items")` layer is also one row per item, but it
+#' is not a second test table. It returns the extended outfit/infit
+#' decomposition: aggregate observed and expected outfit components, the
+#' resulting outfit value, and the observed, expected, variance, and ratio
+#' components for infit. Its columns are `item_label`, `item_name`,
+#' `outfit_total_n`, `outfit_total_observed`, `outfit_total_expected`,
+#' `outfit_total_value`, `infit_observed`, `infit_expected`,
+#' `infit_variance`, and `infit_value`.
+#'
+#' `summary(result, which = "bh")` returns the Benjamini-Hochberg critical
+#' p-value limits used for the combined compact item-fit test family. Its
+#' columns are `threshold` and `p_value`.
+#'
+#' The item-restscore gamma standard error follows the DIGRAM source
+#' convention. For each item, gRm builds observed and fitted item-by-restscore
+#' tables. The fitted table supplies both the expected gamma and the reference
+#' spread used to place the observed gamma on a standard-error scale. The
+#' reported `gamma_sd` and `p_gamma` therefore describe the DIGRAM
+#' table-based comparison between observed and expected gamma; they are not
+#' recalculated as a separate sample-only or resampling standard error.
+#'
+#' The `"items"` layer depends on the extended calculation. With the default
+#' `include_extended = TRUE`, `item_fit()` computes that layer and
+#' `summary(result, which = "items")` is populated. With
+#' `include_extended = FALSE`, the extended calculation is skipped and
+#' `summary(result, which = "items")` returns an empty data frame. The compact
+#' `summary(result, which = "tests")` and `summary(result, which = "bh")`
+#' sections remain available.
 #' @export
 #' @examples
 #' \donttest{
@@ -117,6 +165,7 @@ item_parameters <- function(fit, ...) {
 #' fit0 <- fit(gllrm(gRm(data, items = c("I1", "I2"), id = "ID")))
 #' item_tests <- item_fit(fit0)
 #' summary(item_tests, which = "tests")
+#' summary(item_tests, which = "items")
 #' }
 item_fit <- function(fit, include_extended = TRUE, ...) {
   fit <- as_public_gRm_fit(fit)
@@ -204,9 +253,9 @@ local_dependence <- function(fit,
 #'   ID = 1:8,
 #'   I1 = c(0, 1, 0, 1, 0, 1, 1, 0),
 #'   I2 = c(1, 0, 1, 0, 1, 0, 1, 0),
-#'   group = c(0, 0, 1, 1, 0, 1, 0, 1)
+#'   site = c(0, 0, 1, 1, 0, 1, 0, 1)
 #' )
-#' analysis <- gRm(data, items = c("I1", "I2"), exogenous = "group", id = "ID")
+#' analysis <- gRm(data, items = c("I1", "I2"), exogenous = "site", id = "ID")
 #' fit0 <- fit(gllrm(analysis))
 #' dif_tests <- dif(fit0)
 #' summary(dif_tests, which = "tests")
@@ -247,8 +296,14 @@ dif <- function(fit,
 #' Global homogeneity diagnostics
 #'
 #' @param fit A fitted DIGRAM model.
-#' @param groups Integer-like score-group cut values. Defaults to the analysis
-#'   score groups.
+#' @param score_cuts Optional integer-like upper total-score cut values. When
+#'   `NULL`, the analysis-level score cuts stored by [gRm()] or
+#'   [read_digram_project()] are used. When supplied, these cuts override the
+#'   analysis-level cuts for this global-homogeneity calculation only. The cuts
+#'   define score groups as consecutive total-score intervals: the first group
+#'   runs from the source-valid lowest score through the first cut, the next
+#'   group starts at the following score and runs through the next cut, and so
+#'   on.
 #' @param max_step Maximum number of fitting iterations for group models.
 #' @param max_delta Convergence threshold for group models.
 #' @param jobs Reserved for future parallel implementations.
@@ -262,12 +317,12 @@ dif <- function(fit,
 #'   I1 = c(0, 1, 0, 1, 0, 1, 1, 0),
 #'   I2 = c(1, 0, 1, 0, 1, 0, 1, 0)
 #' )
-#' fit0 <- fit(gllrm(gRm(data, items = c("I1", "I2"), id = "ID", groups = 1L)))
+#' fit0 <- fit(gllrm(gRm(data, items = c("I1", "I2"), id = "ID", score_cuts = c(1L, 2L))))
 #' gh <- global_homogeneity(fit0)
 #' summary(gh, which = "tests")
 #' }
 global_homogeneity <- function(fit,
-                               groups = NULL,
+                               score_cuts = NULL,
                                max_step = 5000L,
                                max_delta = 0.0001,
                                jobs = 1L,
@@ -275,7 +330,7 @@ global_homogeneity <- function(fit,
   fit <- as_public_gRm_fit(fit)
   analysis <- fit$analysis %||% fit$spec$analysis
   jobs <- normalize_public_jobs(jobs)
-  score_cuts <- normalize_public_score_cuts(groups %||% analysis$score_groups, analysis$project)
+  score_cuts <- normalize_public_score_cuts(score_cuts %||% analysis$score_groups, analysis$project)
   values <- if (is_active_public_fit(fit)) {
     global_homogeneity_values(
       fit,
@@ -299,7 +354,7 @@ global_homogeneity <- function(fit,
     fit = fit,
     values = values,
     result = "global_homogeneity",
-    metadata = list(groups = score_cuts, max_step = max_step, max_delta = max_delta, jobs = jobs),
+    metadata = list(score_cuts = score_cuts, max_step = max_step, max_delta = max_delta, jobs = jobs),
     call = match.call()
   )
 }
@@ -370,16 +425,16 @@ normalize_public_jobs <- function(jobs) {
   as.integer(jobs)
 }
 
-normalize_public_score_cuts <- function(groups, project) {
-  cuts <- as.integer(groups %||% integer())
+normalize_public_score_cuts <- function(score_cuts, project) {
+  cuts <- as.integer(score_cuts %||% integer())
   if (length(cuts) < 2L) {
     cuts <- gRm_default_global_homogeneity_score_cuts(project)
   }
   if (length(cuts) < 2L || anyNA(cuts) || any(cuts != as.integer(cuts))) {
-    stop("`groups` must contain at least two non-missing integer-like score cuts.", call. = FALSE)
+    stop("`score_cuts` must contain at least two non-missing integer-like score cuts.", call. = FALSE)
   }
   if (is.unsorted(cuts, strictly = TRUE)) {
-    stop("`groups` score cuts must be strictly increasing.", call. = FALSE)
+    stop("`score_cuts` must be strictly increasing.", call. = FALSE)
   }
   cuts
 }

@@ -226,8 +226,7 @@ gllrm_active_observed_dif <- function(context) {
   })
 }
 
-gllrm_score_exo_groups <- function(context) {
-  rows <- context$valid_rows
+gllrm_score_exo_groups <- function(context, rows = context$valid_rows) {
   if (length(rows) == 0L) {
     out <- data.frame(score = integer(), count = integer())
     for (name in context$backgrounds$name) {

@@ -275,13 +275,16 @@ adjust_gllrm_dependency_parameters <- function(context,
                                                state,
                                                absorb_ld_item_factors = FALSE,
                                                reset_ld_reference = isTRUE(absorb_ld_item_factors),
-                                               preserve_current_ties = TRUE) {
+                                               preserve_current_ties = TRUE,
+                                               initial_i_ref = NULL,
+                                               initial_j_ref = NULL) {
   item_log_factors <- state$item_gamma
   item_log_factors[,] <- 0
   item_zero_factors <- state$item_gamma
   item_zero_factors[,] <- FALSE
-  i_ref <- 1L
-  j_ref <- 1L
+  source_ref <- as.integer(context$item_score_reference %||% 0L) + 1L
+  i_ref <- as.integer(initial_i_ref %||% source_ref)
+  j_ref <- as.integer(initial_j_ref %||% source_ref)
 
   for (ld_index in seq_along(context$ld_specs)) {
     spec <- context$ld_specs[[ld_index]]
@@ -579,7 +582,9 @@ fit_gllrm_active <- function(spec,
       context,
       state,
       absorb_ld_item_factors = FALSE,
-      preserve_current_ties = FALSE
+      preserve_current_ties = TRUE,
+      initial_i_ref = as.integer(context$item_score_reference %||% 0L) + 1L,
+      initial_j_ref = as.integer(context$item_score_reference %||% 0L) + 1L
     )
     if (previous_delta <= state$delta) {
       finish_count <- finish_count + 1L

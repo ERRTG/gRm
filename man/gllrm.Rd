@@ -20,14 +20,27 @@ does not fit it.
 \description{
 Specify a GLLRM model
 }
+\details{
+A GLLRM model defines a score-inclusive IRT graph. Every item is connected
+to the score node, LD terms add item:item edges, and DIF terms add
+item:exogenous edges. Use \code{\link[=model_graph]{model_graph()}} to return that graph as an
+\code{igraph} object, or \code{plot(model)} to draw it with the score node on the left.
+}
 \examples{
 data <- data.frame(
   ID = 1:6,
   I1 = c(0, 1, 0, 1, 0, 1),
   I2 = c(1, 0, 1, 0, 1, 0),
-  group = c(0, 0, 1, 1, 0, 1)
+  site = c(0, 0, 1, 1, 0, 1)
 )
-analysis <- gRm(data, items = c("I1", "I2"), exogenous = "group", id = "ID")
-model <- gllrm(analysis, ld = ~ I1:I2, dif = ~ I1:group)
+analysis <- gRm(data, items = c("I1", "I2"), exogenous = "site", id = "ID")
+model <- gllrm(analysis, ld = ~ I1:I2, dif = ~ I1:site)
 summary(model)
+graph <- model_graph(model)
+\donttest{
+plot(model)
+}
+}
+\seealso{
+\code{\link[=model_graph]{model_graph()}}, \code{\link[=fit]{fit()}}, \code{\link[=update.gRm_model]{update.gRm_model()}}
 }

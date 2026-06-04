@@ -20,7 +20,7 @@
 #' @importFrom utils type.convert
 #' @examples
 #' \dontrun{
-#' analysis <- gRm(data, items = c("I1", "I2", "I3"), exogenous = "group")
+#' analysis <- gRm(data, items = c("I1", "I2", "I3"), exogenous = "site")
 #' fit0 <- fit(gllrm(analysis))
 #' summary(fit0)
 #' summary(item_parameters(fit0), which = "coefficients")

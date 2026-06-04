@@ -9,7 +9,7 @@ read_digram_project(
   items,
   exogenous = character(),
   id = NULL,
-  groups = "auto",
+  score_cuts = "auto",
   name = "DIGRAM"
 )
 }
@@ -22,8 +22,12 @@ read_digram_project(
 
 \item{id}{Identifier column name. Defaults to the first CSV column.}
 
-\item{groups}{\code{"auto"} for source-faithful automatic score groups, or an
-integer-like vector of explicit score cuts.}
+\item{score_cuts}{\code{"auto"} for source-faithful automatic score cuts, or an
+integer-like vector of explicit upper total-score cut values. The cuts are
+stored with the analysis and later define score groups as consecutive
+intervals: the first group runs from the source-valid lowest score through
+the first cut, the next group starts at the following score and runs through
+the next cut, and so on.}
 
 \item{name}{DIGRAM file prefix.}
 }
@@ -38,7 +42,7 @@ Read an existing DIGRAM import project
 analysis <- read_digram_project(
   "path/to/DIGRAM",
   items = c("I1", "I2"),
-  exogenous = "group",
+  exogenous = "site",
   id = "id"
 )
 }

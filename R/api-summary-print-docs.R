@@ -45,18 +45,30 @@
 #' * `gRm_screen`: `"tests"`, `"selected"`, `"all"`, `"score_effects"`, `"bh"`.
 #' * `gRm_score_effects`: `"selected"`, `"tests"`, `"bh"`.
 #' * `gRm_item_parameters`: `"tests"`, `"coefficients"`, `"items"`, `"thresholds"`, `"fit"`.
-#' * `gRm_item_fit`: `"tests"`, `"items"`, `"bh"`.
+#' * `gRm_item_fit`: `"tests"` returns compact inferential item-fit
+#'   statistics for outfit, infit, and item-restscore gamma; `"items"`
+#'   returns the extended per-item outfit/infit diagnostic summary when the
+#'   item-fit object was created with `include_extended = TRUE`; `"bh"`
+#'   returns Benjamini-Hochberg thresholds for the compact test family.
 #' * `gRm_local_dependence`: `"selected"`, `"tests"`, `"bh"`.
 #' * `gRm_dif`: `"selected"`, `"tests"`, `"active"`, `"bh"`.
 #' * `gRm_global_homogeneity`: `"tests"`, `"summary"`, `"groups"`, `"items"`.
+#'
+#' For `gRm_item_fit`, the distinction between `"tests"` and `"items"` is
+#' intentional. The `"tests"` section is the compact inferential output and is
+#' always available. The `"items"` section is the extended per-item diagnostic
+#' decomposition and is populated only when the item-fit object was created by
+#' `item_fit(..., include_extended = TRUE)`, which is the default. If
+#' `include_extended = FALSE`, the `"items"` section is an empty data frame
+#' rather than a fallback copy of the test table.
 #' @examples
 #' data <- data.frame(
 #'   ID = 1:8,
 #'   I1 = c(0, 1, 0, 1, 0, 1, 1, 0),
 #'   I2 = c(1, 0, 1, 0, 1, 0, 1, 0),
-#'   group = c(0, 0, 1, 1, 0, 1, 0, 1)
+#'   site = c(0, 0, 1, 1, 0, 1, 0, 1)
 #' )
-#' analysis <- gRm(data, items = c("I1", "I2"), exogenous = "group", id = "ID")
+#' analysis <- gRm(data, items = c("I1", "I2"), exogenous = "site", id = "ID")
 #' model <- gllrm(analysis)
 #' summary(analysis, which = "data")
 #' summary(model, which = "model")

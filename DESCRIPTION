@@ -1,6 +1,6 @@
 Package: gRm
 Title: Parallel R Implementation of Non-GUI DIGRAM
-Version: 0.0.0.9000
+Version: 0.00
 Authors@R: c(
     person("DIGRAM", "Reimplementation", role = c("aut", "cre"), email = "noreply@example.com")
   )
@@ -16,6 +16,7 @@ Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.3
 Imports:
+    igraph,
     Rcpp
 Suggests:
     knitr,

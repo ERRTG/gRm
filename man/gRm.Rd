@@ -11,7 +11,7 @@ gRm(
   id = NULL,
   item_levels = "observed",
   exogenous_levels = "observed",
-  groups = "auto",
+  score_cuts = "auto",
   name = NULL
 )
 }
@@ -32,8 +32,12 @@ DIGRAM's one-based raw categories before fitting.}
 \item{exogenous_levels}{Exogeneous/person-factor levels, with the same
 conventions as \code{item_levels}.}
 
-\item{groups}{\code{"auto"} for source-faithful automatic score groups, or an
-integer-like vector of explicit score cuts.}
+\item{score_cuts}{\code{"auto"} for source-faithful automatic score cuts, or an
+integer-like vector of explicit upper total-score cut values. The cuts are
+stored with the analysis and later define score groups as consecutive
+intervals: the first group runs from the source-valid lowest score through
+the first cut, the next group starts at the following score and runs through
+the next cut, and so on.}
 
 \item{name}{Optional project name.}
 }
@@ -48,8 +52,8 @@ data <- data.frame(
   ID = 1:6,
   I1 = c(0, 1, 0, 1, 0, 1),
   I2 = c(1, 0, 1, 0, 1, 0),
-  group = c(0, 0, 1, 1, 0, 1)
+  site = c(0, 0, 1, 1, 0, 1)
 )
-analysis <- gRm(data, items = c("I1", "I2"), exogenous = "group", id = "ID")
+analysis <- gRm(data, items = c("I1", "I2"), exogenous = "site", id = "ID")
 summary(analysis)
 }

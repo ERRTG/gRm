@@ -191,15 +191,17 @@ build_active_ld_context <- function(bundle) {
   }
 
   item_raw_max <- as.integer(items$raw_max)
+  valid_rows <- which(data$status == 1L)
   list(
     n_items = nrow(items),
     item_raw_max = item_raw_max,
     max_total_score = as.integer(bundle$model$max_total_score),
     item_score_columns = lapply(item_raw_max, seq_len),
     item_score_values = lapply(item_raw_max, function(raw_max) seq.int(0L, raw_max - 1L)),
+    item_score_reference = gllrm_item_score_reference(item_matrix, valid_rows, items),
     item_matrix = item_matrix,
     score = as.integer(data$score),
-    valid_rows = which(data$status == 1L)
+    valid_rows = valid_rows
   )
 }
 
@@ -572,7 +574,14 @@ fit_active_ld_candidate <- function(bundle, base_counts, item1, item2, max_step 
       }
     }
 
-    ld_gamma <- adjust_ld_gamma_source_reference(candidate_counts$observed_ld, ld_gamma)
+    ld_reference <- as.integer(context$item_score_reference %||% 0L) + 1L
+    ld_gamma <- adjust_ld_gamma_source_reference_details(
+      candidate_counts$observed_ld,
+      ld_gamma,
+      i_ref = ld_reference,
+      j_ref = ld_reference,
+      preserve_current_ties = TRUE
+    )$adjusted
     item_gamma <- adjust_item_gammas_source_scale(bundle, item_gamma)
     if (delta <= max_delta) {
       converged <- TRUE
@@ -610,6 +619,8 @@ adjust_ld_gamma_source_reference_details <- function(observed_ld,
                                                      preserve_current_ties = TRUE) {
   rows <- nrow(ld_gamma)
   cols <- ncol(ld_gamma)
+  i_ref <- min(max(as.integer(i_ref), 1L), rows)
+  j_ref <- min(max(as.integer(j_ref), 1L), cols)
   i_cells <- rowSums(observed_ld > 0)
   j_cells <- colSums(observed_ld > 0)
 
@@ -617,9 +628,10 @@ adjust_ld_gamma_source_reference_details <- function(observed_ld,
     if (i_cells[[rows]] == cols) {
       i_ref <- rows
     } else if (isTRUE(preserve_current_ties)) {
-      better <- which(i_cells > i_cells[[i_ref]])
-      if (length(better) > 0L) {
-        i_ref <- better[[1L]]
+      for (candidate in seq_len(rows)) {
+        if (i_cells[[candidate]] > i_cells[[i_ref]]) {
+          i_ref <- candidate
+        }
       }
     } else {
       i_ref <- which.max(i_cells)
@@ -629,9 +641,10 @@ adjust_ld_gamma_source_reference_details <- function(observed_ld,
     if (j_cells[[cols]] == rows) {
       j_ref <- cols
     } else if (isTRUE(preserve_current_ties)) {
-      better <- which(j_cells > j_cells[[j_ref]])
-      if (length(better) > 0L) {
-        j_ref <- better[[1L]]
+      for (candidate in seq_len(cols)) {
+        if (j_cells[[candidate]] > j_cells[[j_ref]]) {
+          j_ref <- candidate
+        }
       }
     } else {
       j_ref <- which.max(j_cells)

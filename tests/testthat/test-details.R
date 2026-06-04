@@ -4,7 +4,7 @@ result_output_data <- function() {
     I1 = c(1L, 1L, 2L, 2L, 3L, 3L, 1L, 2L, 3L, 1L, 2L, 3L),
     I2 = c(1L, 2L, 1L, 3L, 2L, 3L, 3L, 1L, 2L, 2L, 3L, 1L),
     I3 = c(2L, 1L, 3L, 1L, 2L, 3L, 2L, 1L, 3L, 3L, 2L, 1L),
-    group = c(1L, 1L, 1L, 2L, 2L, 2L, 1L, 1L, 2L, 2L, 1L, 2L)
+    site = c(1L, 1L, 1L, 2L, 2L, 2L, 1L, 1L, 2L, 2L, 1L, 2L)
   )
 }
 
@@ -12,7 +12,7 @@ test_that("analysis summaries expose input metadata without public details", {
   ia <- gRm(
     result_output_data(),
     items = c("I1", "I2", "I3"),
-    exogenous = "group",
+    exogenous = "site",
     id = "ID"
   )
 
@@ -26,7 +26,7 @@ test_that("analysis summaries expose input metadata without public details", {
 })
 
 test_that("screen summaries expose selected model terms and BH metadata", {
-  ia <- gRm(result_output_data(), items = c("I1", "I2"), exogenous = "group", id = "ID")
+  ia <- gRm(result_output_data(), items = c("I1", "I2"), exogenous = "site", id = "ID")
   scr <- screen(ia, inference = "asymptotic")
 
   all_terms <- summary(scr, which = "all")$all
@@ -40,7 +40,7 @@ test_that("screen summaries expose selected model terms and BH metadata", {
 })
 
 test_that("diagnostic summaries expose result tables through summary which", {
-  ia <- gRm(result_output_data(), items = c("I1", "I2"), exogenous = "group", id = "ID")
+  ia <- gRm(result_output_data(), items = c("I1", "I2"), exogenous = "site", id = "ID")
   fitted <- fit(gllrm(ia), max_step = 50L)
 
   ld <- local_dependence(fitted, jobs = 1L)

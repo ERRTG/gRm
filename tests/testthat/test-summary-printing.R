@@ -4,7 +4,7 @@ summary_print_data <- function() {
     I1 = c(1L, 1L, 2L, 2L, 3L, 3L, 1L, 2L, 3L, 1L, 2L, 3L),
     I2 = c(1L, 2L, 1L, 3L, 2L, 3L, 3L, 1L, 2L, 2L, 3L, 1L),
     I3 = c(2L, 1L, 3L, 1L, 2L, 3L, 2L, 1L, 3L, 3L, 2L, 1L),
-    group = c(1L, 1L, 1L, 2L, 2L, 2L, 1L, 1L, 2L, 2L, 1L, 2L)
+    site = c(1L, 1L, 1L, 2L, 2L, 2L, 1L, 1L, 2L, 2L, 1L, 2L)
   )
 }
 
@@ -12,9 +12,9 @@ summary_print_analysis <- function() {
   gRm(
     summary_print_data(),
     items = c("I1", "I2", "I3"),
-    exogenous = "group",
+    exogenous = "site",
     id = "ID",
-    groups = "auto"
+    score_cuts = "auto"
   )
 }
 
@@ -30,7 +30,7 @@ expect_summary_surface <- function(object, expected_class, which = NULL) {
 test_that("model and fit summaries use statistical labels", {
   analysis <- summary_print_analysis()
   rasch_model <- gllrm(analysis)
-  gllrm_model <- gllrm(analysis, ld = ~ I1:I2, dif = ~ I3:group)
+  gllrm_model <- gllrm(analysis, ld = ~ I1:I2, dif = ~ I3:site)
   rasch_fit <- fit(rasch_model, max_step = 50L)
   gllrm_fit <- fit(gllrm_model, max_step = 50L)
 
@@ -57,6 +57,36 @@ test_that("summary which selects designed tables and rejects old accessor names"
   expect_error(summary(fitted, which = "details"), "which")
   expect_error(summary(fitted, which = "tidy"), "which")
   expect_error(summary(fitted, which = "glance"), "which")
+})
+
+test_that("item-fit tests and items summaries expose distinct source-shaped tables", {
+  fitted <- fit(gllrm(summary_print_analysis()), max_step = 50L)
+  ifit <- item_fit(fitted, include_extended = TRUE)
+
+  tests <- summary(ifit, which = "tests")$tests
+  items <- summary(ifit, which = "items")$items
+
+  expect_s3_class(summary(ifit, which = "tests"), "summary.gRm_item_fit")
+  expect_s3_class(summary(ifit, which = "items"), "summary.gRm_item_fit")
+  expect_true(is.data.frame(tests))
+  expect_true(is.data.frame(items))
+  expect_equal(nrow(items), nrow(tests))
+
+  expect_true(all(c(
+    "outfit", "outfit_sd", "p_outfit",
+    "infit", "infit_sd", "p_infit",
+    "observed_gamma", "expected_gamma", "gamma_sd", "p_gamma"
+  ) %in% names(tests)))
+
+  expect_true(all(c(
+    "outfit_total_n", "outfit_total_observed",
+    "outfit_total_expected", "outfit_total_value",
+    "infit_observed", "infit_expected",
+    "infit_variance", "infit_value"
+  ) %in% names(items)))
+
+  expect_false("p_gamma" %in% names(items))
+  expect_false("outfit_total_value" %in% names(tests))
 })
 
 test_that("screen and score-effect summaries print BH selection context", {

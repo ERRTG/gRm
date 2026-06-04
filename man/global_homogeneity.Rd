@@ -6,7 +6,7 @@
 \usage{
 global_homogeneity(
   fit,
-  groups = NULL,
+  score_cuts = NULL,
   max_step = 5000L,
   max_delta = 1e-04,
   jobs = 1L,
@@ -16,8 +16,14 @@ global_homogeneity(
 \arguments{
 \item{fit}{A fitted DIGRAM model.}
 
-\item{groups}{Integer-like score-group cut values. Defaults to the analysis
-score groups.}
+\item{score_cuts}{Optional integer-like upper total-score cut values. When
+\code{NULL}, the analysis-level score cuts stored by \code{\link[=gRm]{gRm()}} or
+\code{\link[=read_digram_project]{read_digram_project()}} are used. When supplied, these cuts override the
+analysis-level cuts for this global-homogeneity calculation only. The cuts
+define score groups as consecutive total-score intervals: the first group
+runs from the source-valid lowest score through the first cut, the next
+group starts at the following score and runs through the next cut, and so
+on.}
 
 \item{max_step}{Maximum number of fitting iterations for group models.}
 
@@ -40,7 +46,7 @@ data <- data.frame(
   I1 = c(0, 1, 0, 1, 0, 1, 1, 0),
   I2 = c(1, 0, 1, 0, 1, 0, 1, 0)
 )
-fit0 <- fit(gllrm(gRm(data, items = c("I1", "I2"), id = "ID", groups = 1L)))
+fit0 <- fit(gllrm(gRm(data, items = c("I1", "I2"), id = "ID", score_cuts = c(1L, 2L))))
 gh <- global_homogeneity(fit0)
 summary(gh, which = "tests")
 }

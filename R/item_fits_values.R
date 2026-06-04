@@ -1,31 +1,4 @@
-#' Compact DIGRAM ItemFits values
-#'
-#' Computes source-shaped ItemFits numeric values from the native R Rasch fit.
-#' The implementation is independent R production code: Pascal references are
-#' used only by tests, not by this function.
-#'
-#' The outfit/infit branch intentionally preserves a mathematically strange
-#' DIGRAM source convention from `skbias15.pas`: observed item-score proportions
-#' can be counted on valid-background rows while the score weights come from all
-#' complete item-response rows. This mixed conditioning is required for
-#' source-faithful numeric reconstruction.
-#'
-#' @param project A parsed DIGRAM project from [read_digram_project()].
-#' @param max_step Maximum number of base Rasch IPF iterations.
-#' @param max_delta Convergence threshold for the base Rasch fit.
-#' @param include_extended Whether to compute the extended ItemFits diagnostic
-#'   surface. Compact workflows can set this to `FALSE` to avoid the
-#'   source-faithful but much larger extended table pass.
-#' @return A `gRm_item_fits_values` object with per-item outfit, infit,
-#'   item-restscore gamma, p-values, BH flags, compact side-file values, and BH
-#'   limits for the combined compact result family.
-#' @examples
-#' \dontrun{
-#' project <- read_digram_project("path/to/DIGRAM")
-#' values <- item_fits_values(project)
-#' values$items
-#' }
-#' @keywords internal
+#' @noRd
 item_fits_values <- function(project, max_step = 5000L, max_delta = 0.0001, include_extended = TRUE) {
   if ((inherits(project, "gRm_fit") || inherits(project, "gRm_gllrm_fit")) && inherits(project$values, "gRm_active_gllrm_values")) {
     return(active_gllrm_item_fits_values(project, include_extended = include_extended))

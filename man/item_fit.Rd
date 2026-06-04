@@ -7,9 +7,13 @@
 item_fit(fit, include_extended = TRUE, ...)
 }
 \arguments{
-\item{fit}{A fitted DIGRAM model.}
+\item{fit}{A fitted gRm model.}
 
-\item{include_extended}{Whether to compute extended item-fit detail tables.}
+\item{include_extended}{Whether to compute extended item-fit detail tables.
+When \code{FALSE}, \code{summary(result, which = "items")} returns an empty data
+frame because the per-item extended diagnostic summaries were not
+computed. The compact \code{summary(result, which = "tests")} table remains
+available.}
 
 \item{...}{Reserved for S3 dispatch compatibility; ignored.}
 }
@@ -17,7 +21,50 @@ item_fit(fit, include_extended = TRUE, ...)
 A \code{gRm_item_fit} result object.
 }
 \description{
-Item fit diagnostics
+Compute item-fit statistics for a fitted gRm model. Use
+\code{summary(result, which = "tests")} for compact outfit, infit, and
+item-restscore gamma tests. Use \code{summary(result, which = "items")} for the
+per-item outfit/infit diagnostic summary produced by the extended item-fit
+calculation.
+}
+\details{
+The item-fit result has two different public summary layers. The
+\code{summary(result, which = "tests")} layer is always available and returns one
+row per item with the compact inferential statistics: outfit, infit,
+item-restscore gamma, standard errors, p-values, FDR labels, and direction.
+Its columns are \code{item_label}, \code{item_name}, \code{outfit}, \code{outfit_sd},
+\code{p_outfit}, \code{outfit_fdr}, \code{infit}, \code{infit_sd}, \code{p_infit}, \code{infit_fdr},
+\code{observed_gamma}, \code{expected_gamma}, \code{gamma_sd}, \code{p_gamma}, \code{gamma_fdr},
+and \code{direction}.
+
+The \code{summary(result, which = "items")} layer is also one row per item, but it
+is not a second test table. It returns the extended outfit/infit
+decomposition: aggregate observed and expected outfit components, the
+resulting outfit value, and the observed, expected, variance, and ratio
+components for infit. Its columns are \code{item_label}, \code{item_name},
+\code{outfit_total_n}, \code{outfit_total_observed}, \code{outfit_total_expected},
+\code{outfit_total_value}, \code{infit_observed}, \code{infit_expected},
+\code{infit_variance}, and \code{infit_value}.
+
+\code{summary(result, which = "bh")} returns the Benjamini-Hochberg critical
+p-value limits used for the combined compact item-fit test family. Its
+columns are \code{threshold} and \code{p_value}.
+
+The item-restscore gamma standard error follows the DIGRAM source
+convention. For each item, gRm builds observed and fitted item-by-restscore
+tables. The fitted table supplies both the expected gamma and the reference
+spread used to place the observed gamma on a standard-error scale. The
+reported \code{gamma_sd} and \code{p_gamma} therefore describe the DIGRAM
+table-based comparison between observed and expected gamma; they are not
+recalculated as a separate sample-only or resampling standard error.
+
+The \code{"items"} layer depends on the extended calculation. With the default
+\code{include_extended = TRUE}, \code{item_fit()} computes that layer and
+\code{summary(result, which = "items")} is populated. With
+\code{include_extended = FALSE}, the extended calculation is skipped and
+\code{summary(result, which = "items")} returns an empty data frame. The compact
+\code{summary(result, which = "tests")} and \code{summary(result, which = "bh")}
+sections remain available.
 }
 \examples{
 \donttest{
@@ -29,5 +76,6 @@ data <- data.frame(
 fit0 <- fit(gllrm(gRm(data, items = c("I1", "I2"), id = "ID")))
 item_tests <- item_fit(fit0)
 summary(item_tests, which = "tests")
+summary(item_tests, which = "items")
 }
 }

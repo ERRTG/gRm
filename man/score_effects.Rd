@@ -49,9 +49,9 @@ data <- data.frame(
   ID = 1:8,
   I1 = c(0, 1, 0, 1, 0, 1, 1, 0),
   I2 = c(1, 0, 1, 0, 1, 0, 1, 0),
-  group = c(0, 0, 1, 1, 0, 1, 0, 1)
+  site = c(0, 0, 1, 1, 0, 1, 0, 1)
 )
-analysis <- gRm(data, items = c("I1", "I2"), exogenous = "group", id = "ID")
+analysis <- gRm(data, items = c("I1", "I2"), exogenous = "site", id = "ID")
 effects <- score_effects(analysis)
 summary(effects, which = "tests")
 }

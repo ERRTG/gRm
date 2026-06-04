@@ -4,6 +4,7 @@ test_that("namespace exports only the statistical modeling API", {
     "gRm",
     "read_digram_project",
     "gllrm",
+    "model_graph",
     "fit",
     "screen",
     "score_effects",

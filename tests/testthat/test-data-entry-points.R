@@ -4,7 +4,7 @@ test_that("read_digram_csv builds internal representation and writes import file
     ID = 1:3,
     item_a = c(1L, 2L, 3L),
     item_b = c(2L, 1L, 3L),
-    group = c(1L, 2L, 1L)
+    site = c(1L, 2L, 1L)
   )
   utils::write.csv(data, csv_path, row.names = FALSE, quote = FALSE)
   output_dir <- tempfile("digr")
@@ -12,7 +12,7 @@ test_that("read_digram_csv builds internal representation and writes import file
   project <- read_digram_csv(
     csv_path = csv_path,
     items = c("item_a", "item_b"),
-    exo = "group",
+    exo = "site",
     idvar = "ID",
     save_digram_files = TRUE,
     output_dir = output_dir
@@ -20,7 +20,7 @@ test_that("read_digram_csv builds internal representation and writes import file
 
   expect_s3_class(project, "gRm_data")
   expect_equal(project$items$name, c("item_a", "item_b"))
-  expect_equal(project$backgrounds$name, "group")
+  expect_equal(project$backgrounds$name, "site")
   expect_true(file.exists(file.path(output_dir, "DIGRAM.csv")))
   expect_true(file.exists(file.path(output_dir, "DIGRAM.imp")))
   expect_true(file.exists(file.path(output_dir, "DIGRAM.imv")))
@@ -33,7 +33,7 @@ test_that("read_digram_files reconstructs a saved import bundle", {
     ID = 1:3,
     item_a = c(1L, 2L, 3L),
     item_b = c(2L, 1L, 3L),
-    group = c(1L, 2L, 1L)
+    site = c(1L, 2L, 1L)
   )
   utils::write.csv(data, csv_path, row.names = FALSE, quote = FALSE)
   output_dir <- tempfile("digr")
@@ -41,7 +41,7 @@ test_that("read_digram_files reconstructs a saved import bundle", {
   original <- read_digram_csv(
     csv_path = csv_path,
     items = c("item_a", "item_b"),
-    exo = "group",
+    exo = "site",
     idvar = "ID",
     save_digram_files = TRUE,
     output_dir = output_dir
@@ -49,7 +49,7 @@ test_that("read_digram_files reconstructs a saved import bundle", {
   restored <- read_digram_files(
     input_dir = output_dir,
     items = c("item_a", "item_b"),
-    exo = "group",
+    exo = "site",
     idvar = NULL
   )
 
@@ -64,13 +64,13 @@ test_that("gRm maps zero-based observed levels to DIGRAM raw categories", {
     ID = 1:8,
     item_a = c(0L, 1L, 0L, 1L, 0L, 1L, 1L, 0L),
     item_b = c(1L, 0L, 1L, 0L, 1L, 0L, 1L, 0L),
-    group = c(0L, 0L, 1L, 1L, 0L, 1L, 0L, 1L)
+    site = c(0L, 0L, 1L, 1L, 0L, 1L, 0L, 1L)
   )
 
   analysis <- gRm(
     data = data,
     items = c("item_a", "item_b"),
-    exogenous = "group",
+    exogenous = "site",
     id = "ID"
   )
   bundle <- build_item_parameters_bundle(analysis$project)
@@ -89,16 +89,16 @@ test_that("gRm accepts explicit levels and rejects uncovered observed values", {
     ID = 1:4,
     item_a = c(0L, 1L, 0L, 1L),
     item_b = c(0L, 1L, 2L, 1L),
-    group = c("control", "case", "control", "case")
+    site = c("clinic_a", "clinic_b", "clinic_a", "clinic_b")
   )
 
   analysis <- gRm(
     data = data,
     items = c("item_a", "item_b"),
-    exogenous = "group",
+    exogenous = "site",
     id = "ID",
     item_levels = list(item_a = 0:1, item_b = 0:2),
-    exogenous_levels = list(group = c("control", "case"))
+    exogenous_levels = list(site = c("clinic_a", "clinic_b"))
   )
 
   expect_equal(analysis$project$items$raw_max, c(2L, 3L))
@@ -110,10 +110,10 @@ test_that("gRm accepts explicit levels and rejects uncovered observed values", {
     gRm(
       data = data,
       items = c("item_a", "item_b"),
-      exogenous = "group",
+      exogenous = "site",
       id = "ID",
       item_levels = 0:1,
-      exogenous_levels = list(group = c("control", "case"))
+      exogenous_levels = list(site = c("clinic_a", "clinic_b"))
     ),
     "item_levels for item_b do not cover observed values"
   )

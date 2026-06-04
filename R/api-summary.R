@@ -160,18 +160,25 @@ summary.gRm_item_parameters <- function(object, which = c("tests", "coefficients
   )
 }
 
+item_fit_summary_items_table <- function(object, public_tables) {
+  public_tables$item_fit_summaries %||%
+    object$values$extended$summaries %||%
+    data.frame()
+}
+
 #' @export
 summary.gRm_item_fit <- function(object, which = c("tests", "items", "bh"), ...) {
   which <- validate_summary_which(which, c("tests", "items", "bh"))
   tables <- public_value_tables(object$values)
   item_tests <- tables$statistics %||% object$values$items %||% data.frame()
+  item_summaries <- item_fit_summary_items_table(object, tables)
   new_gRm_summary(
     object,
     title = "DIGRAM item fit",
     which = which,
     tables = list(
       tests = item_tests,
-      items = item_tests,
+      items = item_summaries,
       bh = tables$bh_thresholds %||% data.frame()
     )
   )
