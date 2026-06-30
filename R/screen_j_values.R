@@ -1,22 +1,21 @@
-#' Derive DIGRAM SCREEN J item-screening values
-#'
-#' Computes the source-shaped values printed by DIGRAM's `SCREEN J` command.
-#' This is the item-screening branch from `DIGRAM1f.pas` command 3 and
-#' `SKbias7.pas::Item_screening`; it is distinct from the graphical
-#' `SCREEN` report implemented by [screen_values()].
-#'
-#' The validation runtime target uses the asymptotic, two-sided branch by default.
-#' Exact mode follows the source `GENTAB1` Monte Carlo branch and computes
-#' partial p-values directly from the project data.
-#'
-#' @param project A parsed DIGRAM project.
-#' @param exact Logical; when `TRUE`, replace the partial item-item and partial
-#'   DIF p-values with the source-shaped Monte Carlo exact p-values used by
-#'   `SKbias3.XYZ_bias_ANALYSE`.
-#' @param nsim Number of random tables for exact p-values.
-#' @param seed Random seed for the source-shaped exact branch.
-#' @return A `gRm_screen_j_values` object.
-#' @keywords internal
+# Derive DIGRAM SCREEN J item-screening values
+#
+# Computes the source-shaped values printed by DIGRAM's `SCREEN J` command.
+# This is the item-screening branch from `DIGRAM1f.pas` command 3 and
+# `SKbias7.pas::Item_screening`; it is distinct from the graphical
+# `SCREEN` command, which is outside the current package scope.
+#
+# The validation runtime target uses the asymptotic, two-sided branch by default.
+# Exact mode follows the source `GENTAB1` Monte Carlo branch and computes
+# partial p-values directly from the project data.
+#
+# @param project A parsed DIGRAM project.
+# @param exact Logical; when `TRUE`, replace the partial item-item and partial
+#   DIF p-values with the source-shaped Monte Carlo exact p-values used by
+#   `SKbias3.XYZ_bias_ANALYSE`.
+# @param nsim Number of random tables for exact p-values.
+# @param seed Random seed for the source-shaped exact branch.
+# @return A `gRm_screen_j_values` object.
 screen_j_values <- function(project,
                             exact = FALSE,
                             repeated = FALSE,
@@ -150,18 +149,39 @@ screen_j_values <- function(project,
       partial_stats <- screen_j_partial_gamma(strata)
       partial_gamma[row_item, col_item] <- partial_stats$gamma
       partial_p[row_item, col_item] <- if (exact) {
-        partial_chi <- screen_j_partial_chi(strata)
-        screen_j_exact_partial_gamma(
-          strata,
-          partial_stats$gamma,
-          nsim,
-          seed,
-          partial_chi$stat,
-          sequential = repeated,
-          seq_limit = seq_limit,
-          seq_p0 = seq_p0,
-          seq_boundary = seq_boundary
-        )
+        native_pair <- if (screen_j_item_pair_native_allowed(repeated, seq_p0, seq_boundary)) {
+          screen_j_item_pair_conditional_exact_native(
+            x_values,
+            y_values,
+            x_dim,
+            y_dim,
+            rest_score + 1L,
+            max_score + 1L,
+            partial_valid,
+            nsim,
+            seed,
+            sequential = repeated,
+            seq_limit = seq_limit
+          )
+        } else {
+          NULL
+        }
+        if (!is.null(native_pair)) {
+          native_pair$p_gamma_exact
+        } else {
+          partial_chi <- screen_j_partial_chi(strata)
+          screen_j_exact_chi_gamma_prepared_r(
+            screen_j_prepare_exact_slices(screen_j_strata_slices(strata)),
+            partial_chi$stat,
+            partial_stats$gamma,
+            nsim,
+            seed,
+            sequential = repeated,
+            seq_limit = seq_limit,
+            seq_p0 = seq_p0,
+            seq_boundary = seq_boundary
+          )$p_gamma
+        }
       } else {
         partial_stats$p_value
       }
@@ -214,7 +234,10 @@ screen_j_values <- function(project,
     complete_items = complete_items,
     items = items,
     backgrounds = backgrounds,
-    max_score = max_score,
+    # Source trace: SKbias13.AnalysisOfSpuriousItemBias and
+    # StepwiseItemBiasAnalysis dimension their score variable by
+    # Largest_possible_score, not by the largest observed score.
+    max_score = largest_possible_score,
     partial_exo = partial_exo,
     initial_item_bias = initial_item_bias,
     fdr_01 = source_bh_critical(bh_values, 0.01),
@@ -269,7 +292,9 @@ screen_j_values <- function(project,
         item_ppq = partial_ppq,
         item_pmq = partial_pmq,
         weighted_gamma = weighted_gamma,
-        average_abs_gamma = mean(abs(weighted_gamma[upper.tri(weighted_gamma)])),
+        # Source trace: SKbias7.Item_screening prints
+        # sum(abs(part_g[i,j] + part_g[j,i])) / (nitems * (nitems - 1)).
+        average_abs_gamma = screen_j_average_abs_partial_gamma(partial_gamma),
         exo_stat = partial_exo$stat,
         exo_p = partial_exo$p,
         exo_ppq = partial_exo$ppq,
@@ -309,7 +334,6 @@ screen_j_values <- function(project,
   values
 }
 
-#' @keywords internal
 screen_j_pair_table <- function(x, y, x_dim, y_dim, valid) {
   keep <- valid & x >= 1L & x <= x_dim & y >= 1L & y <= y_dim
   tab <- matrix(0, nrow = x_dim, ncol = y_dim)
@@ -320,7 +344,61 @@ screen_j_pair_table <- function(x, y, x_dim, y_dim, valid) {
   tab
 }
 
-#' @keywords internal
+screen_rc_chi <- function(tab) {
+  row_totals <- rowSums(tab)
+  col_totals <- colSums(tab)
+  total <- sum(tab)
+  if (total <= 0) {
+    return(list(chi_square = 0, df = 0L, p_value = 1))
+  }
+
+  expected <- outer(row_totals, col_totals) / total
+  positive <- expected > 0
+  chi <- sum((tab[positive] - expected[positive])^2 / expected[positive])
+  df <- (sum(row_totals > 0) - 1L) * (sum(col_totals > 0) - 1L)
+  if (df <= 0L) {
+    list(chi_square = chi, df = 0L, p_value = 1)
+  } else {
+    # Source trace: SkStat.RCCHI/SourceRaschCore.SourcePFCHI computes the upper
+    # chi-square tail for the Pearson statistic.
+    list(chi_square = chi, df = df, p_value = source_pfchi(df, chi))
+  }
+}
+
+screen_rc_chi_square <- function(tab) {
+  screen_rc_chi(tab)$chi_square
+}
+
+screen_rc_gamma <- function(tab) {
+  stats <- source_rc_gamma_stats(tab, include_cells = TRUE)
+  ppq <- stats$ppq
+  pmq <- stats$pmq
+  gamma_value <- stats$gamma
+  n <- sum(tab)
+  if (ppq <= 0) {
+    return(list(gamma = 0, ppq = ppq, pmq = pmq, s = 0, p_value = 1, success = FALSE))
+  }
+
+  # Source trace: SkStat.RCGAMMA/SourceRaschCore.SourceRCGammaStats computes
+  # S = 4 * (-PMQ * PMQ / N + sum(n_ij * (AIJ - DIJ)^2)) and tests
+  # abs(gamma / (sqrt(S) / PPQ)) against the upper normal tail.
+  s <- if (n > 0) -pmq * (pmq / n) else 0
+  m <- stats$aij - stats$dij
+  s <- s + sum(tab * m * m)
+  s <- 4 * s
+  p_value <- if (s > 0) {
+    source_tail_norm(abs(gamma_value / (sqrt(s) / ppq)), TRUE)
+  } else {
+    1
+  }
+
+  list(gamma = gamma_value, ppq = ppq, pmq = pmq, s = s, p_value = p_value, success = TRUE)
+}
+
+screen_rc_gamma_counts <- function(tab) {
+  source_rc_gamma_counts(tab)
+}
+
 screen_j_source_seed <- function(seed) {
   seed <- as.integer(seed[[1L]])
   if (is.na(seed)) {
@@ -329,7 +407,6 @@ screen_j_source_seed <- function(seed) {
   max(0L, min(255L, seed))
 }
 
-#' @keywords internal
 screen_j_source_random_stream <- function(seed) {
   state <- as.numeric(screen_j_source_seed(seed))
   base <- 65536
@@ -351,7 +428,6 @@ screen_j_source_random_stream <- function(seed) {
   }
 }
 
-#' @keywords internal
 screen_j_repeated_seq_limit <- function(project, repeated, nsim, exact_state = NULL) {
   nsim <- as.integer(nsim[[1L]])
   if (!is.null(exact_state)) {
@@ -363,7 +439,6 @@ screen_j_repeated_seq_limit <- function(project, repeated, nsim, exact_state = N
   as.integer(gRm_exact_command_state("repeated", nsim = nsim)$seq_limit)
 }
 
-#' @keywords internal
 screen_j_strata_table <- function(x, y, z, x_dim, y_dim, z_dim, valid) {
   keep <- valid & x >= 1L & x <= x_dim & y >= 1L & y <= y_dim & z >= 1L & z <= z_dim
   tab <- array(0, dim = c(x_dim, y_dim, z_dim))
@@ -374,19 +449,16 @@ screen_j_strata_table <- function(x, y, z, x_dim, y_dim, z_dim, valid) {
   tab
 }
 
-#' @keywords internal
 screen_j_strata_slices <- function(strata) {
   lapply(seq_len(dim(strata)[[3L]]), function(level) {
     strata[, , level, drop = FALSE][, , 1L]
   })
 }
 
-#' @keywords internal
 screen_j_source_informative_slice <- function(slice) {
   sum(rowSums(slice) > 0L) >= 2L && sum(colSums(slice) > 0L) >= 2L
 }
 
-#' @keywords internal
 screen_j_partial_gamma <- function(strata) {
   ppq_total <- 0
   pmq_total <- 0
@@ -409,13 +481,11 @@ screen_j_partial_gamma <- function(strata) {
   list(gamma = gamma, p_value = p, ppq = ppq_total, pmq = pmq_total, s = s_total)
 }
 
-#' @keywords internal
 screen_j_source_single <- function(value) {
   storage.mode(value) <- "double"
   readBin(writeBin(value, raw(), size = 4L), "numeric", n = length(value), size = 4L)
 }
 
-#' @keywords internal
 screen_j_partial_chi <- function(strata) {
   chi_total <- 0
   df_total <- 0L
@@ -432,7 +502,6 @@ screen_j_partial_chi <- function(strata) {
   }
 }
 
-#' @keywords internal
 screen_j_rc_chi_source_expected <- function(tab) {
   chi_square <- screen_j_rc_chi_square_source_expected(tab)
   row_totals <- rowSums(tab)
@@ -445,7 +514,6 @@ screen_j_rc_chi_source_expected <- function(tab) {
   }
 }
 
-#' @keywords internal
 screen_j_rc_chi_square_source_expected <- function(tab) {
   row_totals <- rowSums(tab)
   col_totals <- colSums(tab)
@@ -458,9 +526,11 @@ screen_j_rc_chi_square_source_expected <- function(tab) {
   for (col in seq_len(ncol(tab))) {
     col_share <- col_totals[[col]] / total
     for (row in seq_len(nrow(tab))) {
-      # Source trace: SKxyz1.Transfer_BT_to_Xyz_table stores expected cells as
-      # row_margin * (col_margin / total), and SKrandom.GENTAB1 passes that
-      # stored table to SkStat.RCCHI for exact chi-square comparisons.
+      # Source trace: source/PAS_skunits/SKxyz1.PAS::MAKE_XYZ_TABLE and
+      # source/PAS_skunits/SKbigtab.pas::Transfer_BT_to_XYZ_TABLE store
+      # expected cells as row_margin * (col_margin / total). SKrandom.GENTAB1
+      # passes that stored table to SkStat.RCCHI for exact chi-square
+      # comparisons.
       expected <- row_totals[[row]] * col_share
       if (expected > 0) {
         residual <- tab[row, col] - expected
@@ -471,18 +541,17 @@ screen_j_rc_chi_square_source_expected <- function(tab) {
   chi_square
 }
 
-#' Source-shaped Monte Carlo exact partial gamma p-value
-#'
-#' Source trace: `SKbias3.XYZ_bias_ANALYSE` calls `SKrandom.GENTAB1` for each
-#' score-conditioned slice, adds simulated `PPQ` and `PMQ` over slices, and
-#' counts `abs(simulated_gamma) >= abs(observed_gamma)`.
-#'
-#' @param strata Three-way table with dimensions item/background by item/exo by
-#'   conditioning score.
-#' @param observed_gamma Observed partial gamma.
-#' @param nsim Number of simulated tables.
-#' @return Two-sided Monte Carlo exact p-value.
-#' @keywords internal
+# Source-shaped Monte Carlo exact partial gamma p-value
+#
+# Source trace: `SKbias3.XYZ_bias_ANALYSE` calls `SKrandom.GENTAB1` for each
+# score-conditioned slice, adds simulated `PPQ` and `PMQ` over slices, and
+# counts `abs(simulated_gamma) >= abs(observed_gamma)`.
+#
+# @param strata Three-way table with dimensions item/background by item/exo by
+#   conditioning score.
+# @param observed_gamma Observed partial gamma.
+# @param nsim Number of simulated tables.
+# @return Two-sided Monte Carlo exact p-value.
 screen_j_exact_partial_gamma <- function(strata,
                                          observed_gamma,
                                          nsim,
@@ -509,7 +578,6 @@ screen_j_exact_partial_gamma <- function(strata,
   screen_j_exact_gamma_slices(slices, observed_gamma, nsim, seed)
 }
 
-#' @keywords internal
 screen_j_exact_gamma_slices <- function(slices, observed_gamma, nsim, seed = NULL) {
   native <- screen_j_exact_gamma_slices_native(slices, observed_gamma, nsim, seed)
   if (!is.null(native)) {
@@ -518,12 +586,10 @@ screen_j_exact_gamma_slices <- function(slices, observed_gamma, nsim, seed = NUL
   screen_j_exact_gamma_prepared(screen_j_prepare_exact_slices(slices), observed_gamma, nsim, seed)
 }
 
-#' @keywords internal
 screen_j_exact_gamma_prepared <- function(prepared_slices, observed_gamma, nsim, seed = NULL) {
   screen_j_exact_gamma_prepared_r(prepared_slices, observed_gamma, nsim, seed)
 }
 
-#' @keywords internal
 screen_j_exact_gamma_prepared_r <- function(prepared_slices, observed_gamma, nsim, seed = NULL) {
   random_draw <- screen_j_source_random_stream(seed)
   exceed <- 0L
@@ -544,38 +610,107 @@ screen_j_exact_gamma_prepared_r <- function(prepared_slices, observed_gamma, nsi
   exceed / nsim
 }
 
-#' Source-shaped Monte Carlo exact partial chi-square p-value
-#'
-#' Source trace: `SKbias3.XYZ_bias_ANALYSE` adds simulated chi-square statistics
-#' over score-conditioned slices and counts `simulated_chi >= observed_chi`.
-#'
-#' @param strata Three-way table.
-#' @param observed_chi Observed partial chi-square.
-#' @param nsim Number of simulated tables.
-#' @return Monte Carlo exact p-value.
-#' @keywords internal
-screen_j_exact_partial_chi <- function(strata, observed_chi, nsim, seed = NULL) {
-  screen_j_exact_chi_slices(screen_j_strata_slices(strata), observed_chi, nsim, seed)
+# Source-shaped Monte Carlo exact partial chi-square p-value
+#
+# Source trace: `SKbias3.XYZ_bias_ANALYSE` adds simulated chi-square statistics
+# over score-conditioned slices and counts `simulated_chi >= observed_chi`.
+# When the DIGRAM exact command state is sequential/repeated, the same
+# `SEQUENTIAL`, `SEQ_P0`, `SEQ_B`, and `seq_limit` state is used while
+# evaluating simulated chi results.
+#
+# @param strata Three-way table.
+# @param observed_chi Observed partial chi-square.
+# @param nsim Number of simulated tables.
+# @return Monte Carlo exact p-value.
+screen_j_exact_partial_chi <- function(strata,
+                                       observed_chi,
+                                       nsim,
+                                       seed = NULL,
+                                       sequential = FALSE,
+                                       seq_limit = nsim,
+                                       seq_p0 = 0.05,
+                                       seq_boundary = 1.058) {
+  screen_j_exact_chi_slices(
+    screen_j_strata_slices(strata),
+    observed_chi,
+    nsim,
+    seed,
+    sequential = sequential,
+    seq_limit = seq_limit,
+    seq_p0 = seq_p0,
+    seq_boundary = seq_boundary
+  )
 }
 
-#' @keywords internal
-screen_j_exact_chi_slices <- function(slices, observed_chi, nsim, seed = NULL) {
-  native <- screen_j_exact_chi_slices_native(slices, observed_chi, nsim, seed)
+screen_j_exact_chi_slices <- function(slices,
+                                      observed_chi,
+                                      nsim,
+                                      seed = NULL,
+                                      sequential = FALSE,
+                                      seq_limit = nsim,
+                                      seq_p0 = 0.05,
+                                      seq_boundary = 1.058) {
+  use_native <- !isTRUE(sequential)
+  native <- if (use_native) {
+    screen_j_exact_chi_slices_native(
+      slices,
+      observed_chi,
+      nsim,
+      seed,
+      sequential = sequential,
+      seq_limit = seq_limit
+    )
+  } else {
+    NULL
+  }
   if (!is.null(native)) {
     return(as.numeric(native[[1L]]))
   }
-  screen_j_exact_chi_prepared(screen_j_prepare_exact_slices(slices), observed_chi, nsim, seed)
+  screen_j_exact_chi_prepared(
+    screen_j_prepare_exact_slices(slices),
+    observed_chi,
+    nsim,
+    seed,
+    sequential = sequential,
+    seq_limit = seq_limit,
+    seq_p0 = seq_p0,
+    seq_boundary = seq_boundary
+  )
 }
 
-#' @keywords internal
-screen_j_exact_chi_prepared <- function(prepared_slices, observed_chi, nsim, seed = NULL) {
-  screen_j_exact_chi_prepared_r(prepared_slices, observed_chi, nsim, seed)
+screen_j_exact_chi_prepared <- function(prepared_slices,
+                                        observed_chi,
+                                        nsim,
+                                        seed = NULL,
+                                        sequential = FALSE,
+                                        seq_limit = nsim,
+                                        seq_p0 = 0.05,
+                                        seq_boundary = 1.058) {
+  screen_j_exact_chi_prepared_r(
+    prepared_slices,
+    observed_chi,
+    nsim,
+    seed,
+    sequential = sequential,
+    seq_limit = seq_limit,
+    seq_p0 = seq_p0,
+    seq_boundary = seq_boundary
+  )
 }
 
-#' @keywords internal
-screen_j_exact_chi_prepared_r <- function(prepared_slices, observed_chi, nsim, seed = NULL) {
+screen_j_exact_chi_prepared_r <- function(prepared_slices,
+                                          observed_chi,
+                                          nsim,
+                                          seed = NULL,
+                                          sequential = FALSE,
+                                          seq_limit = nsim,
+                                          seq_p0 = 0.05,
+                                          seq_boundary = 1.058) {
   random_draw <- screen_j_source_random_stream(seed)
   exceed <- 0L
+  seq_p0 <- as.numeric(seq_p0[[1L]])
+  seq_boundary <- as.numeric(seq_boundary[[1L]])
+  seq_limit <- as.integer(seq_limit[[1L]])
   for (sim in seq_len(nsim)) {
     chi_total <- 0
     for (prepared in prepared_slices) {
@@ -585,11 +720,14 @@ screen_j_exact_chi_prepared_r <- function(prepared_slices, observed_chi, nsim, s
     if (chi_total >= observed_chi) {
       exceed <- exceed + 1L
     }
+    if (isTRUE(sequential) &&
+        (screen_j_seq_t(exceed, sim, seq_p0) >= seq_boundary || exceed >= seq_limit)) {
+      break
+    }
   }
-  exceed / nsim
+  exceed / sim
 }
 
-#' @keywords internal
 screen_j_exact_chi_gamma_slices <- function(slices,
                                             observed_chi,
                                             observed_gamma,
@@ -632,7 +770,6 @@ screen_j_exact_chi_gamma_slices <- function(slices,
   )
 }
 
-#' @keywords internal
 screen_j_exact_chi_gamma_prepared_r <- function(prepared_slices,
                                                 observed_chi,
                                                 observed_gamma,
@@ -686,7 +823,6 @@ screen_j_exact_chi_gamma_prepared_r <- function(prepared_slices,
   list(p_chi = chi_exceed / sim, p_gamma = gamma_exceed / sim, nsim = sim)
 }
 
-#' @keywords internal
 screen_j_seq_t <- function(exceed, sim, p0) {
   if (sim < 21L) {
     return(0)
@@ -695,7 +831,6 @@ screen_j_seq_t <- function(exceed, sim, p0) {
   exceed / root - root * p0
 }
 
-#' @keywords internal
 screen_j_exact_native_available <- function() {
   disabled <- tolower(Sys.getenv("RDIGRAM_SCREEN_J_EXACT_CPP", unset = "")) %in%
     c("0", "false", "no", "off")
@@ -708,7 +843,176 @@ screen_j_exact_native_available <- function() {
   )
 }
 
-#' @keywords internal
+screen_j_conditional_native_allowed <- function(repeated, seq_p0, seq_boundary) {
+  screen_j_conditional_native_controls_allowed(repeated, seq_p0, seq_boundary) &&
+    screen_j_conditional_native_source_faithful()
+}
+
+screen_j_conditional_native_controls_allowed <- function(repeated, seq_p0, seq_boundary) {
+  !isTRUE(repeated) ||
+    (abs(as.numeric(seq_p0[[1L]]) - 0.05) < 1e-15 &&
+      abs(as.numeric(seq_boundary[[1L]]) - 1.058) < 1e-15)
+}
+
+screen_j_conditional_native_probe_fixtures <- function() {
+  # Source trace: the first fixture includes condition level 2 with only one
+  # nonempty x category, so parity requires the native path to follow the
+  # SKxyz1.MAKE_XYZ_TABLE/source R informative-slice filter before GENTAB1.
+  list(
+    list(
+      args = list(
+        x = c(1L, 2L, 1L, 2L, 3L, 3L, 1L, 1L, 2L, 3L, 2L, 3L),
+        y = c(1L, 1L, 2L, 2L, 1L, 2L, 1L, 2L, 1L, 2L, 2L, 1L),
+        x_dim = 3L,
+        y_dim = 2L,
+        condition_values = matrix(c(1L, 1L, 1L, 1L, 1L, 1L, 2L, 2L, 3L, 3L, 3L, 3L), ncol = 1L),
+        condition_dims = 3L,
+        valid = rep(TRUE, 12L)
+      ),
+      fixed = list(nsim = 200L, seed = 123L, seq_limit = 200L),
+      repeated = list(nsim = 200L, seed = 123L, seq_limit = 200L)
+    ),
+    list(
+      # Regression fixture from the optimized parity tests, retained as parity
+      # coverage for the optimized native route after the p_gamma mismatch fix.
+      args = list(
+        x = c(1L, 1L, 2L, 2L, 3L, 3L, 1L, 2L, 3L, 1L, 2L, 3L),
+        y = c(1L, 2L, 1L, 2L, 1L, 2L, 2L, 1L, 2L, 1L, 2L, 1L),
+        x_dim = 3L,
+        y_dim = 2L,
+        condition_values = matrix(c(1L, 1L, 1L, 2L, 2L, 2L, 3L, 3L, 3L, 4L, 4L, 4L), ncol = 1L),
+        condition_dims = 4L,
+        valid = rep(TRUE, 12L)
+      ),
+      fixed = list(nsim = 37L, seed = 9L, seq_limit = 37L),
+      repeated = list(nsim = 80L, seed = 17L, seq_limit = 3L)
+    )
+  )
+}
+
+screen_j_conditional_native_probe_matches <- function(fixture, controls, repeated) {
+  controls <- list(
+    exact = TRUE,
+    nsim = as.integer(controls$nsim),
+    seed = as.integer(controls$seed),
+    repeated = isTRUE(repeated),
+    seq_limit = as.integer(controls$seq_limit)
+  )
+  reference <- do.call(
+    screen_j_conditional_bias_test,
+    c(fixture$args, controls, list(native = FALSE, seq_p0 = 0.05, seq_boundary = 1.058))
+  )
+  native <- do.call(screen_j_conditional_bias_test_native, c(fixture$args, controls))
+  fields <- c(
+    "chi_square", "df", "gamma", "p_chi", "p_gamma",
+    "p_chi_exact", "p_gamma_exact", "exact_nsim"
+  )
+  all(vapply(fields, function(field) {
+    isTRUE(all.equal(reference[[field]], native[[field]], tolerance = 1e-12, check.attributes = FALSE))
+  }, logical(1L)))
+}
+
+screen_j_conditional_native_source_faithful <- local({
+  cached <- NULL
+  function() {
+    if (!screen_j_exact_native_available()) {
+      return(FALSE)
+    }
+    if (!is.loaded("gRm_screen_j_conditional_bias_test", PACKAGE = "gRm")) {
+      return(FALSE)
+    }
+    if (!is.null(cached)) {
+      return(cached)
+    }
+    cached <<- tryCatch({
+      fixtures <- screen_j_conditional_native_probe_fixtures()
+      all(vapply(fixtures, function(fixture) {
+        screen_j_conditional_native_probe_matches(fixture, fixture$fixed, repeated = FALSE) &&
+          screen_j_conditional_native_probe_matches(fixture, fixture$repeated, repeated = TRUE)
+      }, logical(1L)))
+    }, error = function(e) FALSE)
+    cached
+  }
+})
+
+screen_j_item_pair_native_allowed <- function(repeated, seq_p0, seq_boundary) {
+  screen_j_conditional_native_controls_allowed(repeated, seq_p0, seq_boundary) &&
+    screen_j_item_pair_native_source_faithful()
+}
+
+screen_j_item_pair_native_source_faithful <- local({
+  cached <- NULL
+  function() {
+    if (!screen_j_exact_native_available()) {
+      return(FALSE)
+    }
+    if (!is.null(cached)) {
+      return(cached)
+    }
+    cached <<- tryCatch({
+      available <- is.loaded("gRm_screen_j_item_pair_conditional_exact", PACKAGE = "gRm")
+      if (!available) {
+        return(FALSE)
+      }
+      item_matrix <- matrix(
+        c(
+          1L, 1L, 2L,
+          1L, 2L, 1L,
+          2L, 1L, 2L,
+          2L, 2L, 1L,
+          3L, 1L, 2L,
+          3L, 2L, 1L,
+          1L, 2L, 2L,
+          2L, 1L, 1L,
+          3L, 2L, 2L
+        ),
+        ncol = 3L,
+        byrow = TRUE
+      )
+      item_score <- rowSums(item_matrix - 1L)
+      rest_score <- item_score - (item_matrix[, 1L] - 1L)
+      valid <- rep(TRUE, nrow(item_matrix))
+      strata <- screen_j_strata_table(
+        item_matrix[, 1L],
+        item_matrix[, 2L],
+        rest_score + 1L,
+        3L,
+        2L,
+        max(rest_score) + 1L,
+        valid
+      )
+      partial_stats <- screen_j_partial_gamma(strata)
+      partial_chi <- screen_j_partial_chi(strata)
+      reference <- screen_j_exact_chi_gamma_prepared_r(
+        screen_j_prepare_exact_slices(screen_j_strata_slices(strata)),
+        partial_chi$stat,
+        partial_stats$gamma,
+        41L,
+        9L,
+        sequential = FALSE,
+        seq_limit = 41L
+      )
+      native <- screen_j_item_pair_conditional_exact_native(
+        item_matrix[, 1L],
+        item_matrix[, 2L],
+        3L,
+        2L,
+        rest_score + 1L,
+        max(rest_score) + 1L,
+        valid,
+        nsim = 41L,
+        seed = 9L,
+        sequential = FALSE,
+        seq_limit = 41L
+      )
+      !is.null(native) &&
+        identical(native$exact_nsim, reference$nsim) &&
+        isTRUE(all.equal(native$p_gamma_exact, reference$p_gamma, tolerance = 1e-7, check.attributes = FALSE))
+    }, error = function(e) FALSE)
+    cached
+  }
+})
+
 screen_j_exact_chi_gamma_slices_native <- function(slices,
                                                    observed_chi,
                                                    observed_gamma,
@@ -732,8 +1036,12 @@ screen_j_exact_chi_gamma_slices_native <- function(slices,
   )
 }
 
-#' @keywords internal
-screen_j_exact_chi_slices_native <- function(slices, observed_chi, nsim, seed = NULL) {
+screen_j_exact_chi_slices_native <- function(slices,
+                                             observed_chi,
+                                             nsim,
+                                             seed = NULL,
+                                             sequential = FALSE,
+                                             seq_limit = nsim) {
   if (!screen_j_exact_native_available()) {
     return(NULL)
   }
@@ -743,11 +1051,12 @@ screen_j_exact_chi_slices_native <- function(slices, observed_chi, nsim, seed = 
     as.numeric(observed_chi),
     as.integer(nsim),
     as.integer(screen_j_source_seed(seed)),
+    isTRUE(sequential),
+    as.integer(seq_limit[[1L]]),
     PACKAGE = "gRm"
   )
 }
 
-#' @keywords internal
 screen_j_exact_gamma_slices_native <- function(slices, observed_gamma, nsim, seed = NULL) {
   if (!screen_j_exact_native_available()) {
     return(NULL)
@@ -762,26 +1071,59 @@ screen_j_exact_gamma_slices_native <- function(slices, observed_gamma, nsim, see
   )
 }
 
-#' @keywords internal
-screen_j_source_random_draws_native <- function(seed, n) {
+screen_j_item_pair_conditional_exact_native <- function(x,
+                                                        y,
+                                                        x_dim,
+                                                        y_dim,
+                                                        condition_values,
+                                                        condition_dim,
+                                                        valid,
+                                                        nsim,
+                                                        seed,
+                                                        sequential,
+                                                        seq_limit) {
   if (!screen_j_exact_native_available()) {
     return(NULL)
   }
-  .Call(
-    "gRm_screen_j_source_random_draws",
+  available <- tryCatch(
+    is.loaded("gRm_screen_j_item_pair_conditional_exact", PACKAGE = "gRm"),
+    error = function(e) FALSE
+  )
+  if (!available) {
+    return(NULL)
+  }
+  raw <- .Call(
+    "gRm_screen_j_item_pair_conditional_exact",
+    as.integer(x),
+    as.integer(y),
+    as.integer(x_dim),
+    as.integer(y_dim),
+    as.integer(condition_values),
+    as.integer(condition_dim),
+    as.logical(valid),
+    as.integer(nsim),
     as.integer(screen_j_source_seed(seed)),
-    as.integer(n),
+    isTRUE(sequential),
+    as.integer(seq_limit[[1L]]),
     PACKAGE = "gRm"
   )
+  if (is.null(raw$p_chi_exact) && !is.null(raw$p_chi)) {
+    raw$p_chi_exact <- raw$p_chi
+  }
+  if (is.null(raw$p_gamma_exact) && !is.null(raw$p_gamma)) {
+    raw$p_gamma_exact <- raw$p_gamma
+  }
+  if (is.null(raw$exact_nsim) && !is.null(raw$nsim)) {
+    raw$exact_nsim <- raw$nsim
+  }
+  raw
 }
 
-#' @keywords internal
 screen_j_prepare_exact_slices <- function(slices) {
   non_empty <- vapply(slices, function(slice) sum(slice) > 0, logical(1L))
   lapply(slices[non_empty], screen_j_prepare_exact_slice)
 }
 
-#' @keywords internal
 screen_j_prepare_exact_slice <- function(slice) {
   prepared <- exo_select_prepare_gentab1(slice)
   prepared$expected <- screen_j_expected_from_margins(
@@ -792,7 +1134,6 @@ screen_j_prepare_exact_slice <- function(slice) {
   prepared
 }
 
-#' @keywords internal
 screen_j_expected_from_margins <- function(row_total, col_total, grand_total) {
   expected <- matrix(0, nrow = length(row_total), ncol = length(col_total))
   if (grand_total <= 0) {
@@ -810,7 +1151,6 @@ screen_j_expected_from_margins <- function(row_total, col_total, grand_total) {
   expected
 }
 
-#' @keywords internal
 screen_j_rc_chi_square_prepared_expected <- function(tab, prepared) {
   expected <- prepared$expected
   if (is.null(expected)) {
@@ -828,7 +1168,6 @@ screen_j_rc_chi_square_prepared_expected <- function(tab, prepared) {
   sum(residual * (residual / expected[positive]))
 }
 
-#' @keywords internal
 screen_j_exo_values <- function(project,
                                 item_matrix,
                                 item_score,
@@ -925,7 +1264,11 @@ screen_j_exo_values <- function(project,
               strata,
               stats$stat,
               attr(project, "screen_j_nsim"),
-              attr(project, "screen_j_seed")
+              attr(project, "screen_j_seed"),
+              sequential = isTRUE(attr(project, "screen_j_repeated")),
+              seq_limit = attr(project, "screen_j_seq_limit"),
+              seq_p0 = attr(project, "screen_j_seq_p0"),
+              seq_boundary = attr(project, "screen_j_seq_boundary")
             )
           } else {
             stats$p_value
@@ -937,7 +1280,6 @@ screen_j_exo_values <- function(project,
   list(stat = stat, p = p, ppq = ppq, pmq = pmq, score_stat = score_stat, score_p = score_p, kind = kind, exo_values = exo_matrix)
 }
 
-#' @keywords internal
 screen_j_weighted_partial_gamma <- function(ppq, pmq) {
   n_items <- nrow(ppq)
   weighted <- matrix(0, nrow = n_items, ncol = n_items, dimnames = dimnames(ppq))
@@ -953,7 +1295,20 @@ screen_j_weighted_partial_gamma <- function(ppq, pmq) {
   weighted
 }
 
-#' @keywords internal
+screen_j_average_abs_partial_gamma <- function(gamma) {
+  n_items <- nrow(gamma)
+  if (n_items < 2L) {
+    return(0)
+  }
+  total <- 0
+  for (i in seq_len(n_items - 1L)) {
+    for (j in seq.int(i + 1L, n_items)) {
+      total <- total + abs(gamma[i, j] + gamma[j, i])
+    }
+  }
+  total / (n_items * (n_items - 1L))
+}
+
 screen_j_problem_counts <- function(gamma, p, fdr05, i, j, temp_p = p) {
   positive <- 0L
   negative <- 0L
@@ -966,7 +1321,6 @@ screen_j_problem_counts <- function(gamma, p, fdr05, i, j, temp_p = p) {
   c(positive = positive, negative = negative)
 }
 
-#' @keywords internal
 screen_j_stepwise_local_dependence <- function(gamma, p, weighted_gamma, fdr05) {
   n_items <- nrow(gamma)
   temp_p <- p
@@ -1028,7 +1382,6 @@ screen_j_stepwise_local_dependence <- function(gamma, p, weighted_gamma, fdr05) 
   list(matrix = selected, rows = rows_df)
 }
 
-#' @keywords internal
 screen_j_post_screen_dif <- function(item_matrix,
                                      exo_values,
                                      item_score,
@@ -1171,7 +1524,6 @@ screen_j_post_screen_dif <- function(item_matrix,
   )
 }
 
-#' @keywords internal
 screen_j_spurious_item_bias_analysis <- function(item_matrix,
                                                 exo_values,
                                                 item_score,
@@ -1217,12 +1569,12 @@ screen_j_spurious_item_bias_analysis <- function(item_matrix,
         nsim = nsim,
         seed = seed,
         repeated = repeated,
-        native = FALSE,
+        native = screen_j_conditional_native_allowed(repeated, seq_p0, seq_boundary),
         seq_limit = seq_limit,
         seq_p0 = seq_p0,
         seq_boundary = seq_boundary
       )
-      p_min[[candidate_index]] <- if (use_gamma) min(test$p_chi, test$p_gamma) else test$p_chi
+      p_min[[candidate_index]] <- screen_j_source_stepwise_p_min(test, use_gamma, exact)
       rows[[candidate_index]] <- data.frame(
         index = candidate_index,
         hypothesis = screen_j_hypothesis_label(
@@ -1286,7 +1638,6 @@ screen_j_spurious_item_bias_analysis <- function(item_matrix,
   )
 }
 
-#' @keywords internal
 screen_j_multiple_item_bias_analysis <- function(item_matrix,
                                                 exo_values,
                                                 item_score,
@@ -1335,13 +1686,13 @@ screen_j_multiple_item_bias_analysis <- function(item_matrix,
         nsim = nsim,
         seed = seed,
         repeated = repeated,
-        native = FALSE,
+        native = screen_j_conditional_native_allowed(repeated, seq_p0, seq_boundary),
         seq_limit = seq_limit,
         seq_p0 = seq_p0,
         seq_boundary = seq_boundary
       )
       use_gamma <- backgrounds$vtype[[exo_index]] > 2L || backgrounds$raw_max[[exo_index]] == 2L
-      p_min[[candidate_index]] <- if (use_gamma) min(test$p_chi, test$p_gamma) else test$p_chi
+      p_min[[candidate_index]] <- screen_j_source_stepwise_p_min(test, use_gamma, exact)
       rows[[candidate_index]] <- data.frame(
         index = candidate_index,
         hypothesis = screen_j_hypothesis_label(
@@ -1398,47 +1749,55 @@ screen_j_multiple_item_bias_analysis <- function(item_matrix,
   list(item = item_index, iterations = iterations, remaining = current)
 }
 
-#' @keywords internal
-screen_j_conditional_bias_test <- function(x,
-                                           y,
-                                           x_dim,
-                                           y_dim,
-                                           condition_values,
-                                           condition_dims,
-                                           valid,
-                                           exact = FALSE,
-                                           nsim = 1000L,
-                                           seed = NULL,
-                                           repeated = FALSE,
-                                           native = TRUE,
-                                           random_draw = NULL,
-                                           seq_limit = nsim,
-                                           seq_p0 = 0.05,
-                                           seq_boundary = 1.058) {
-  use_native <- isTRUE(native) &&
-    (!isTRUE(repeated) ||
-      (abs(as.numeric(seq_p0[[1L]]) - 0.05) < 1e-15 &&
-        abs(as.numeric(seq_boundary[[1L]]) - 1.058) < 1e-15))
-  if (use_native && isTRUE(exact) && is.null(random_draw) && screen_j_exact_native_available()) {
-    native_result <- screen_j_conditional_bias_test_native(
-      x = x,
-      y = y,
-      x_dim = x_dim,
-      y_dim = y_dim,
-      condition_values = condition_values,
-      condition_dims = condition_dims,
-      valid = valid,
-      exact = exact,
-      nsim = nsim,
-        seed = seed,
-        repeated = repeated,
-        seq_limit = seq_limit
-    )
-    if (!is.null(native_result)) {
-      return(native_result)
-    }
+# Source trace: source/PAS_skunits/SKbias3.pas::XYZ_bias_ANALYSE receives the
+# conditional item/background table prepared by
+# source/PAS_skunits/SKxyz1.PAS::MAKE_XYZ_TABLE or
+# source/PAS_skunits/SKbigtab.pas::Transfer_BT_to_XYZ_TABLE. It then computes
+# chi-square, gamma, asymptotic p-values, and optional exact/repeated
+# random-table summaries. This R helper is the shared implementation for those
+# screen J conditional tests.
+screen_j_conditional_try_native <- function(x,
+                                            y,
+                                            x_dim,
+                                            y_dim,
+                                            condition_values,
+                                            condition_dims,
+                                            valid,
+                                            exact,
+                                            nsim,
+                                            seed,
+                                            repeated,
+                                            random_draw,
+                                            seq_limit,
+                                            use_native) {
+  if (!isTRUE(use_native) || !isTRUE(exact) || !is.null(random_draw) || !screen_j_exact_native_available()) {
+    return(NULL)
   }
+  screen_j_conditional_bias_test_native(
+    x = x,
+    y = y,
+    x_dim = x_dim,
+    y_dim = y_dim,
+    condition_values = condition_values,
+    condition_dims = condition_dims,
+    valid = valid,
+    exact = exact,
+    nsim = nsim,
+    seed = seed,
+    repeated = repeated,
+    seq_limit = seq_limit
+  )
+}
 
+screen_j_conditional_valid_rows <- function(x,
+                                            y,
+                                            x_dim,
+                                            y_dim,
+                                            condition_values,
+                                            condition_dims,
+                                            valid) {
+  condition_values <- as.matrix(condition_values)
+  condition_dims <- as.integer(condition_dims)
   keep <- valid & x >= 1L & x <= x_dim & y >= 1L & y <= y_dim
   if (ncol(condition_values) > 0L) {
     for (condition_index in seq_len(ncol(condition_values))) {
@@ -1447,36 +1806,70 @@ screen_j_conditional_bias_test <- function(x,
         condition_values[, condition_index] <= condition_dims[[condition_index]]
     }
   }
-  if (!any(keep)) {
-    return(list(
-      chi_square = 0,
-      df = 0L,
-      p_chi = 1,
-      gamma = 0,
-      p_gamma = 1,
-      p_chi_asymp = 1,
-      p_gamma_asymp = 1,
-      p_chi_exact = if (isTRUE(exact)) 1 else NA_real_,
-      p_gamma_exact = if (isTRUE(exact)) 1 else NA_real_,
-      exact_nsim = if (isTRUE(exact)) nsim else 0L,
-      ppq = 0,
-      pmq = 0,
-      s = 0
-    ))
+  keep
+}
+
+screen_j_conditional_stratum_index <- function(condition_values, condition_dims) {
+  condition_values <- as.matrix(condition_values)
+  condition_dims <- as.integer(condition_dims)
+  if (ncol(condition_values) == 0L) {
+    return(list(values = 1, id = rep(1, nrow(condition_values))))
   }
 
-  condition_index <- if (ncol(condition_values) > 0L) {
-    condition_data <- as.matrix(condition_values[keep, , drop = FALSE])
-    condition_id <- rep(1, nrow(condition_data))
-    multiplier <- 1
-    for (condition_column in seq_len(ncol(condition_data))) {
-      condition_id <- condition_id + (condition_data[, condition_column] - 1L) * multiplier
-      multiplier <- multiplier * condition_dims[[condition_column]]
-    }
-    list(values = sort(unique(condition_id)), id = condition_id)
-  } else {
-    list(values = 1, id = rep(1, sum(keep)))
+  condition_id <- rep(1, nrow(condition_values))
+  multiplier <- 1
+  for (condition_column in seq_len(ncol(condition_values))) {
+    condition_id <- condition_id + (condition_values[, condition_column] - 1L) * multiplier
+    multiplier <- multiplier * condition_dims[[condition_column]]
   }
+  list(values = sort(unique(condition_id)), id = condition_id)
+}
+
+screen_j_conditional_empty_result <- function(exact, nsim) {
+  list(
+    chi_square = 0,
+    df = 0L,
+    p_chi = 1,
+    gamma = 0,
+    p_gamma = 1,
+    p_chi_asymp = 1,
+    p_gamma_asymp = 1,
+    p_chi_exact = if (isTRUE(exact)) 1 else NA_real_,
+    p_gamma_exact = if (isTRUE(exact)) 1 else NA_real_,
+    exact_nsim = if (isTRUE(exact)) nsim else 0L,
+    ppq = 0,
+    pmq = 0,
+    s = 0
+  )
+}
+
+screen_j_conditional_slice_stats <- function(x,
+                                             y,
+                                             x_dim,
+                                             y_dim,
+                                             condition_values,
+                                             condition_dims,
+                                             valid,
+                                             exact = FALSE) {
+  condition_values <- as.matrix(condition_values)
+  condition_dims <- as.integer(condition_dims)
+  keep <- screen_j_conditional_valid_rows(
+    x,
+    y,
+    x_dim,
+    y_dim,
+    condition_values,
+    condition_dims,
+    valid
+  )
+  if (!any(keep)) {
+    return(list(has_rows = FALSE))
+  }
+
+  condition_index <- screen_j_conditional_stratum_index(
+    condition_values[keep, , drop = FALSE],
+    condition_dims
+  )
   x_keep <- x[keep]
   y_keep <- y[keep]
   chi_total <- 0
@@ -1492,10 +1885,11 @@ screen_j_conditional_bias_test <- function(x,
     index <- x_keep[in_stratum] + (y_keep[in_stratum] - 1L) * x_dim
     tab[] <- tabulate(index, nbins = x_dim * y_dim)
     if (!isTRUE(exact) || screen_j_source_informative_slice(tab)) {
-      # Source trace: SKxyz1.Transfer_BT_to_Xyz_table only materializes a
-      # conditioning slice when both tested variables have at least two
-      # nonempty categories. Exact GENTAB1 simulations consume that reduced
-      # XYZ slice set before running the fixed or sequential exact tests.
+      # Source trace: source/PAS_skunits/SKxyz1.PAS::MAKE_XYZ_TABLE only
+      # materializes a conditioning slice when both tested variables have at
+      # least two nonempty categories. Exact GENTAB1 simulations consume that
+      # reduced XYZ slice set before running the fixed or sequential exact
+      # tests.
       slices[[length(slices) + 1L]] <- tab
     }
     chi <- screen_j_rc_chi_source_expected(tab)
@@ -1517,39 +1911,134 @@ screen_j_conditional_bias_test <- function(x,
     2 * source_tail_norm(abs(gamma / sqrt(s)), TRUE)
   }
   p_chi <- if (df_total > 0L) source_pfchi(df_total, chi_total) else 1
-  p_chi_asymp <- p_chi
-  p_gamma_asymp <- p_gamma
+  list(
+    has_rows = TRUE,
+    chi_square = chi_total,
+    df = df_total,
+    gamma = gamma,
+    p_chi_asymp = p_chi,
+    p_gamma_asymp = p_gamma,
+    ppq = ppq_total,
+    pmq = pmq_total,
+    s = s,
+    slices = slices
+  )
+}
+
+screen_j_conditional_exact_results <- function(slices,
+                                               chi_total,
+                                               gamma,
+                                               nsim,
+                                               seed,
+                                               repeated,
+                                               random_draw,
+                                               seq_limit,
+                                               seq_p0,
+                                               seq_boundary,
+                                               use_native) {
+  # Source trace: source/PAS_skunits/SKrandom.pas::GENTAB1 is the exact
+  # random-table generator behind SKbias3.XYZ_bias_ANALYSE. Native and R
+  # branches must consume the same prepared slices, seed, sequential controls,
+  # and draw order.
+  if (isTRUE(use_native)) {
+    screen_j_exact_chi_gamma_slices(
+      slices,
+      chi_total,
+      gamma,
+      nsim,
+      seed,
+      sequential = repeated,
+      seq_limit = seq_limit,
+      seq_p0 = seq_p0,
+      seq_boundary = seq_boundary
+    )
+  } else {
+    screen_j_exact_chi_gamma_prepared_r(
+      screen_j_prepare_exact_slices(slices),
+      chi_total,
+      gamma,
+      nsim,
+      seed,
+      sequential = repeated,
+      random_draw = random_draw,
+      seq_limit = seq_limit,
+      seq_p0 = seq_p0,
+      seq_boundary = seq_boundary
+    )
+  }
+}
+
+screen_j_conditional_bias_test <- function(x,
+                                           y,
+                                           x_dim,
+                                           y_dim,
+                                           condition_values,
+                                           condition_dims,
+                                           valid,
+                                           exact = FALSE,
+                                           nsim = 1000L,
+                                           seed = NULL,
+                                           repeated = FALSE,
+                                           native = TRUE,
+                                           random_draw = NULL,
+                                           seq_limit = nsim,
+                                           seq_p0 = 0.05,
+                                           seq_boundary = 1.058) {
+  use_native <- isTRUE(native) &&
+    screen_j_conditional_native_allowed(repeated, seq_p0, seq_boundary)
+  native_result <- screen_j_conditional_try_native(
+    x = x,
+    y = y,
+    x_dim = x_dim,
+    y_dim = y_dim,
+    condition_values = condition_values,
+    condition_dims = condition_dims,
+    valid = valid,
+    exact = exact,
+    nsim = nsim,
+    seed = seed,
+    repeated = repeated,
+    random_draw = random_draw,
+    seq_limit = seq_limit,
+    use_native = use_native
+  )
+  if (!is.null(native_result)) {
+    return(native_result)
+  }
+
+  stats <- screen_j_conditional_slice_stats(
+    x = x,
+    y = y,
+    x_dim = x_dim,
+    y_dim = y_dim,
+    condition_values = condition_values,
+    condition_dims = condition_dims,
+    valid = valid,
+    exact = exact
+  )
+  if (!isTRUE(stats$has_rows)) {
+    return(screen_j_conditional_empty_result(exact, nsim))
+  }
+  p_chi <- stats$p_chi_asymp
+  p_gamma <- stats$p_gamma_asymp
   p_chi_exact <- NA_real_
   p_gamma_exact <- NA_real_
   exact_nsim <- 0L
   if (isTRUE(exact)) {
     exact_nsim <- as.integer(nsim)
-    exact_results <- if (isTRUE(native)) {
-      screen_j_exact_chi_gamma_slices(
-        slices,
-        chi_total,
-        gamma,
-        exact_nsim,
-        seed,
-        sequential = repeated,
-        seq_limit = seq_limit,
-        seq_p0 = seq_p0,
-        seq_boundary = seq_boundary
-      )
-    } else {
-      screen_j_exact_chi_gamma_prepared_r(
-        screen_j_prepare_exact_slices(slices),
-        chi_total,
-        gamma,
-        exact_nsim,
-        seed,
-        sequential = repeated,
-        random_draw = random_draw,
-        seq_limit = seq_limit,
-        seq_p0 = seq_p0,
-        seq_boundary = seq_boundary
-      )
-    }
+    exact_results <- screen_j_conditional_exact_results(
+      slices = stats$slices,
+      chi_total = stats$chi_square,
+      gamma = stats$gamma,
+      nsim = exact_nsim,
+      seed = seed,
+      repeated = repeated,
+      random_draw = random_draw,
+      seq_limit = seq_limit,
+      seq_p0 = seq_p0,
+      seq_boundary = seq_boundary,
+      use_native = use_native
+    )
     p_chi_exact <- exact_results$p_chi
     p_gamma_exact <- exact_results$p_gamma
     exact_nsim <- exact_results$nsim
@@ -1557,23 +2046,22 @@ screen_j_conditional_bias_test <- function(x,
     p_gamma <- p_gamma_exact
   }
   list(
-    chi_square = chi_total,
-    df = df_total,
+    chi_square = stats$chi_square,
+    df = stats$df,
     p_chi = p_chi,
-    gamma = gamma,
+    gamma = stats$gamma,
     p_gamma = p_gamma,
-    p_chi_asymp = p_chi_asymp,
-    p_gamma_asymp = p_gamma_asymp,
+    p_chi_asymp = stats$p_chi_asymp,
+    p_gamma_asymp = stats$p_gamma_asymp,
     p_chi_exact = p_chi_exact,
     p_gamma_exact = p_gamma_exact,
     exact_nsim = exact_nsim,
-    ppq = ppq_total,
-    pmq = pmq_total,
-    s = s
+    ppq = stats$ppq,
+    pmq = stats$pmq,
+    s = stats$s
   )
 }
 
-#' @keywords internal
 screen_j_conditional_bias_test_native <- function(x,
                                                   y,
                                                   x_dim,
@@ -1628,21 +2116,44 @@ screen_j_conditional_bias_test_native <- function(x,
   )
 }
 
-#' @keywords internal
 screen_j_hypothesis_label <- function(first, second, given) {
   paste0(first, "&", second, "|", paste(given, collapse = ""))
 }
 
-#' @keywords internal
 screen_j_exa_p_values <- function(rows) {
-  p_values <- rows$p_chi
-  if (any(rows$use_gamma)) {
-    p_values <- c(p_values, rows$p_gamma[rows$use_gamma])
+  # Source trace: source/PAS_skunits/SKexa1.pas::EXA_SUMMARY1_2 skips
+  # hypotheses with RESULTS[hypnr, 2] = 0 ("No tests") before adding p-values
+  # to the Benjamini-Hochberg input vector.
+  tested <- rows$df > 0L
+  p_values <- rows$p_chi[tested]
+  if (any(rows$use_gamma[tested])) {
+    p_values <- c(p_values, rows$p_gamma[tested & rows$use_gamma])
   }
   p_values
 }
 
-#' @keywords internal
+screen_j_source_stepwise_p_min <- function(test, use_gamma = TRUE, exact = FALSE) {
+  # Source trace: SKbias13.StepwiseItemBiasAnalysis and
+  # AnalysisOfSpuriousItemBias remove only the candidate with max(p-min) > 0.05.
+  # They do not inspect the no-test marker set by SKexa1.EXA_SUMMARY1_2; they
+  # read the current RESULTS p-value columns. In the exact reports, no-test
+  # hypotheses leave the exact p-value columns at zero and therefore cannot be
+  # selected for removal. The asymptotic reports keep the ordinary p-value
+  # placeholders and can still remove those candidates, matching DIGRAM output.
+  if (isTRUE(exact) && (is.null(test$df) || is.na(test$df) || test$df <= 0L)) {
+    return(0)
+  }
+  if (isTRUE(use_gamma)) {
+    min(test$p_chi, test$p_gamma)
+  } else {
+    test$p_chi
+  }
+}
+
+# Source trace: source/PAS_skunits/SKbias13.pas::StepwiseScoreScreening builds
+# score-effect screening rows from the same conditional bias-test machinery
+# used by screen J. The R helper returns those rows as numeric values rather
+# than writing DIGRAM text.
 screen_j_score_effect_values <- function(project,
                                          item_matrix,
                                          item_score,
@@ -1694,7 +2205,7 @@ screen_j_score_effect_values <- function(project,
       nsim = nsim,
       seed = seed,
       repeated = repeated,
-      native = FALSE,
+      native = screen_j_conditional_native_allowed(repeated, seq_p0, seq_boundary),
       seq_limit = seq_limit,
       seq_p0 = seq_p0,
       seq_boundary = seq_boundary
@@ -1759,7 +2270,10 @@ screen_j_score_effect_values <- function(project,
   )
 }
 
-#' @keywords internal
+# Source trace: source/PAS_skunits/SKbias13.pas::StepwiseScoreScreening runs
+# the marginal and conditional score-screening loop. The R function keeps the
+# same candidate order and source random-table convention when exact or
+# repeated inference is requested.
 screen_j_stepwise_score_screening <- function(score_category,
                                               score_valid,
                                               score_in_range,
@@ -1810,12 +2324,12 @@ screen_j_stepwise_score_screening <- function(score_category,
         nsim = nsim,
         seed = seed,
         repeated = repeated,
-        native = FALSE,
+        native = screen_j_conditional_native_allowed(repeated, seq_p0, seq_boundary),
         seq_limit = seq_limit,
         seq_p0 = seq_p0,
         seq_boundary = seq_boundary
       )
-      p_min[[candidate_index]] <- min(test$p_chi, test$p_gamma)
+      p_min[[candidate_index]] <- screen_j_source_stepwise_p_min(test, use_gamma = TRUE, exact = exact)
       rows[[candidate_index]] <- data.frame(
         index = candidate_index,
         hypothesis = screen_j_hypothesis_label(
@@ -1870,7 +2384,6 @@ screen_j_stepwise_score_screening <- function(score_category,
   list(rows = rows_df, iterations = iterations, remaining = current)
 }
 
-#' @keywords internal
 screen_j_score_screening_p_values <- function(rows) {
   if (is.null(rows) || nrow(rows) == 0L) {
     return(numeric(0))
@@ -1878,7 +2391,6 @@ screen_j_score_screening_p_values <- function(rows) {
   c(rows$p_chi, rows$p_gamma)
 }
 
-#' @keywords internal
 screen_j_score_report_rows <- function(marginal_rows, screening_rows, exact) {
   marginal_rows$hypothesis <- paste0("#&", marginal_rows$label)
   if (is.null(screening_rows) || nrow(screening_rows) == 0L) {
@@ -1908,7 +2420,6 @@ screen_j_score_report_rows <- function(marginal_rows, screening_rows, exact) {
   rbind(marginal_rows, screening[, names(marginal_rows)])
 }
 
-#' @keywords internal
 screen_j_conflimit99_field <- function(n, p, field) {
   n <- rep_len(as.integer(n), length(p))
   p <- as.numeric(p)

@@ -5,7 +5,7 @@
 \alias{gRm-package}
 \title{gRm: source-faithful R implementation of non-GUI DIGRAM slices}
 \description{
-\code{gRm} is the active R implementation track for selected non-GUI DIGRAM
+\code{gRm} is the maintained R implementation track for selected non-GUI DIGRAM
 computations. The implementation grows against source-shaped Pascal harnesses
 in this repository and exposes native numeric R results.
 }
@@ -13,6 +13,52 @@ in this repository and exposes native numeric R results.
 The package is currently experimental. The Pascal harness remains the
 executable source-faithful reference, while \code{gRm} implements matching
 computations independently in R and is validated by parity tests.
+}
+\section{Current ordinal-only restriction}{
+
+The current \code{gRm} package interface supports ordinal item and exogeneous
+variables only. Internally, variables are represented with DIGRAM's ordinal
+source type. Nominal and mixed variable-type behavior from the original
+DIGRAM source is not implemented in this version. In particular,
+multi-category nominal exogeneous variables are outside the source-faithful
+scope of the current package and should not be interpreted as validated
+nominal-variable analyses.
+}
+
+\section{Legacy DIGRAM import category-code restriction}{
+
+\code{\link[=read_digram_project]{read_digram_project()}} supports the simple ordinal DIGRAM import subset
+where category codes in \code{DIGRAM.imv} are contiguous one-based codes matching
+the values in \code{DIGRAM.csv}. The reader follows \code{DIGRAM.imp} for the source
+directory and project prefix, and treats \code{.imv} recursive-level marker rows
+as structural metadata rather than variables. Historical DIGRAM projects with
+zero-based, non-contiguous, or otherwise recoded \code{.imv} category values are
+not source-faithfully implemented in this package version. The package does
+not currently preserve separate source category codes and internal one-based
+analysis categories.
+}
+
+\section{Incomplete item fit records}{
+
+Incomplete item fit records are a documented implementation restriction.
+DIGRAM's Pascal source can add such records to item fit and item-restscore
+gamma calculations only when the runtime \code{NincompleteRecs} state has been
+populated. gRm does not currently have source-backed evidence for when that
+runtime state exists, so incomplete item fit records are not synthesized from
+missing item-response rows.
+}
+
+\section{Global homogeneity residuals}{
+
+Global homogeneity residuals and marker cells are a documented
+implementation restriction. gRm computes the source-backed likelihood-ratio
+test, p-value, score groups, and item means, but the item-level residual and
+marker cells remain \code{NA} because the recovered source does not make the
+runtime residual variance materialization source-backed. Public summaries
+report those cells as not source-backed.
+}
+
+\section{Workflow scope}{
 
 Public workflows read DIGRAM projects, build item-analysis objects, specify
 and fit Rasch/GLLRM models, screen candidate terms, run explicit diagnostic
@@ -21,13 +67,42 @@ The installed package does not generate DIGRAM runtime output files or parse
 historical DIGRAM output. Repository validation against those files belongs
 under \verb{validation/digram_oracle/}.
 }
+
+\section{Canonical workflow}{
+
+A \code{gRm_analysis} stores the encoded DIGRAM project and score-group setup.
+From there, either specify a model manually with \code{\link[=gllrm]{gllrm()}} or run \code{\link[=screen]{screen()}}
+to discover candidate local-dependence and DIF terms. \code{\link[=screen]{screen()}} returns a
+screening result, not a fitted model; pass that result to \code{\link[=gllrm]{gllrm()}} to create
+the model selected by screening. \code{\link[=fit]{fit()}} is the boundary between model
+specification and model diagnostics.
+
+\if{html}{\out{<div class="sourceCode">}}\preformatted{analysis <- gRm(data, items = items, exogenous = exogenous)
+
+manual_model <- gllrm(analysis, ld = ~ item1:item2, dif = ~ item3:group)
+screened <- screen(analysis)
+screened_model <- gllrm(screened)
+
+fitted <- fit(screened_model)
+
+summary(fitted)
+item_fit(fitted)
+local_dependence(fitted)
+dif(fitted)
+global_homogeneity(fitted)
+}\if{html}{\out{</div>}}
+
+\code{\link[=score_effects]{score_effects()}} is analysis-level and can be called directly on a
+\code{gRm_analysis} object. Model diagnostics require a fitted \code{gRm_fit} object.
+}
+
 \examples{
 \dontrun{
 analysis <- gRm(data, items = c("I1", "I2", "I3"), exogenous = "site")
 fit0 <- fit(gllrm(analysis))
+fit0
 summary(fit0)
-summary(item_parameters(fit0), which = "coefficients")
-summary(item_fit(fit0), which = "tests")
+item_fit(fit0)
 }
 
 }
@@ -35,4 +110,3 @@ summary(item_fit(fit0), which = "tests")
 \strong{Maintainer}: DIGRAM Reimplementation \email{noreply@example.com}
 
 }
-\keyword{internal}

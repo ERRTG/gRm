@@ -1,22 +1,21 @@
-#' @noRd
 item_fits_values <- function(project, max_step = 5000L, max_delta = 0.0001, include_extended = TRUE) {
-  if ((inherits(project, "gRm_fit") || inherits(project, "gRm_gllrm_fit")) && inherits(project$values, "gRm_active_gllrm_values")) {
-    return(active_gllrm_item_fits_values(project, include_extended = include_extended))
+  if (inherits(project, "gRm_fit") && inherits(project$values, "gRm_gllrm_values")) {
+    return(gllrm_item_fits_values(project, include_extended = include_extended))
   }
   bundle <- build_item_parameters_bundle(project)
   fit <- fit_rasch_base(bundle, max_step = max_step, max_delta = max_delta)
-  conditional <- item_conditional_moments(bundle, fit$item_gamma, include_probabilities = TRUE)
+  base_item_fits_values(bundle, fit, include_extended = include_extended)
+}
 
-  item_fit <- calculate_conditional_item_fit_values(bundle, fit, conditional = conditional)
-  gamma_fit <- calculate_item_restscore_gamma_values(bundle, fit, conditional = conditional)
-  extended <- if (include_extended) {
-    calculate_extended_item_fit_values(bundle, fit, conditional = conditional)
-  } else {
-    NULL
-  }
-
+assemble_item_fits_values <- function(bundle,
+                                      fit_like,
+                                      item_fit,
+                                      gamma_fit,
+                                      extended,
+                                      component_gamma = NULL,
+                                      gllrm_copy_exists = FALSE) {
   rows <- data.frame(
-    item_label = bundle$model$items$label,
+    item_label = bundle$model$items$label_code,
     item_name = bundle$model$items$name,
     outfit = item_fit$outfit,
     outfit_sd = item_fit$outfit_sd,
@@ -47,7 +46,16 @@ item_fits_values <- function(project, max_step = 5000L, max_delta = 0.0001, incl
     stringsAsFactors = FALSE
   )
 
+  component_rows <- if (is.null(component_gamma)) {
+    NULL
+  } else {
+    component_gamma$rows
+  }
   all_p <- c(rows$p_infit, rows$p_outfit, rows$p_gamma)
+  if (is.data.frame(component_rows) && nrow(component_rows)) {
+    all_p <- c(all_p, component_rows$p_gamma)
+  }
+
   result <- list(
     items = rows,
     side_file = side_file,
@@ -55,35 +63,75 @@ item_fits_values <- function(project, max_step = 5000L, max_delta = 0.0001, incl
       fdr_5 = source_bh_critical(all_p, 0.05),
       fdr_1 = source_bh_critical(all_p, 0.01)
     ),
-    fit = fit,
-    extended = extended
+    fit = fit_like,
+    extended = extended,
+    incomplete_records_used = FALSE,
+    incomplete_records_status = "not_source_backed"
   )
+  if (!is.null(component_rows)) {
+    result$component_gamma <- component_rows
+  }
+  if (isTRUE(gllrm_copy_exists)) {
+    result$gllrm_copy_exists <- TRUE
+  }
   class(result) <- c("gRm_item_fits_values", class(result))
   result
 }
 
-active_gllrm_item_fits_values <- function(fit, include_extended = TRUE) {
+base_item_fits_values <- function(bundle, fit, include_extended = TRUE) {
+  conditional <- item_conditional_moments(bundle, fit$item_gamma, include_probabilities = TRUE)
+  # Source-faithfulness guard: Pascal item fits consume incomplete records only
+  # after the include-incomplete analysis path has populated NincompleteRecs
+  # and related runtime arrays via Execute_incomplete_GLLRM_estimates. Do not
+  # wire collect_source_incomplete_records() into public item_fit() until that
+  # gating and completion path is implemented end to end.
+  incomplete <- empty_source_incomplete_records(bundle)
+
+  item_fit <- calculate_conditional_item_fit_values(bundle, fit, conditional = conditional, incomplete = incomplete)
+  gamma_fit <- calculate_item_restscore_gamma_values(bundle, fit, conditional = conditional, incomplete = incomplete)
+  extended <- if (include_extended) {
+    calculate_extended_item_fit_values(bundle, fit, conditional = conditional)
+  } else {
+    NULL
+  }
+
+  assemble_item_fits_values(
+    bundle = bundle,
+    fit_like = fit,
+    item_fit = item_fit,
+    gamma_fit = gamma_fit,
+    extended = extended
+  )
+}
+
+gllrm_item_fits_values <- function(fit, include_extended = TRUE) {
   context <- fit$fit$context
   state <- fit$fit
   state$context <- NULL
   bundle <- context$bundle
   fit_like <- list(
-    model = "active_gllrm",
+    model = "gllrm",
     item_gamma = state$item_gamma,
     counts = context$counts,
     context = context,
     state = state
   )
-  conditional <- active_gllrm_item_conditional_moments(
+  conditional <- gllrm_item_conditional_moments(
     context,
     state,
     include_probabilities = TRUE,
-    probability_cache = new_active_gllrm_probability_cache(context, state)
+    probability_cache = new_gllrm_probability_cache(context, state)
   )
 
-  item_fit <- calculate_conditional_item_fit_values(bundle, fit_like, conditional = conditional)
-  gamma_fit <- calculate_item_restscore_gamma_values(bundle, fit_like, conditional = conditional)
-  component_gamma <- active_gllrm_component_restscore_values(context, state)
+  # Source-faithfulness guard: Pascal item fits consume incomplete records only
+  # after the include-incomplete analysis path has populated NincompleteRecs
+  # and related runtime arrays via Execute_incomplete_GLLRM_estimates. Do not
+  # wire collect_source_incomplete_records() into public item_fit() until that
+  # gating and completion path is implemented end to end.
+  incomplete <- empty_source_incomplete_records(bundle)
+  item_fit <- calculate_conditional_item_fit_values(bundle, fit_like, conditional = conditional, incomplete = incomplete)
+  gamma_fit <- calculate_item_restscore_gamma_values(bundle, fit_like, conditional = conditional, incomplete = incomplete)
+  component_gamma <- gllrm_component_restscore_values(context, state)
   extended <- if (include_extended) {
     out <- calculate_extended_item_fit_values(bundle, fit_like, conditional = conditional)
     out$component_restscore_tables <- component_gamma$table_rows
@@ -92,59 +140,21 @@ active_gllrm_item_fits_values <- function(fit, include_extended = TRUE) {
     NULL
   }
 
-  rows <- data.frame(
-    item_label = bundle$model$items$label,
-    item_name = bundle$model$items$name,
-    outfit = item_fit$outfit,
-    outfit_sd = item_fit$outfit_sd,
-    p_outfit = item_fit$p_outfit,
-    outfit_fdr = item_fdr_risk(item_fit$p_outfit),
-    infit = item_fit$infit,
-    infit_sd = item_fit$infit_sd,
-    p_infit = item_fit$p_infit,
-    infit_fdr = item_fdr_risk(item_fit$p_infit),
-    observed_gamma = gamma_fit$observed_gamma,
-    expected_gamma = gamma_fit$expected_gamma,
-    gamma_sd = gamma_fit$gamma_sd,
-    p_gamma = gamma_fit$p_gamma,
-    gamma_fdr = item_fdr_risk(gamma_fit$p_gamma),
-    stringsAsFactors = FALSE
-  )
-  rows$direction <- item_fit_direction(rows)
-
-  side_file <- data.frame(
-    item = rows$item_label,
-    outfit = rows$outfit,
-    p_outfit = rows$p_outfit,
-    infit = rows$infit,
-    p_infit = rows$p_infit,
-    ObsGamma = rows$observed_gamma,
-    ExpGamma = rows$expected_gamma,
-    p_gamma = rows$p_gamma,
-    stringsAsFactors = FALSE
-  )
-
-  all_p <- c(rows$p_infit, rows$p_outfit, rows$p_gamma, component_gamma$rows$p_gamma)
-  result <- list(
-    items = rows,
-    component_gamma = component_gamma$rows,
-    side_file = side_file,
-    bh_limits = c(
-      fdr_5 = source_bh_critical(all_p, 0.05),
-      fdr_1 = source_bh_critical(all_p, 0.01)
-    ),
-    fit = fit_like,
+  assemble_item_fits_values(
+    bundle = bundle,
+    fit_like = fit_like,
+    item_fit = item_fit,
+    gamma_fit = gamma_fit,
     extended = extended,
+    component_gamma = component_gamma,
     gllrm_copy_exists = TRUE
   )
-  class(result) <- c("gRm_item_fits_values", class(result))
-  result
 }
 
-active_gllrm_component_restscore_values <- function(context, state) {
+gllrm_component_restscore_values <- function(context, state) {
   components <- context$ld_components_items %||% gllrm_ld_components(context)$items
-  active_components <- components[lengths(components) > 1L]
-  if (length(active_components) == 0L) {
+  dependent_components <- components[lengths(components) > 1L]
+  if (length(dependent_components) == 0L) {
     empty_rows <- data.frame(
       component = character(),
       representative_item = integer(),
@@ -169,8 +179,8 @@ active_gllrm_component_restscore_values <- function(context, state) {
 
   rows <- list()
   table_rows <- list()
-  for (component_items in active_components) {
-    tables <- active_gllrm_component_restscore_tables(context, state, component_items)
+  for (component_items in dependent_components) {
+    tables <- gllrm_component_restscore_tables(context, state, component_items)
     observed_gamma <- goodman_kruskal_gamma(tables$observed)
     fitted <- fitted_gamma_stats(tables$expected)
     expected_gamma <- fitted$gamma
@@ -180,9 +190,9 @@ active_gllrm_component_restscore_values <- function(context, state) {
     } else {
       1
     }
-    component <- paste(context$items$label[component_items], collapse = "")
+    component <- paste(context$items$label_code[component_items], collapse = "")
     representative_item <- component_items[[length(component_items)]]
-    representative_item_label <- context$items$label[[representative_item]]
+    representative_item_label <- context$items$label_code[[representative_item]]
     rows[[length(rows) + 1L]] <- data.frame(
       component = component,
       representative_item = representative_item,
@@ -207,7 +217,7 @@ active_gllrm_component_restscore_values <- function(context, state) {
   )
 }
 
-active_gllrm_component_restscore_tables <- function(context, state, component_items) {
+gllrm_component_restscore_tables <- function(context, state, component_items) {
   component_max <- sum(context$item_raw_max[component_items] - 1L)
   rest_max <- context$max_total_score - component_max
   source_score_min <- 1L
@@ -345,13 +355,13 @@ component_restscore_table_rows <- function(component,
   do.call(rbind, out)
 }
 
-active_gllrm_item_conditional_moments <- function(context,
+gllrm_item_conditional_moments <- function(context,
                                                   state,
                                                   include_probabilities = FALSE,
                                                   probability_cache = NULL) {
   components <- context$ld_components_items %||% gllrm_ld_components(context)$items
   probability_cache <- probability_cache %||%
-    new_active_gllrm_probability_cache(context, state, components = components)
+    new_gllrm_probability_cache(context, state, components = components)
   probability_by_item <- lapply(seq_len(context$n_items), function(item_index) {
     lapply(
       seq.int(0L, context$max_total_score),
@@ -373,7 +383,7 @@ active_gllrm_item_conditional_moments <- function(context,
     for (group_index in seq_len(nrow(group_rows))) {
       group <- group_rows[group_index, , drop = FALSE]
       background_values <- gllrm_group_background_values(context, group)
-      group_probabilities <- active_gllrm_cached_item_probabilities(
+      group_probabilities <- gllrm_cached_item_probabilities(
         probability_cache,
         total_score = score,
         background_values = background_values
@@ -418,7 +428,7 @@ active_gllrm_item_conditional_moments <- function(context,
   result
 }
 
-active_gllrm_group_item_probabilities <- function(context,
+gllrm_group_item_probabilities <- function(context,
                                                   state,
                                                   total_score,
                                                   background_values,
@@ -489,7 +499,6 @@ active_gllrm_group_item_probabilities <- function(context,
   out
 }
 
-#' @keywords internal
 calculate_extended_item_fit_values <- function(bundle, fit, conditional = NULL) {
   # Source trace: skbias15.pas::Calculate_residuals_and_item_fits, nested
   # CalculateOutfit/CalculateInfit and the following Outfit/Infit summaries.
@@ -600,7 +609,7 @@ calculate_extended_item_fit_values <- function(bundle, fit, conditional = NULL) 
       infit_ratio <- safe_ratio(infit_average, infit_expected)
 
       row <- data.frame(
-        item_label = items$label[[item_index]],
+        item_label = items$label_code[[item_index]],
         item_name = items$name[[item_index]],
         score = score,
         n = n_score,
@@ -647,7 +656,7 @@ calculate_extended_item_fit_values <- function(bundle, fit, conditional = NULL) 
     item_scores_df <- do.call(rbind_fill, item_score_rows)
     summary_keep <- item_scores_df$n > 1
     summary_rows[[length(summary_rows) + 1L]] <- data.frame(
-      item_label = items$label[[item_index]],
+      item_label = items$label_code[[item_index]],
       item_name = items$name[[item_index]],
       outfit_total_n = sum(item_scores_df$n[summary_keep]),
       outfit_total_observed = safe_ratio(
@@ -689,7 +698,6 @@ calculate_extended_item_fit_values <- function(bundle, fit, conditional = NULL) 
   )
 }
 
-#' @keywords internal
 extended_item_restscore_source_tables <- function(
     bundle,
     conditional,
@@ -752,12 +760,10 @@ extended_item_restscore_source_tables <- function(
   )
 }
 
-#' @keywords internal
 restscore_matrix <- function(item_max, rest_max) {
   matrix(0, nrow = item_max + 1L, ncol = rest_max + 1L)
 }
 
-#' @keywords internal
 extended_global_restscore_tables <- function(bundle, conditional, observed_gamma, base_score_counts) {
   items <- bundle$model$items
   max_score <- bundle$model$max_total_score
@@ -815,7 +821,6 @@ extended_global_restscore_tables <- function(bundle, conditional, observed_gamma
   list(rows = type.convert(do.call(rbind, rows), as.is = TRUE))
 }
 
-#' @keywords internal
 extended_local_restscore_tables <- function(bundle, observed, expected, base_score_counts) {
   items <- bundle$model$items
   max_score <- bundle$model$max_total_score
@@ -935,7 +940,7 @@ extended_local_restscore_tables <- function(bundle, observed, expected, base_sco
       }
       p_values[[item_index]] <- gamma_p
       adjacent_gamma[[item_index]] <- data.frame(
-        item_label = items$label[[item_index]],
+        item_label = items$label_code[[item_index]],
         item_name = items$name[[item_index]],
         local_restscore = adjacent_score,
         gamma_observed = gamma_observed,
@@ -973,7 +978,6 @@ extended_local_restscore_tables <- function(bundle, observed, expected, base_sco
   )
 }
 
-#' @keywords internal
 restscore_table_rows <- function(items, item_index, local_restscore, observed_table, expected_table) {
   tables <- list(observed = observed_table, expected = expected_table)
   item_rows <- lapply(names(tables), function(table_name) {
@@ -982,7 +986,7 @@ restscore_table_rows <- function(items, item_index, local_restscore, observed_ta
     rest_scores <- seq.int(0L, ncol(tab) - 1L)
     n_cells <- length(item_scores) * length(rest_scores)
     row <- data.frame(
-      item_label = rep(items$label[[item_index]], n_cells),
+      item_label = rep(items$label_code[[item_index]], n_cells),
       item_name = rep(items$name[[item_index]], n_cells),
       restscore_table = rep(table_name, n_cells),
       restscore = rep(rest_scores, times = length(item_scores)),
@@ -1007,8 +1011,7 @@ restscore_table_rows <- function(items, item_index, local_restscore, observed_ta
   do.call(rbind, item_rows)
 }
 
-#' @keywords internal
-calculate_conditional_item_fit_values <- function(bundle, fit, conditional = NULL) {
+calculate_conditional_item_fit_values <- function(bundle, fit, conditional = NULL, incomplete = NULL) {
   # Source trace: skbias15.pas::Calculate_item_fits / CalculateInAndOutfits
   # prints ItemOutfit, sqrt(itemOutfitvariance), pOutfit, ItemInfit,
   # sqrt(iteminfitvariance), and pInfit after source score-window aggregation.
@@ -1107,20 +1110,16 @@ calculate_conditional_item_fit_values <- function(bundle, fit, conditional = NUL
     }
   }
 
-  # Source trace: skbias12a.pas::IncompleteItemfits is called from
-  # skbias14.pas when NincompleteRecs > 0. It contributes only observed items
-  # in incomplete records. Conditional probabilities are recomputed for the
-  # subset of observed items and the partial observed score.
-  # Source trace: skbias15.pas only calls IncompleteItemFits when the DIGRAM
-  # runtime has populated NincompleteRecs. The supplied example ItemFits extended
-  # report has no "persons with incomplete responses were included" line, so the
-  # R report does not synthesize incomplete item-fit records from bundle rows.
-  incomplete_rows <- integer()
-  for (row_index in incomplete_rows) {
-    use_item <- vapply(items$name, function(name) data[[name]][[row_index]] >= 0L, logical(1))
-    partial_score <- sum(as.integer(data[row_index, items$name[use_item], drop = FALSE]))
+  if (is.null(incomplete)) {
+    incomplete <- empty_source_incomplete_records(bundle)
+  }
+  for (record_index in seq_len(nrow(incomplete$records))) {
+    record <- as.integer(incomplete$records[record_index, items$name, drop = TRUE])
+    use_item <- record <= (items$raw_max - 1L)
+    partial_score <- incomplete$score[[record_index]]
+    count <- incomplete$count[[record_index]]
     for (item_index in which(use_item)) {
-      item_score <- data[[items$name[[item_index]]]][[row_index]]
+      item_score <- record[[item_index]]
       moments <- item_conditional_moment_for_subset(bundle, fit$item_gamma, item_index, partial_score, use_item)
       variance <- moments$variance
       if (variance <= 0) {
@@ -1130,17 +1129,17 @@ calculate_conditional_item_fit_values <- function(bundle, fit, conditional = NUL
       outfit_range <- centered^2 / variance
       infit_range <- centered^2
 
-      outfit_sum[[item_index]] <- outfit_sum[[item_index]] + outfit_range[[item_score + 1L]]
-      outfit_mean[[item_index]] <- outfit_mean[[item_index]] + sum(outfit_range * moments$probabilities)
+      outfit_sum[[item_index]] <- outfit_sum[[item_index]] + count * outfit_range[[item_score + 1L]]
+      outfit_mean[[item_index]] <- outfit_mean[[item_index]] + count * sum(outfit_range * moments$probabilities)
       outfit_var[[item_index]] <- outfit_var[[item_index]] +
-        sum(outfit_range^2 * moments$probabilities) - sum(outfit_range * moments$probabilities)^2
+        count * (sum(outfit_range^2 * moments$probabilities) - sum(outfit_range * moments$probabilities)^2)
 
-      infit_sum[[item_index]] <- infit_sum[[item_index]] + infit_range[[item_score + 1L]]
-      infit_mean[[item_index]] <- infit_mean[[item_index]] + sum(infit_range * moments$probabilities)
+      infit_sum[[item_index]] <- infit_sum[[item_index]] + count * infit_range[[item_score + 1L]]
+      infit_mean[[item_index]] <- infit_mean[[item_index]] + count * sum(infit_range * moments$probabilities)
       infit_var[[item_index]] <- infit_var[[item_index]] +
-        sum(infit_range^2 * moments$probabilities) - sum(infit_range * moments$probabilities)^2
-      infit_weight[[item_index]] <- infit_weight[[item_index]] + variance
-      n_used[[item_index]] <- n_used[[item_index]] + 1L
+        count * (sum(infit_range^2 * moments$probabilities) - sum(infit_range * moments$probabilities)^2)
+      infit_weight[[item_index]] <- infit_weight[[item_index]] + count * variance
+      n_used[[item_index]] <- n_used[[item_index]] + count
     }
   }
 
@@ -1164,8 +1163,7 @@ calculate_conditional_item_fit_values <- function(bundle, fit, conditional = NUL
   )
 }
 
-#' @keywords internal
-calculate_item_restscore_gamma_values <- function(bundle, fit, conditional = NULL) {
+calculate_item_restscore_gamma_values <- function(bundle, fit, conditional = NULL, incomplete = NULL) {
   # Source trace: skbias14.pas::Calculate_item_restscore_gamma builds observed
   # and expected item-by-restscore crosstabs, calls CalculateGamma for observed
   # gamma, CalculateFittedGamma for expected gamma and ssgam, then uses
@@ -1176,6 +1174,14 @@ calculate_item_restscore_gamma_values <- function(bundle, fit, conditional = NUL
   max_score <- bundle$model$max_total_score
   if (is.null(conditional)) {
     conditional <- item_conditional_moments(bundle, fit$item_gamma, include_probabilities = TRUE)
+  }
+  if (is.null(incomplete)) {
+    incomplete <- empty_source_incomplete_records(bundle)
+  }
+  incomplete_gamma <- if (nrow(incomplete$records) > 0L) {
+    prepare_incomplete_item_restscore_gamma(bundle, fit$item_gamma, incomplete)
+  } else {
+    NULL
   }
   item_matrix <- data[, items$name, drop = FALSE]
   complete_items <- apply(item_matrix >= 0L, 1L, all)
@@ -1245,11 +1251,35 @@ calculate_item_restscore_gamma_values <- function(bundle, fit, conditional = NUL
       }
     }
 
-    # Source trace: skbias14/skbias15 only include IncompleteRecs when the DIGRAM
-    # runtime has populated NincompleteRecs; in that case the report prints
-    # "records will be included during calculation of item-restscore gamma". The
-    # BFI and example ItemFits runtime reports do not contain that line, so compact
-    # report reproduction must not synthesize incomplete rows from raw data here.
+    if (!is.null(incomplete_gamma)) {
+      for (record_index in seq_len(nrow(incomplete$records))) {
+        record <- as.integer(incomplete$records[record_index, items$name, drop = TRUE])
+        item_score <- record[[item_index]]
+        if (item_score > item_max) {
+          next
+        }
+        count <- incomplete$count[[record_index]]
+        observed_rest <- incomplete$score[[record_index]] - item_score
+        if (observed_rest >= 0L && observed_rest <= rest_max) {
+          observed[item_score + 1L, observed_rest + 1L] <-
+            observed[item_score + 1L, observed_rest + 1L] + count
+        }
+
+        expected_score <- round(incomplete_gamma$expected_total[[record_index]])
+        probabilities <- incomplete_gamma$probabilities[[record_index]][[item_index]]
+        if (length(probabilities) == 0L) {
+          next
+        }
+        for (candidate_score in seq.int(0L, item_max)) {
+          candidate_rest <- expected_score - candidate_score
+          if (candidate_rest >= 0L && candidate_rest <= rest_max) {
+            expected[candidate_score + 1L, candidate_rest + 1L] <-
+              expected[candidate_score + 1L, candidate_rest + 1L] +
+              probabilities[[candidate_score + 1L]] * count
+          }
+        }
+      }
+    }
 
     observed_gamma[[item_index]] <- goodman_kruskal_gamma(observed)
     fitted <- fitted_gamma_stats(expected)
@@ -1271,12 +1301,27 @@ calculate_item_restscore_gamma_values <- function(bundle, fit, conditional = NUL
   )
 }
 
-#' Collect source-style incomplete response records
-#'
-#' @param bundle An item-parameters bundle.
-#' @return A list with grouped incomplete records, counts, observed scores, and
-#'   observed maximum scores.
-#' @keywords internal
+# Collect source-style incomplete response records
+#
+# @param bundle An item-parameters bundle.
+# @return A list with grouped incomplete records, counts, observed scores, and
+#   observed maximum scores.
+empty_source_incomplete_records <- function(bundle) {
+  records <- as.data.frame(
+    stats::setNames(
+      replicate(nrow(bundle$model$items), integer(), simplify = FALSE),
+      bundle$model$items$name
+    ),
+    stringsAsFactors = FALSE
+  )
+  list(
+    records = records,
+    count = integer(),
+    score = integer(),
+    max_score = integer()
+  )
+}
+
 collect_source_incomplete_records <- function(bundle) {
   # Source trace: SKbias2.pas::collect_incomplete_response_records. DIGRAM keeps
   # incomplete rows only when some but not all item responses are missing, at
@@ -1333,14 +1378,13 @@ collect_source_incomplete_records <- function(bundle) {
   list(records = record_df, count = counts, score = scores, max_score = max_scores)
 }
 
-#' Calculate DIGRAM's expected total score for an incomplete record
-#'
-#' @param bundle An item-parameters bundle.
-#' @param item_gamma Estimated item gamma matrix.
-#' @param incomplete Output from [collect_source_incomplete_records()].
-#' @param record_index One-based incomplete record index.
-#' @return Observed score plus expected score over missing items.
-#' @keywords internal
+# Calculate DIGRAM's expected total score for an incomplete record
+#
+# @param bundle An item-parameters bundle.
+# @param item_gamma Estimated item gamma matrix.
+# @param incomplete Output from `collect_source_incomplete_records()`.
+# @param record_index One-based incomplete record index.
+# @return Observed score plus expected score over missing items.
 incomplete_expected_total_score <- function(bundle, item_gamma, incomplete, record_index) {
   # Source trace: skbias12a.pas::ExpectedIncompleteResponses first estimates the
   # person parameter from observed items, then evaluates the missing-items score
@@ -1360,13 +1404,12 @@ incomplete_expected_total_score <- function(bundle, item_gamma, incomplete, reco
   observed_score + true_score_from_gamma(theta, missing_max, missing_gamma)
 }
 
-#' Build a source score-generating function for a subset of items
-#'
-#' @param bundle An item-parameters bundle.
-#' @param item_gamma Estimated item gamma matrix.
-#' @param use_item Logical vector selecting included items.
-#' @return Numeric score-generating function indexed by score plus one.
-#' @keywords internal
+# Build a source score-generating function for a subset of items
+#
+# @param bundle An item-parameters bundle.
+# @param item_gamma Estimated item gamma matrix.
+# @param use_item Logical vector selecting included items.
+# @return Numeric score-generating function indexed by score plus one.
 build_source_subset_gamma <- function(bundle, item_gamma, use_item) {
   items <- bundle$model$items
   max_total_score <- sum(items$raw_max[use_item] - 1L)
@@ -1395,13 +1438,12 @@ build_source_subset_gamma <- function(bundle, item_gamma, use_item) {
   gamma_values
 }
 
-#' Prepare incomplete-record quantities for item-restscore gamma
-#'
-#' @param bundle An item-parameters bundle.
-#' @param item_gamma Estimated item gamma matrix.
-#' @param incomplete Output from [collect_source_incomplete_records()].
-#' @return A list of expected totals and per-item conditional probabilities.
-#' @keywords internal
+# Prepare incomplete-record quantities for item-restscore gamma
+#
+# @param bundle An item-parameters bundle.
+# @param item_gamma Estimated item gamma matrix.
+# @param incomplete Output from `collect_source_incomplete_records()`.
+# @return A list of expected totals and per-item conditional probabilities.
 prepare_incomplete_item_restscore_gamma <- function(bundle, item_gamma, incomplete) {
   # Source trace: skbias14/skbias15 call IncompleteResponseProbabilities inside
   # each item loop, but the value depends only on the incomplete record's
@@ -1484,7 +1526,6 @@ prepare_incomplete_item_restscore_gamma <- function(bundle, item_gamma, incomple
   list(expected_total = expected_total, probabilities = probabilities)
 }
 
-#' @keywords internal
 item_conditional_moments <- function(bundle, item_gamma, include_probabilities = FALSE) {
   items <- bundle$model$items
   max_total_score <- bundle$model$max_total_score
@@ -1529,7 +1570,6 @@ item_conditional_moments <- function(bundle, item_gamma, include_probabilities =
   result
 }
 
-#' @keywords internal
 item_conditional_moment_for_subset <- function(bundle, item_gamma, item_index, score, use_item) {
   items <- bundle$model$items
   item_scores <- seq.int(0L, items$raw_max[[item_index]] - 1L)
@@ -1558,7 +1598,6 @@ item_conditional_moment_for_subset <- function(bundle, item_gamma, item_index, s
   list(mean = mean_value, variance = variance, fourth = fourth, probabilities = probabilities)
 }
 
-#' @keywords internal
 build_gamma_excluding_item_subset <- function(bundle, item_gamma, excluded_item, use_item) {
   items <- bundle$model$items
   # Source trace: this is the same score-polynomial convolution as
@@ -1596,13 +1635,12 @@ build_gamma_excluding_item_subset <- function(bundle, item_gamma, excluded_item,
   gamma_values
 }
 
-#' Fast source score-generating function for a subset of items
-#'
-#' @param items Item metadata data frame.
-#' @param item_gamma Estimated item gamma matrix.
-#' @param use_item Logical vector selecting included items.
-#' @return Numeric score-generating function indexed by score plus one.
-#' @keywords internal
+# Fast source score-generating function for a subset of items
+#
+# @param items Item metadata data frame.
+# @param item_gamma Estimated item gamma matrix.
+# @param use_item Logical vector selecting included items.
+# @return Numeric score-generating function indexed by score plus one.
 build_source_subset_gamma_fast <- function(items, item_gamma, use_item) {
   # Source trace: same polynomial convolution as Gamma_calculation1, expressed
   # with R's vectorized open convolution. This changes only execution strategy,
@@ -1615,39 +1653,14 @@ build_source_subset_gamma_fast <- function(items, item_gamma, use_item) {
   gamma_values
 }
 
-#' @keywords internal
 goodman_kruskal_gamma <- function(tab) {
-  cd <- gamma_concordance_discordance(tab)
-  denominator <- cd$concordant + cd$discordant
-  if (denominator <= 0) {
-    return(0)
-  }
-  (cd$concordant - cd$discordant) / denominator
+  source_rc_gamma_stats(tab, include_cells = FALSE)$gamma
 }
 
-#' @keywords internal
-gamma_concordance_discordance <- function(tab) {
-  concordant <- 0
-  discordant <- 0
-  for (row in seq_len(nrow(tab))) {
-    for (col in seq_len(ncol(tab))) {
-      count <- tab[row, col]
-      if (count == 0) {
-        next
-      }
-      if (row < nrow(tab) && col < ncol(tab)) {
-        concordant <- concordant + count * sum(tab[(row + 1L):nrow(tab), (col + 1L):ncol(tab), drop = FALSE])
-      }
-      if (row < nrow(tab) && col > 1L) {
-        discordant <- discordant + count * sum(tab[(row + 1L):nrow(tab), seq_len(col - 1L), drop = FALSE])
-      }
-    }
-  }
-  list(concordant = concordant, discordant = discordant)
-}
-
-#' @keywords internal
 fitted_gamma_stats <- function(expected) {
+  # This fitted-gamma variance is the item fit source branch and is
+  # intentionally not merged with the exo/screen gamma test variance
+  # conventions.
   # Source trace: skbias15.pas::CalculateFittedGAMMA. The source computes
   # gamma = PMQ / PPQ and S1 = 16 / PPQ^4 * sum(tab[i,j] *
   # (Q * AIJ[i,j] - P * DIJ[i,j])^2).
@@ -1668,35 +1681,6 @@ fitted_gamma_stats <- function(expected) {
   list(gamma = pmq / ppq, variance = factor * variance)
 }
 
-#' @keywords internal
-gamma_cell_tables <- function(tab) {
-  aij <- matrix(0, nrow = nrow(tab), ncol = ncol(tab))
-  dij <- matrix(0, nrow = nrow(tab), ncol = ncol(tab))
-  p <- 0
-  q <- 0
-  for (row in seq_len(nrow(tab))) {
-    for (col in seq_len(ncol(tab))) {
-      for (other_row in seq_len(nrow(tab))) {
-        for (other_col in seq_len(ncol(tab))) {
-          concordant <- (row > other_row && col > other_col) ||
-            (row < other_row && col < other_col)
-          discordant <- (row < other_row && col > other_col) ||
-            (row > other_row && col < other_col)
-          if (concordant) {
-            aij[row, col] <- aij[row, col] + tab[other_row, other_col]
-          } else if (discordant) {
-            dij[row, col] <- dij[row, col] + tab[other_row, other_col]
-          }
-        }
-      }
-      p <- p + tab[row, col] * aij[row, col]
-      q <- q + tab[row, col] * dij[row, col]
-    }
-  }
-  list(aij = aij, dij = dij, p = p, q = q)
-}
-
-#' @keywords internal
 item_fdr_risk <- function(p_values) {
   risks <- integer(length(p_values))
   for (alpha_index in seq_along(c(0.05, 0.01, 0.001))) {
@@ -1707,7 +1691,6 @@ item_fdr_risk <- function(p_values) {
   risks
 }
 
-#' @keywords internal
 item_fit_direction <- function(rows) {
   any_flag <- rows$outfit_fdr > 0L | rows$infit_fdr > 0L | rows$gamma_fdr > 0L
   direction <- rep("", nrow(rows))
@@ -1716,7 +1699,6 @@ item_fit_direction <- function(rows) {
   direction
 }
 
-#' @keywords internal
 safe_ratio <- function(numerator, denominator) {
   result <- rep(0, length(numerator))
   ok <- denominator > 0
@@ -1724,7 +1706,6 @@ safe_ratio <- function(numerator, denominator) {
   result
 }
 
-#' @keywords internal
 safe_z <- function(observed, expected, variance) {
   z <- rep(0, length(observed))
   ok <- variance > 0
@@ -1732,25 +1713,22 @@ safe_z <- function(observed, expected, variance) {
   z
 }
 
-#' @keywords internal
 inf_replace <- function(x, value) {
   x[!is.finite(x)] <- value
   x
 }
 
-#' @keywords internal
 two_sided_source_normal_p <- function(z) {
   vapply(z, function(value) pmin(1, 2 * source_tail_norm(abs(value), TRUE)), numeric(1))
 }
 
-#' Source fixed-field integer rounding
-#'
-#' Pascal's fixed-width `:0` numeric formatting rounds half values away from
-#' zero for the non-negative item-fit frequencies printed by `skbias15.pas`.
-#'
-#' @param value Numeric vector.
-#' @return Integer-like numeric vector rounded as DIGRAM prints it.
-#' @keywords internal
+# Source fixed-field integer rounding
+#
+# Pascal's fixed-width `:0` numeric formatting rounds half values away from
+# zero for the non-negative item fit frequencies printed by `skbias15.pas`.
+#
+# @param value Numeric vector.
+# @return Integer-like numeric vector rounded as DIGRAM prints it.
 source_print_round <- function(value) {
   sign(value) * floor(abs(value) + 0.5)
 }

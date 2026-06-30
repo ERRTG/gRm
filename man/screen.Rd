@@ -2,10 +2,13 @@
 % Please edit documentation in R/api-screen.R
 \name{screen}
 \alias{screen}
+\alias{screen.gRm_analysis}
 \title{Run source-faithful DIGRAM SCREEN J}
 \usage{
-screen(project, inference = c("asymptotic", "exact", "repeated"),
-  nsim = 1000L, seed = 9L, critlevel = NULL, risk = NULL, jobs = 1L, ...)
+screen(project, ...)
+\method{screen}{gRm_analysis}(project,
+  inference = c("asymptotic", "exact", "repeated"), nsim = 1000L,
+  seed = 9L, critlevel = NULL, risk = NULL, ...)
 }
 \arguments{
 \item{project}{A \code{gRm_analysis} object from \code{\link[=gRm]{gRm()}} or
@@ -17,16 +20,17 @@ arguments are currently supported.}
 \item{inference}{Inference mode. \code{"asymptotic"} maps to DIGRAM command 17,
 \code{"exact"} to command 2, and \code{"repeated"} to command 74.}
 
-\item{nsim}{Number of simulations for exact branches.}
+\item{nsim}{Single non-negative integer-like number of simulations for exact
+branches. The source convention \code{0} requests the DIGRAM default of \code{1000}.}
 
-\item{seed}{Random seed for exact branches.}
+\item{seed}{Single integer-like random seed for exact branches.}
 
 \item{critlevel}{Optional DIGRAM exact command critical level on the
-per-1000 scale.}
+per-1000 scale; when supplied it must be a single non-negative
+integer-like value.}
 
-\item{risk}{Optional DIGRAM repeated-Monte-Carlo risk on the per-1000 scale.}
-
-\item{jobs}{Reserved for future parallel screen implementations.}
+\item{risk}{Optional DIGRAM repeated-Monte-Carlo risk on the per-1000 scale;
+when supplied it must be a single non-negative integer-like value.}
 }
 \value{
 A \code{gRm_screen} object containing SCREEN J test values, selected
@@ -38,10 +42,37 @@ Run DIGRAM SCREEN J model discovery from an analysis object.
 }
 \details{
 SCREEN J evaluates candidate LD, DIF, and score-effect relations using the
-source-shaped SCREEN J algorithm. The result can be inspected with
-\code{summary(screen_obj, which = "tests")}, \code{"selected"}, \code{"all"},
-\code{"score_effects"}, or \code{"bh"}. Passing a screen object to \code{\link[=gllrm]{gllrm()}} creates
-a model from selected LD and DIF terms.
+source-shaped SCREEN J algorithm. \code{print(screen_obj)} shows compact status
+information; \code{summary(screen_obj)} prints the final public SCREEN J decision
+rows for local dependence, DIF, and score effects. The summary is a
+human-facing test surface, not a complete DIGRAM oracle report rendering and
+not a dump of all intermediate source calculations. It deliberately omits
+internal partial item-pair matrices, initial item-bias matrices,
+spurious-DIF reduction iterations, multiple-DIF reduction iterations, and
+score-effect intermediate screening iterations from the printed output.
+Those source-shaped values remain in \code{screen_obj$values} for validation,
+debugging, and source-faithfulness audits.
+
+Printed SCREEN J summaries use \code{*} to mark rows selected by the source-backed
+SCREEN J decision path at the 5 percent decision level. For local-dependence
+and DIF candidate evidence, the source path uses the global
+Benjamini-Hochberg FDR 0.05 threshold; stricter global cutoffs for FDR 0.01
+and 0.001 are retained in \code{attr(summary(screen_obj), "bh")}. Score-effect
+rows follow the source score-effect screening routine, not the global LD/DIF
+BH table. The marker is not recomputed from an arbitrary displayed p-value.
+The returned summary object keeps selected model terms as \verb{$selected},
+global LD/DIF BH thresholds as \code{attr(summary(screen_obj), "bh")}, and all
+selected model terms as \code{attr(summary(screen_obj), "model_terms")}.
+In the printed DIF table, \code{Chisq} / \verb{Pr(>Chisq)} and \code{Gamma} /
+\verb{Pr(>|Gamma|)} are separate statistic families. SCREEN J uses the gamma
+statistic when the exogenous variable is binary by category count
+(\code{raw_max == 2}) or ordinal by source variable type (\code{vtype > 2}) in the
+source-shaped background metadata. Otherwise it uses the chi-square
+statistic. Cells for the statistic family not used for a row are printed
+blank; the returned summary table keeps those cells as \code{NA}.
+
+Passing a screen object to \code{\link[=gllrm]{gllrm()}} creates a model from selected LD and DIF
+terms.
 
 The \code{inference} modes map to DIGRAM command-state conventions:
 \code{"asymptotic"} uses the asymptotic path, \code{"exact"} uses fixed Monte Carlo
@@ -56,9 +87,15 @@ data <- data.frame(
   I2 = c(1, 0, 1, 0, 1, 0, 1, 0),
   site = c(0, 0, 1, 1, 0, 1, 0, 1)
 )
-analysis <- gRm(data, items = c("I1", "I2"), exogenous = "site", id = "ID")
+analysis <- gRm(
+  data,
+  items = c("I1", "I2"),
+  exogenous = "site",
+  id = "ID",
+  score_cuts = c(1L, 2L)
+)
 scr <- screen(analysis, inference = "asymptotic")
-summary(scr, which = "selected")
+summary(scr)
 model <- gllrm(scr)
 }
 }

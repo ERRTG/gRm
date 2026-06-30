@@ -16,11 +16,16 @@ gRm(
 )
 }
 \arguments{
-\item{data}{A data frame containing item and optional exogeneous variables.}
+\item{data}{A data frame containing item and optional exogeneous variables.
+The current package version supports ordinal variables only. Nominal and
+mixed DIGRAM variable types are not implemented.}
 
 \item{items}{Character vector of item column names.}
 
-\item{exogenous}{Character vector of exogeneous/person-factor column names.}
+\item{exogenous}{Character vector of exogeneous/person-factor column names.
+Exogeneous variables are interpreted as ordinal source variables in the
+current package version. Multi-category nominal exogeneous variables are
+outside the currently source-faithful scope.}
 
 \item{id}{Optional identifier column name.}
 
@@ -30,14 +35,17 @@ items, or a named list with one entry per item. Levels are mapped to
 DIGRAM's one-based raw categories before fitting.}
 
 \item{exogenous_levels}{Exogeneous/person-factor levels, with the same
-conventions as \code{item_levels}.}
+conventions as \code{item_levels}. These levels define category order for
+ordinal analysis; they do not declare nominal variable types.}
 
 \item{score_cuts}{\code{"auto"} for source-faithful automatic score cuts, or an
 integer-like vector of explicit upper total-score cut values. The cuts are
 stored with the analysis and later define score groups as consecutive
 intervals: the first group runs from the source-valid lowest score through
 the first cut, the next group starts at the following score and runs through
-the next cut, and so on.}
+the next cut, and so on. Automatic cuts must define at least two usable
+source score groups; otherwise construction fails with a non-estimable
+score-group error.}
 
 \item{name}{Optional project name.}
 }
@@ -47,6 +55,38 @@ A \code{gRm_analysis} object.
 \description{
 Create a gRm item-analysis project
 }
+\details{
+\code{item_levels} and \code{exogenous_levels} are construction-time encoding
+controls. They define how user-facing data values are mapped to DIGRAM's
+internal one-based category codes. For items, this order also defines the
+score scale: category 1 is scored as 0, category 2 as 1, and so on. After the
+\code{gRm_analysis} object is built, later analyses use the encoded
+\code{project$raw_data} and variable category counts, not the original level
+objects.
+}
+\section{Workflow}{
+
+A \code{gRm_analysis} stores the encoded DIGRAM project and score-group setup.
+From there, either specify a model manually with \code{\link[=gllrm]{gllrm()}} or run \code{\link[=screen]{screen()}}
+to discover candidate LD and DIF terms. \code{\link[=screen]{screen()}} returns a screening
+result; pass it to \code{\link[=gllrm]{gllrm()}} to create the selected model. Model diagnostics
+require a fitted model from \code{\link[=fit]{fit()}}. \code{\link[=score_effects]{score_effects()}} is analysis-level and
+can be called directly on the \code{gRm_analysis} object.
+
+\if{html}{\out{<div class="sourceCode">}}\preformatted{manual_model <- gllrm(analysis, ld = ~ I1:I2, dif = ~ I1:site)
+screened <- screen(analysis)
+screened_model <- gllrm(screened)
+
+fitted <- fit(screened_model)
+
+summary(fitted)
+item_fit(fitted)
+local_dependence(fitted)
+dif(fitted)
+global_homogeneity(fitted)
+}\if{html}{\out{</div>}}
+}
+
 \examples{
 data <- data.frame(
   ID = 1:6,
@@ -54,6 +94,12 @@ data <- data.frame(
   I2 = c(1, 0, 1, 0, 1, 0),
   site = c(0, 0, 1, 1, 0, 1)
 )
-analysis <- gRm(data, items = c("I1", "I2"), exogenous = "site", id = "ID")
+analysis <- gRm(
+  data,
+  items = c("I1", "I2"),
+  exogenous = "site",
+  id = "ID",
+  score_cuts = c(1L, 2L)
+)
 summary(analysis)
 }

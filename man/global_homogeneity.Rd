@@ -9,7 +9,6 @@ global_homogeneity(
   score_cuts = NULL,
   max_step = 5000L,
   max_delta = 1e-04,
-  jobs = 1L,
   ...
 )
 }
@@ -23,13 +22,15 @@ analysis-level cuts for this global-homogeneity calculation only. The cuts
 define score groups as consecutive total-score intervals: the first group
 runs from the source-valid lowest score through the first cut, the next
 group starts at the following score and runs through the next cut, and so
-on.}
+on. Supplied cuts must contain at least two non-missing integer-like values,
+be strictly increasing, lie inside the possible score range, and leave at
+least two usable source score groups after boundary-score handling.}
 
-\item{max_step}{Maximum number of fitting iterations for group models.}
+\item{max_step}{Single positive integer-like maximum number of fitting
+iterations for group models.}
 
-\item{max_delta}{Convergence threshold for group models.}
-
-\item{jobs}{Reserved for future parallel implementations.}
+\item{max_delta}{Single positive finite convergence threshold for group
+models.}
 
 \item{...}{Reserved for S3 dispatch compatibility; ignored.}
 }
@@ -39,6 +40,32 @@ A \code{gRm_global_homogeneity} result object.
 \description{
 Global homogeneity diagnostics
 }
+\details{
+\code{summary(result, which = "test")} reports the source-backed likelihood-ratio
+test, degrees of freedom, and p-value. \code{summary(result, which = "score_groups")} reports the fitted source score groups and convergence
+status. \code{summary(result, which = "item_means")} reports the score-group item
+means that gRm can derive source-faithfully from the available Pascal path. If
+the fitted model contains LD and/or DIF terms, \code{summary(result)} also prints
+the source-backed extended global-homogeneity sections for uniform local
+dependence and uniform DIF. These sections are available directly with
+\code{which = "uniform_ld"} and \code{which = "uniform_dif"}; their observed and
+expected gamma columns are named by the score-group labels defined for the
+particular analysis, followed by chi-square, degrees of freedom, and p-value
+columns. Residual and marker cells that are not source-backed remain
+available on the raw result values but are not printed in the public summary
+tables.
+}
+\section{Global homogeneity residuals}{
+
+The item-level residual and marker cells in DIGRAM's global-homogeneity
+report are a documented implementation restriction. The recovered Pascal
+source identifies the residual/item fit report path, but not the hidden
+runtime residual variance materialization needed to reproduce those cells
+source-faithfully. gRm therefore leaves the item-level \code{residual} and
+\code{marker} fields as \code{NA} and reports their status as \code{"not_source_backed"}
+rather than inventing an unsupported formula.
+}
+
 \examples{
 \donttest{
 data <- data.frame(
@@ -48,6 +75,6 @@ data <- data.frame(
 )
 fit0 <- fit(gllrm(gRm(data, items = c("I1", "I2"), id = "ID", score_cuts = c(1L, 2L))))
 gh <- global_homogeneity(fit0)
-summary(gh, which = "tests")
+summary(gh, which = "test")
 }
 }

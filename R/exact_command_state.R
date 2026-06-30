@@ -1,13 +1,11 @@
-#' Source-faithful DIGRAM exact/asymptotic command state
-#'
-#' @param inference One of asymptotic, exact, repeated, or sequential.
-#' @param nsim Number of random tables for exact modes.
-#' @param seed Random seed.
-#' @param critlevel DIGRAM command critical level on the per-1000 scale.
-#' @param risk DIGRAM repeated-Monte-Carlo risk on the per-1000 scale.
-#' @return A `gRm_exact_command_state` list.
-#' @keywords internal
-#' @noRd
+# Source-faithful DIGRAM exact/asymptotic command state
+#
+# @param inference One of asymptotic, exact, repeated, or sequential.
+# @param nsim Number of random tables for exact modes.
+# @param seed Random seed.
+# @param critlevel DIGRAM command critical level on the per-1000 scale.
+# @param risk DIGRAM repeated-Monte-Carlo risk on the per-1000 scale.
+# @return A `gRm_exact_command_state` list.
 gRm_exact_command_state <- function(inference = c("asymptotic", "exact", "repeated", "sequential"),
                                        nsim = 1000L,
                                        seed = 9L,
@@ -15,23 +13,10 @@ gRm_exact_command_state <- function(inference = c("asymptotic", "exact", "repeat
                                        risk = 1L) {
   critlevel_supplied <- !missing(critlevel)
   inference <- match.arg(inference)
-  nsim <- as.integer(nsim[[1L]])
-  seed <- as.integer(seed[[1L]])
-  critlevel <- as.integer(critlevel[[1L]])
-  risk <- as.integer(risk[[1L]])
-
-  if (is.na(nsim) || nsim < 0L) {
-    stop("`nsim` must be a non-negative integer.", call. = FALSE)
-  }
-  if (is.na(seed)) {
-    stop("`seed` must be a single integer.", call. = FALSE)
-  }
-  if (is.na(critlevel) || critlevel < 0L) {
-    stop("`critlevel` must be a non-negative integer on the DIGRAM per-1000 scale.", call. = FALSE)
-  }
-  if (is.na(risk) || risk < 0L) {
-    stop("`risk` must be a non-negative integer on the DIGRAM per-1000 scale.", call. = FALSE)
-  }
+  nsim <- exact_integer_scalar(nsim, "nsim", nonnegative = TRUE)
+  seed <- exact_integer_scalar(seed, "seed")
+  critlevel <- exact_integer_scalar(critlevel, "critlevel", nonnegative = TRUE)
+  risk <- exact_integer_scalar(risk, "risk", nonnegative = TRUE)
 
   exact_nsim <- if (nsim == 0L) 1000L else nsim
   source_p0 <- source_seq_p0(critlevel)
@@ -98,7 +83,32 @@ gRm_exact_command_state <- function(inference = c("asymptotic", "exact", "repeat
   state
 }
 
-#' @keywords internal
+exact_integer_scalar <- function(value, name, nonnegative = FALSE) {
+  qualifier <- if (isTRUE(nonnegative)) {
+    "single non-negative integer-like value"
+  } else {
+    "single integer-like value"
+  }
+  fail <- function() {
+    stop("`", name, "` must be a ", qualifier, ".", call. = FALSE)
+  }
+
+  if (length(value) != 1L || !is.numeric(value)) {
+    fail()
+  }
+  if (is.na(value) || !is.finite(value) || value != floor(value)) {
+    fail()
+  }
+  if (isTRUE(nonnegative) && value < 0) {
+    fail()
+  }
+  if (value < -.Machine$integer.max || value > .Machine$integer.max) {
+    fail()
+  }
+
+  as.integer(value)
+}
+
 gRm_exact_state_from_flags <- function(exact, repeated, nsim = 1000L, seed = 9L) {
   inference <- if (!isTRUE(exact)) {
     "asymptotic"
@@ -110,7 +120,6 @@ gRm_exact_state_from_flags <- function(exact, repeated, nsim = 1000L, seed = 9L)
   gRm_exact_command_state(inference, nsim = nsim, seed = seed)
 }
 
-#' @keywords internal
 gRm_exact_command_state_public <- function(inference,
                                               nsim = 1000L,
                                               seed = 9L,
@@ -135,51 +144,8 @@ gRm_exact_command_state_public <- function(inference,
   gRm_exact_command_state(inference, nsim = nsim, seed = seed)
 }
 
-#' @keywords internal
-parse_gRm_exact_command <- function(command) {
-  parts <- strsplit(trimws(command), "\\s+")[[1L]]
-  if (length(parts) == 0L || parts[[1L]] == "") {
-    stop("Unsupported DIGRAM exact command: ", command, call. = FALSE)
-  }
-  keyword <- toupper(parts[[1L]])
-  args <- suppressWarnings(as.integer(parts[-1L]))
-  arg_or <- function(index, default) {
-    if (length(args) >= index && !is.na(args[[index]])) args[[index]] else default
-  }
-
-  switch(
-    keyword,
-    ASY = ,
-    ASYMP = ,
-    ASYMPTOTIC = gRm_exact_command_state("asymptotic"),
-    EXA = ,
-    EXACT = gRm_exact_command_state(
-      "exact",
-      nsim = arg_or(1L, 1000L),
-      seed = arg_or(2L, 9L)
-    ),
-    REP = ,
-    REPEATED = gRm_exact_command_state(
-      "repeated",
-      nsim = arg_or(1L, 1000L),
-      seed = arg_or(2L, 9L),
-      critlevel = arg_or(3L, 50L),
-      risk = arg_or(4L, 1L)
-    ),
-    SEQ = ,
-    SEQUENTIAL = gRm_exact_command_state(
-      "sequential",
-      nsim = arg_or(1L, 1000L),
-      seed = arg_or(2L, 9L),
-      critlevel = arg_or(3L, 20L)
-    ),
-    stop("Unsupported DIGRAM exact command: ", command, call. = FALSE)
-  )
-}
-
-#' @keywords internal
 source_seq_p0 <- function(critlevel = 50L) {
-  p0 <- as.integer(critlevel[[1L]]) / 1000
+  p0 <- exact_integer_scalar(critlevel, "critlevel", nonnegative = TRUE) / 1000
   if (p0 < 0.10) {
     0.05
   } else if (p0 < 0.25) {
@@ -189,9 +155,8 @@ source_seq_p0 <- function(critlevel = 50L) {
   }
 }
 
-#' @keywords internal
 source_seq_alpha <- function(risk = 1L) {
-  alpha <- as.integer(risk[[1L]]) / 1000
+  alpha <- exact_integer_scalar(risk, "risk", nonnegative = TRUE) / 1000
   if (alpha < 0.005) {
     0.001
   } else if (alpha < 0.010) {
@@ -205,17 +170,15 @@ source_seq_alpha <- function(risk = 1L) {
   }
 }
 
-#' Source boundary used by DIGRAM's repeated Monte Carlo command
-#'
-#' Mirrors `SKrandom.pas::SEQ_INIT` for command 74. The source first snaps
-#' `P0`, `ALPHA`, and `NSIM` to coarse table coordinates, then selects `SEQ_B`.
-#'
-#' @keywords internal
-#' @noRd
+# Source boundary used by DIGRAM's repeated Monte Carlo command
+#
+# Mirrors `SKrandom.pas::SEQ_INIT` for command 74. The source first snaps
+# `P0`, `ALPHA`, and `NSIM` to coarse table coordinates, then selects `SEQ_B`.
+#
 source_seq_boundary <- function(critlevel = 50L, risk = 1L, nsim = 1000L) {
   p0 <- source_seq_p0(critlevel)
   alpha <- source_seq_alpha(risk)
-  nsim <- as.integer(nsim[[1L]])
+  nsim <- exact_integer_scalar(nsim, "nsim", nonnegative = TRUE)
   n <- (nsim %/% 100L) * 100L
   if (nsim - n > 0L) n <- n + 100L
   if (n > 1000L) n <- 1000L

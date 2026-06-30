@@ -1,22 +1,59 @@
 #' Create a gRm item-analysis project
 #'
 #' @param data A data frame containing item and optional exogeneous variables.
+#'   The current package version supports ordinal variables only. Nominal and
+#'   mixed DIGRAM variable types are not implemented.
 #' @param items Character vector of item column names.
 #' @param exogenous Character vector of exogeneous/person-factor column names.
+#'   Exogeneous variables are interpreted as ordinal source variables in the
+#'   current package version. Multi-category nominal exogeneous variables are
+#'   outside the currently source-faithful scope.
 #' @param id Optional identifier column name.
 #' @param item_levels Item response levels. Use `"observed"` to infer sorted
 #'   observed levels per item, an atomic vector to apply the same levels to all
 #'   items, or a named list with one entry per item. Levels are mapped to
 #'   DIGRAM's one-based raw categories before fitting.
 #' @param exogenous_levels Exogeneous/person-factor levels, with the same
-#'   conventions as `item_levels`.
+#'   conventions as `item_levels`. These levels define category order for
+#'   ordinal analysis; they do not declare nominal variable types.
 #' @param score_cuts `"auto"` for source-faithful automatic score cuts, or an
 #'   integer-like vector of explicit upper total-score cut values. The cuts are
 #'   stored with the analysis and later define score groups as consecutive
 #'   intervals: the first group runs from the source-valid lowest score through
 #'   the first cut, the next group starts at the following score and runs through
-#'   the next cut, and so on.
+#'   the next cut, and so on. Automatic cuts must define at least two usable
+#'   source score groups; otherwise construction fails with a non-estimable
+#'   score-group error.
 #' @param name Optional project name.
+#' @details
+#' `item_levels` and `exogenous_levels` are construction-time encoding
+#' controls. They define how user-facing data values are mapped to DIGRAM's
+#' internal one-based category codes. For items, this order also defines the
+#' score scale: category 1 is scored as 0, category 2 as 1, and so on. After the
+#' `gRm_analysis` object is built, later analyses use the encoded
+#' `project$raw_data` and variable category counts, not the original level
+#' objects.
+#' @section Workflow:
+#' A `gRm_analysis` stores the encoded DIGRAM project and score-group setup.
+#' From there, either specify a model manually with [gllrm()] or run [screen()]
+#' to discover candidate LD and DIF terms. [screen()] returns a screening
+#' result; pass it to [gllrm()] to create the selected model. Model diagnostics
+#' require a fitted model from [fit()]. [score_effects()] is analysis-level and
+#' can be called directly on the `gRm_analysis` object.
+#'
+#' ```
+#' manual_model <- gllrm(analysis, ld = ~ I1:I2, dif = ~ I1:site)
+#' screened <- screen(analysis)
+#' screened_model <- gllrm(screened)
+#'
+#' fitted <- fit(screened_model)
+#'
+#' summary(fitted)
+#' item_fit(fitted)
+#' local_dependence(fitted)
+#' dif(fitted)
+#' global_homogeneity(fitted)
+#' ```
 #' @return A `gRm_analysis` object.
 #' @export
 #' @examples
@@ -26,7 +63,13 @@
 #'   I2 = c(1, 0, 1, 0, 1, 0),
 #'   site = c(0, 0, 1, 1, 0, 1)
 #' )
-#' analysis <- gRm(data, items = c("I1", "I2"), exogenous = "site", id = "ID")
+#' analysis <- gRm(
+#'   data,
+#'   items = c("I1", "I2"),
+#'   exogenous = "site",
+#'   id = "ID",
+#'   score_cuts = c(1L, 2L)
+#' )
 #' summary(analysis)
 gRm <- function(data,
                     items,
@@ -74,6 +117,7 @@ gRm <- function(data,
     project = project,
     data = data,
     id = id,
+    data_name = gRm_data_argument_label(substitute(data)),
     score_cuts = score_cuts,
     name = name %||% "gRm",
     call = match.call()
@@ -82,17 +126,35 @@ gRm <- function(data,
 
 #' Read an existing DIGRAM import project
 #'
-#' @param path Directory containing `DIGRAM.csv`, `DIGRAM.imp`, and `DIGRAM.imv`.
+#' @param path Directory containing the initial `DIGRAM.imp` import file. The
+#'   reader follows the source convention that this file names the project
+#'   directory and project prefix used to locate the corresponding `.csv` and
+#'   `.imv` files.
+#'   The current package reader supports the ordinal-analysis subset of DIGRAM
+#'   projects. Nominal and mixed DIGRAM variable-type behavior is not
+#'   implemented. Category codes in `DIGRAM.imv` must be contiguous one-based
+#'   codes matching the values in `DIGRAM.csv`; zero-based, non-contiguous, or
+#'   separately recoded historical category mappings are outside the currently
+#'   source-faithful import subset. Recursive-level marker rows in `.imv` files
+#'   are accepted as structural metadata rather than variables.
 #' @param items Character vector of item variable names.
 #' @param exogenous Character vector of exogeneous/person-factor variable names.
-#' @param id Identifier column name. Defaults to the first CSV column.
+#'   Exogeneous variables are interpreted as ordinal source variables in the
+#'   current package version. Multi-category nominal exogeneous variables are
+#'   outside the currently source-faithful scope.
+#' @param id Optional identifier column name. Defaults to the first CSV column
+#'   when omitted.
 #' @param score_cuts `"auto"` for source-faithful automatic score cuts, or an
 #'   integer-like vector of explicit upper total-score cut values. The cuts are
 #'   stored with the analysis and later define score groups as consecutive
 #'   intervals: the first group runs from the source-valid lowest score through
 #'   the first cut, the next group starts at the following score and runs through
-#'   the next cut, and so on.
-#' @param name DIGRAM file prefix.
+#'   the next cut, and so on. Automatic cuts must define at least two usable
+#'   source score groups; otherwise construction fails with a non-estimable
+#'   score-group error.
+#' @param name Prefix of the initial `.imp` file to open. Defaults to
+#'   `"DIGRAM"`. The analysis name and the `.csv`/`.imv` file prefix are then
+#'   read from that `.imp` file.
 #' @return A `gRm_analysis` object.
 #' @export
 #' @examples
@@ -114,68 +176,78 @@ read_digram_project <- function(path,
   if (missing(items) || is.null(items) || length(items) == 0L) {
     stop("`items` must be supplied.", call. = FALSE)
   }
-  roles <- resolve_gRm_project_roles(path, items, exogenous, id)
+  items <- as.character(items)
+  exogenous <- as.character(exogenous %||% character())
   project <- read_digram_files(
     input_dir = path,
-    items = roles$items,
-    exo = roles$exogenous,
-    idvar = roles$id,
+    items = items,
+    exo = exogenous,
+    idvar = id,
     name = name
   )
   new_gRm_analysis(
     project = project,
     data = project$source_data,
     id = project$import$idvar,
+    data_name = project$import$project_name %||% basename(path),
     score_cuts = score_cuts,
-    name = basename(path),
+    name = project$import$project_name %||% basename(path),
     call = match.call()
   )
 }
 
-#' Sum-score specification
-#'
-#' @return A score specification object.
-#' @noRd
-sum_score <- function() {
-  structure(list(type = "sum_score"), class = "gRm_score_spec")
-}
+normalize_public_integer_like <- function(value,
+                                          message,
+                                          min_length = 1L,
+                                          scalar = FALSE,
+                                          lower = NULL,
+                                          upper = .Machine$integer.max) {
+  fail <- function() stop(message, call. = FALSE)
 
-#' Source-faithful automatic score groups
-#'
-#' @return A score-group specification object.
-#' @noRd
-score_groups_auto <- function() {
-  structure(list(type = "auto"), class = "gRm_score_group_spec")
-}
-
-#' Explicit score-group cut values
-#'
-#' @param cut_values Integer-like score cut values.
-#' @return A score-group specification object.
-#' @noRd
-score_groups_cut <- function(cut_values) {
-  if (missing(cut_values) || length(cut_values) == 0L) {
-    stop("`cut_values` must contain at least one score cut.", call. = FALSE)
+  if (!is.numeric(value) && !is.integer(value)) {
+    fail()
   }
-  if (anyNA(cut_values) || any(cut_values != as.integer(cut_values))) {
-    stop("`cut_values` must be integer-like and non-missing.", call. = FALSE)
+  if (isTRUE(scalar)) {
+    if (length(value) != 1L) {
+      fail()
+    }
+  } else if (length(value) < min_length) {
+    fail()
   }
-  cuts <- as.integer(cut_values)
-  if (is.unsorted(cuts, strictly = TRUE)) {
-    stop("`cut_values` must be strictly increasing.", call. = FALSE)
+  if (
+    anyNA(value) ||
+      any(!is.finite(value)) ||
+      any(value != floor(value))
+  ) {
+    fail()
   }
-  structure(list(type = "cut", cuts = cuts), class = "gRm_score_group_spec")
+  if (!is.null(lower) && any(value < lower)) {
+    fail()
+  }
+  if (!is.null(upper) && any(value > upper)) {
+    fail()
+  }
+  if (any(value < -.Machine$integer.max)) {
+    fail()
+  }
+
+  as.integer(value)
 }
 
-new_gRm_item_analysis <- function(project, data, id, score = sum_score(), score_cuts = score_groups_auto(), name, call) {
-  new_gRm_analysis(project, data, id, score_cuts, name, call)
+gRm_data_argument_label <- function(expr) {
+  label <- paste(deparse(expr, width.cutoff = 60L), collapse = "")
+  if (!nzchar(label)) {
+    return("<unnamed>")
+  }
+  label
 }
 
-new_gRm_analysis <- function(project, data, id, score_cuts, name, call) {
+new_gRm_analysis <- function(project, data, id, data_name, score_cuts, name, call) {
   out <- list(
     data = data,
     project = project,
     name = name,
+    data_name = data_name,
     items = project$items$name,
     exogenous = project$backgrounds$name,
     id = id,
@@ -190,24 +262,6 @@ new_gRm_analysis <- function(project, data, id, score_cuts, name, call) {
   out
 }
 
-validate_score_spec <- function(score) {
-  if (!inherits(score, "gRm_score_spec") || !identical(score$type, "sum_score")) {
-    stop("Only `sum_score()` is currently supported.", call. = FALSE)
-  }
-  score
-}
-
-validate_score_group_spec <- function(score_cuts) {
-  if (!inherits(score_cuts, "gRm_score_group_spec")) {
-    stop("`score_cuts` must be created by `score_groups_auto()` or `score_groups_cut()`.", call. = FALSE)
-  }
-  score_cuts
-}
-
-resolve_gRm_score_groups <- function(project, score_cuts) {
-  normalize_gRm_score_cuts(score_cuts, project)
-}
-
 normalize_gRm_score_cuts <- function(score_cuts, project) {
   if (identical(score_cuts, "auto")) {
     return(resolve_auto_score_groups(project))
@@ -215,54 +269,62 @@ normalize_gRm_score_cuts <- function(score_cuts, project) {
   if (is.numeric(score_cuts) || is.integer(score_cuts)) {
     return(resolve_explicit_score_groups(project, score_cuts))
   }
-  if (inherits(score_cuts, "gRm_score_group_spec")) {
-    if (identical(score_cuts$type, "auto")) {
-      return(resolve_auto_score_groups(project))
-    }
-    if (identical(score_cuts$type, "cut")) {
-      return(resolve_explicit_score_groups(project, score_cuts$cuts))
-    }
-  }
   stop("`score_cuts` must be \"auto\" or an integer-like vector of score cuts.", call. = FALSE)
 }
 
 resolve_auto_score_groups <- function(project) {
-  tryCatch(
-    as.integer(items_select_values(project)$score_groups$to_score),
-    error = function(e) integer()
+  values <- tryCatch(
+    items_select_values(project),
+    error = function(e) {
+      stop(
+        "Automatic `score_cuts` could not be determined: ",
+        conditionMessage(e),
+        call. = FALSE
+      )
+    }
+  )
+  validate_gRm_constructor_score_cuts(
+    project,
+    values$score_groups$to_score,
+    what = "Automatic `score_cuts`",
+    require_multiple_groups = TRUE
   )
 }
 
 resolve_explicit_score_groups <- function(project, score_cuts) {
-  if (length(score_cuts) == 0L || anyNA(score_cuts) || any(score_cuts != as.integer(score_cuts))) {
-    stop("`score_cuts` cut values must be non-missing integer-like values.", call. = FALSE)
-  }
-  cuts <- as.integer(score_cuts)
+  validate_gRm_constructor_score_cuts(
+    project,
+    score_cuts,
+    what = "`score_cuts` cut values",
+    require_multiple_groups = FALSE
+  )
+}
+
+validate_gRm_constructor_score_cuts <- function(project,
+                                                score_cuts,
+                                                what,
+                                                require_multiple_groups) {
+  cuts <- normalize_public_integer_like(
+    score_cuts,
+    paste0(what, " must contain at least two non-missing integer-like values."),
+    min_length = 2L
+  )
   if (is.unsorted(cuts, strictly = TRUE)) {
-    stop("`score_cuts` cut values must be strictly increasing.", call. = FALSE)
+    stop(what, " must be strictly increasing.", call. = FALSE)
   }
   max_score <- sum(project$items$raw_max - 1L)
   if (any(cuts < 0L | cuts > max_score)) {
-    stop("`score_cuts` cut values must lie within the possible score range 0..", max_score, ".", call. = FALSE)
+    stop(what, " must lie within the possible score range 0..", max_score, ".", call. = FALSE)
+  }
+  if (isTRUE(require_multiple_groups)) {
+    bundle <- build_item_parameters_bundle(project)
+    groups <- tryCatch(
+      global_homogeneity_score_groups(bundle, cuts),
+      error = function(e) data.frame()
+    )
+    if (nrow(groups) < 2L) {
+      stop(what, " must define at least two usable source score groups.", call. = FALSE)
+    }
   }
   cuts
-}
-
-resolve_gRm_project_roles <- function(path, items, exogenous, id) {
-  list(items = as.character(items), exogenous = as.character(exogenous %||% character()), id = id)
-}
-
-#' @export
-print.gRm_analysis <- function(x, ...) {
-  cat("<gRm_analysis>\n")
-  cat("  rows: ", nrow(x$project$raw_data), "\n", sep = "")
-  cat("  items: ", paste(x$items, collapse = ", "), "\n", sep = "")
-  cat("  exogenous: ", paste(x$exogenous, collapse = ", "), "\n", sep = "")
-  cat("  score range: 0..", sum(x$project$items$raw_max - 1L), "\n", sep = "")
-  invisible(x)
-}
-
-#' @export
-print.gRm_item_analysis <- function(x, ...) {
-  print.gRm_analysis(x, ...)
 }

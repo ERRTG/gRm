@@ -10,6 +10,9 @@
 #' to the score node, LD terms add item:item edges, and DIF terms add
 #' item:exogenous edges. Use [model_graph()] to return that graph as an
 #' `igraph` object, or `plot(model)` to draw it with the score node on the left.
+#' Item and exogeneous names that are not syntactic R names can be used in
+#' formulas by wrapping them in R backquote characters. For example, an item
+#' named `"item one"` should be written between backquotes in the formula.
 #' @seealso [model_graph()], [fit()], [update.gRm_model()]
 #' @export
 #' @examples
@@ -19,7 +22,13 @@
 #'   I2 = c(1, 0, 1, 0, 1, 0),
 #'   site = c(0, 0, 1, 1, 0, 1)
 #' )
-#' analysis <- gRm(data, items = c("I1", "I2"), exogenous = "site", id = "ID")
+#' analysis <- gRm(
+#'   data,
+#'   items = c("I1", "I2"),
+#'   exogenous = "site",
+#'   id = "ID",
+#'   score_cuts = c(1L, 2L)
+#' )
 #' model <- gllrm(analysis, ld = ~ I1:I2, dif = ~ I1:site)
 #' summary(model)
 #' graph <- model_graph(model)
@@ -33,25 +42,23 @@ gllrm <- function(project,
     return(gllrm_from_screen(project, ld = ld, dif = dif, call = match.call()))
   }
   analysis <- as_gRm_analysis(project)
+  ld_terms <- parse_ld_formula(ld, analysis, source = "user")
+  dif_terms <- parse_dif_formula(dif, analysis, source = "user")
   new_gRm_model(
     analysis = analysis,
-    ld = parse_ld_formula(ld, analysis, source = "user"),
-    dif = parse_dif_formula(dif, analysis, source = "user"),
+    ld = ld_terms,
+    dif = dif_terms,
     screen = NULL,
     call = match.call()
   )
 }
 
-#' Extract LD, DIF, and score-effect terms
-#'
-#' @param object A clean gRm model, fit, or screen object.
-#' @param ... Reserved for S3 dispatch compatibility; ignored.
-#' @return A list of canonical term tables.
-#' @noRd
+# Extract LD, DIF, and score-effect terms.
 model_terms <- function(object, ...) {
   UseMethod("model_terms")
 }
 
+#' @export
 model_terms.gRm_model <- function(object, ...) {
   list(
     ld = object$ld,
@@ -61,18 +68,12 @@ model_terms.gRm_model <- function(object, ...) {
   )
 }
 
-model_terms.gRm_gllrm_spec <- function(object, ...) {
-  model_terms.gRm_model(object, ...)
-}
-
+#' @export
 model_terms.gRm_fit <- function(object, ...) {
   model_terms(object$model %||% object$spec)
 }
 
-model_terms.gRm_gllrm_fit <- function(object, ...) {
-  model_terms(object$model %||% object$spec)
-}
-
+#' @export
 model_terms.gRm_screen <- function(object, ...) {
   values <- object$values
   list(
@@ -84,13 +85,13 @@ model_terms.gRm_screen <- function(object, ...) {
 }
 
 as_gRm_analysis <- function(x) {
-  if (inherits(x, "gRm_analysis") || inherits(x, "gRm_item_analysis")) {
+  if (inherits(x, "gRm_analysis")) {
     return(x)
   }
-  if (inherits(x, "gRm_model") || inherits(x, "gRm_gllrm_spec")) {
+  if (inherits(x, "gRm_model")) {
     return(x$analysis)
   }
-  if (inherits(x, "gRm_fit") || inherits(x, "gRm_gllrm_fit")) {
+  if (inherits(x, "gRm_fit")) {
     return((x$model %||% x$spec)$analysis)
   }
   if (inherits(x, "gRm_screen")) {
@@ -101,6 +102,7 @@ as_gRm_analysis <- function(x) {
       project = x,
       data = x$source_data %||% data.frame(),
       id = x$import$idvar %||% NULL,
+      data_name = x$import$project_name %||% x$paths$input_dir %||% "gRm_project",
       score_cuts = "auto",
       name = x$paths$input_dir %||% "gRm_project",
       call = match.call()
@@ -110,6 +112,9 @@ as_gRm_analysis <- function(x) {
 }
 
 new_gRm_model <- function(analysis, ld, dif, screen = NULL, call) {
+  terms <- source_order_model_terms(analysis, ld, dif)
+  ld <- terms$ld
+  dif <- terms$dif
   model_type <- if (nrow(ld) || nrow(dif)) "gllrm" else "rasch"
   out <- list(
     analysis = analysis,
@@ -127,6 +132,25 @@ new_gRm_model <- function(analysis, ld, dif, screen = NULL, call) {
   )
   class(out) <- c("gRm_model", "list")
   out
+}
+
+new_gRm_model_from_canonical_terms <- function(model, ld, dif, call = NULL) {
+  if (!inherits(model, "gRm_model")) {
+    stop("Expected a gRm_model object.", call. = FALSE)
+  }
+  ld <- ld %||% empty_ld_terms()
+  dif <- dif %||% empty_dif_terms()
+  terms <- source_order_model_terms(model$analysis, ld, dif)
+  ld <- terms$ld
+  dif <- terms$dif
+  screen <- if (any(c(ld$source, dif$source) %in% "screen")) model$screen else NULL
+  new_gRm_model(
+    analysis = model$analysis,
+    ld = ld,
+    dif = dif,
+    screen = screen,
+    call = call %||% model$call
+  )
 }
 
 gllrm_from_screen <- function(screen, ld = NULL, dif = NULL, call) {
@@ -176,10 +200,16 @@ selected_screen_terms <- function(screen) {
 #'   I2 = c(1, 0, 1, 0, 1, 0, 1, 0),
 #'   site = c(0, 0, 1, 1, 0, 1, 0, 1)
 #' )
-#' analysis <- gRm(data, items = c("I1", "I2"), exogenous = "site", id = "ID")
+#' analysis <- gRm(
+#'   data,
+#'   items = c("I1", "I2"),
+#'   exogenous = "site",
+#'   id = "ID",
+#'   score_cuts = c(1L, 2L)
+#' )
 #' model <- gllrm(analysis)
 #' updated <- update(model, ld = ~ I1:I2, dif = ~ I1:site)
-#' summary(updated, which = "model")
+#' summary(updated)
 #' @seealso [gllrm()], [fit()]
 #' @export
 update.gRm_model <- function(object, ld = NULL, dif = NULL, ...) {
@@ -219,19 +249,14 @@ parse_gRm_interaction_formula <- function(formula, items, exogenous, type, sourc
   if (identical(deparse(formula[[2L]]), "0")) {
     return(if (identical(type, "ld")) empty_ld_terms() else empty_dif_terms())
   }
-  term_labels <- attr(stats::terms(formula, specials = NULL), "term.labels")
-  if (length(term_labels) == 0L) {
+  parsed_terms <- parse_gRm_formula_terms(formula[[2L]])
+  if (length(parsed_terms) == 0L) {
     return(if (identical(type, "ld")) empty_ld_terms() else empty_dif_terms())
   }
-  if (any(grepl("[*/^()]| I\\(", term_labels))) {
-    stop("DIGRAM model formulas allow only `:` interaction terms joined by `+`.", call. = FALSE)
-  }
 
-  rows <- lapply(term_labels, function(label) {
-    vars <- strsplit(label, ":", fixed = TRUE)[[1L]]
-    if (length(vars) != 2L) {
-      stop("DIGRAM model terms must be two-way interactions: ", label, call. = FALSE)
-    }
+  rows <- lapply(parsed_terms, function(term) {
+    vars <- term$vars
+    label <- term$label
     if (identical(type, "ld")) {
       canonical_ld_term(vars, items, label, source = source)
     } else {
@@ -245,6 +270,40 @@ parse_gRm_interaction_formula <- function(formula, items, exogenous, type, sourc
   }
   rownames(out) <- NULL
   out
+}
+
+parse_gRm_formula_terms <- function(expr) {
+  if (is.numeric(expr) && length(expr) == 1L && expr %in% c(0, 1)) {
+    return(list())
+  }
+  if (!is.call(expr)) {
+    stop("DIGRAM model formulas allow only `:` interaction terms joined by `+`.", call. = FALSE)
+  }
+
+  operator <- as.character(expr[[1L]])
+  if (operator %in% c("+", "-") && length(expr) == 2L) {
+    value <- expr[[2L]]
+    if (is.numeric(value) && length(value) == 1L && value %in% c(0, 1)) {
+      return(list())
+    }
+    stop("DIGRAM model formulas allow only `:` interaction terms joined by `+`.", call. = FALSE)
+  }
+  if (identical(operator, "+") && length(expr) == 3L) {
+    return(c(parse_gRm_formula_terms(expr[[2L]]), parse_gRm_formula_terms(expr[[3L]])))
+  }
+  if (identical(operator, ":") && length(expr) == 3L) {
+    vars <- c(parse_gRm_formula_variable(expr[[2L]]), parse_gRm_formula_variable(expr[[3L]]))
+    return(list(list(vars = vars, label = paste(vars, collapse = ":"))))
+  }
+
+  stop("DIGRAM model formulas allow only `:` interaction terms joined by `+`.", call. = FALSE)
+}
+
+parse_gRm_formula_variable <- function(expr) {
+  if (is.name(expr)) {
+    return(as.character(expr))
+  }
+  stop("DIGRAM model formulas allow only `:` interaction terms joined by `+`.", call. = FALSE)
 }
 
 canonical_ld_term <- function(vars, items, label, source = "user") {
@@ -313,16 +372,6 @@ empty_score_effect_terms <- function() {
   )
 }
 
-gRm_terms_formula <- function(terms) {
-  if (length(terms) == 0L) {
-    return(NULL)
-  }
-  stats::as.formula(
-    paste("~", paste(terms, collapse = " + ")),
-    env = parent.frame()
-  )
-}
-
 screen_ld_terms <- function(values) {
   rows <- values$model$local_dependence$rows %||% data.frame()
   if (!nrow(rows)) {
@@ -368,19 +417,4 @@ screen_score_effect_terms <- function(values) {
     status = ifelse(selected, "selected", "not_selected"),
     stringsAsFactors = FALSE
   )
-}
-
-#' @export
-print.gRm_model <- function(x, ...) {
-  label <- if (identical(x$model_type, "rasch")) "DIGRAM Rasch specification" else "DIGRAM GLLRM specification"
-  cat(label, "\n", sep = "")
-  cat("  items: ", paste(x$analysis$items, collapse = ", "), "\n", sep = "")
-  cat("  LD terms: ", nrow(x$ld), "\n", sep = "")
-  cat("  DIF terms: ", nrow(x$dif), "\n", sep = "")
-  invisible(x)
-}
-
-#' @export
-print.gRm_gllrm_spec <- function(x, ...) {
-  print.gRm_model(x, ...)
 }

@@ -14,35 +14,45 @@ as a test oracle, but not as a production input.
 Primary implemented R files:
 
 - `R/api-constructors.R`
+- `R/api-ari.R`
 - `R/api-model-spec.R`
 - `R/api-fit.R`
+- `R/api-likelihood-comparison.R`
 - `R/api-screen.R`
 - `R/api-results.R`
-- `R/api-check.R`
-- `R/api-provenance.R`
 - `R/api-summary.R`
-- `R/api-output.R`
-- `R/api-output-helpers.R`
-- `R/data_entry_points.R`
-- `R/read_bundle.R`
+- `R/api-summary-print-docs.R`
+- `R/api-summary-tables.R`
+- `R/api-table-helpers.R`
+- `R/api-model-graph.R`
+- `R/api-model-plot.R`
+- `R/project_input.R`
+- `R/digram_project_io.R`
+- `R/source_bundle.R`
+- `R/ari_values.R`
+- `R/ari_plot.R`
 - `R/rasch_base_fit.R`
 - `R/item_parameters_values.R`
 - `R/item_fits_values.R`
-- `R/screen_values.R`
 - `R/screen_j_values.R`
 - `R/dif_tests_values.R`
+- `R/exact_command_state.R`
 - `R/local_independence_values.R`
 - `R/global_homogeneity_values.R`
-- `R/global_invariance_values.R`
-- `R/items_select_values.R`
+- `R/source_score_groups.R`
 - `R/exo_select_values.R`
 - `R/gamma_values.R`
-- `R/local_invariance_values.R`
-- `R/gllrm_active_context.R`
-- `R/gllrm_active_components.R`
-- `R/gllrm_active_fit.R`
-- `R/gllrm_active_probability_cache.R`
-- `R/gllrm_active_values.R`
+- `R/gRm-package.R`
+- `R/gllrm_candidate_fit.R`
+- `R/gllrm_context.R`
+- `R/gllrm_components.R`
+- `R/gllrm_fit.R`
+- `R/gllrm_probability_cache.R`
+- `R/gllrm_values.R`
+- `R/internal-utils.R`
+- `R/source_candidate_map.R`
+- `R/source_gamma_stats.R`
+- `R/source_statistics.R`
 
 Primary source traces:
 
@@ -70,36 +80,183 @@ Primary source traces:
 - `source/PAS_skunits/skbias15.pas::Calculate_residuals_and_item_fits.CalculateInAndOutfits.CalculateOutfit`
 - `source/PAS_skunits/skbias15.pas::Calculate_residuals_and_item_fits.CalculateInAndOutfits.CalculateInfit`
 - `source/PAS_skunits/skbias12a.pas::IncompleteItemfits`
+- `source/PAS_scd/DGRirtD.pas::TargetSlut`
+- `source/PAS_skunits/skbias15.pas::Calculate_Ari`
+- `source/PAS_skunits/skbias15.pas::Calculate_Ari.Count_Observed`
+- `source/PAS_skunits/skbias15.pas::Calculate_Ari.CalculateExpectedValues`
+- `source/PAS_skunits/skbias15.pas::Calculate_Ari.CalculateMeans`
+- `source/PAS_skunits/skbias15.pas::Calculate_Ari.SaveARI`
 - `pascal_harness/item_parameters_report/example_ITEM_PARAMETERS_REPORT.pas::CalculateObservedScoreRange`
 - `pascal_harness/item_parameters_report/example_ITEM_PARAMETERS_REPORT.pas::CalculateSourceNParameters`
 
-## Graphical SCREEN Report Status
+## ARI Item Score Curves
 
-The example graphical `screen.txt` source functionality is implemented in Pascal
-and independent R for the two-way, hidden-association, final `MODEL_3`,
-incomplete-path warning, and current-model partial-gamma branches. The source
-contract is documented in `docs/example_SCREEN_SOURCE_TRACE.md`. The supplied
-example appended partial-gamma parity issue is OPEN / UNRESOLVED: the appended
-partial-gamma block remains a runtime-provenance contradiction. The traced
-source flow using the rendered final graph gives source-faithful Pascal/R
-values, but not all supplied displayed cells.
+Source trace:
 
-Pseudocode for the implemented independent R value surface:
+- `source/PAS_scd/DGRirtD.pas::TargetSlut`, ITA 18 branch;
+- `source/PAS_skunits/skbias15.pas::Calculate_Ari`;
+- `Calculate_Ari.Count_Observed`;
+- `Calculate_Ari.CalculateExpectedValues`;
+- `Calculate_Ari.CalculateMeans`;
+- `Calculate_Ari.SaveARI`.
 
 ```text
-algorithm screen_values(project, significance = 0.05)
-  read variables, labels, dimensions, variable types, recursive levels,
-  current graph status, and the source primary data table
+algorithm ari_values(fit)
+  bundle <- fit source-shaped estimation bundle
+  items <- bundle item metadata
+  max_score <- sum(item_dimension[item] - 1 over all items)
+  first_score <- 1
+  last_score <- max_score - 1
+  global_item_max <- max(item_dimension[item]) - 1
 
-  two_way <- screen_two_way_matrix(project, significance)
-  hidden <- screen_hidden_matrix(project, two_way, significance)
-  final <- screen_final_model(project, two_way, hidden, significance)
-  warnings <- incomplete_path_warnings(project, final)
-  partial_gamma <- screen_partial_gamma_matrix(project, final)
+  initialize observed[score, item, item_score] to zero for all scores,
+    items, and global item-score columns
 
-  return all matrices, source labels, names, warnings, and source-status metadata
+  for each source-valid row in bundle data:
+    if row total score is outside first_score..last_score, skip it
+    if any item score is invalid for its item, skip it
+    row_count <- source row count if present, otherwise 1
+    for each item:
+      observed[score, item, item_score] += row_count
+    end for
+  end for
+
+  if fit is a base Rasch fit:
+    for each item and score:
+      compute expected item-score probabilities from
+        item_gamma[item, item_score] * gamma_without_item[score - item_score]
+        normalized by the full conditional gamma denominator
+    end for
+  else:
+    for each score and DIF exogeneous cell:
+      compute GLLRM item probabilities using the fitted LD/DIF component
+        probability machinery
+      weight each cell by the source score/exogeneous cell count
+    end for
+    normalize weighted GLLRM probabilities within each total score
+  end if
+
+  for item in source item order:
+    for score from first_score to last_score:
+      n <- sum observed[score, item, ]
+      if n is zero, do not emit a row
+
+      Obs0..ObsK <- observed[score, item, ] / n
+      ObsMean <- sum item_score * ObsProbability over supported item scores
+      raw_ObsVar <- sum item_score^2 * ObsProbability - ObsMean^2
+      if n > 1:
+        ObsVar <- ((n - 1) / n) * raw_ObsVar
+      else:
+        ObsVar <- 0
+
+      Exp0..ExpK <- fitted expected item-score probabilities, with unsupported
+        global category columns filled by zero
+      ExpMean <- fitted expected mean over supported item scores
+      ExpVar <- fitted expected variance over supported item scores
+      if ExpVar > 0:
+        z <- sqrt(n) * (ObsMean - ExpMean) / sqrt(ExpVar)
+      else:
+        z <- 0
+
+      emit ItemNo, Item, Score, n, Obs0..ObsK, ObsMean, ObsVar,
+        Exp0..ExpK, ExpMean, ExpVar, z
+    end for
+  end for
 end algorithm
 ```
+
+The returned `ari()` object is an R data frame. Unlike DIGRAM, the package does
+not write `Ari_dot.csv` or `Ari_comma.csv`; those files are validation oracles
+only.
+
+## ARI Plot Data
+
+Source reference:
+
+- `ARIplot.sas`, which reads `Ari_dot.csv`, collapses raw total-score rows into
+  class intervals, aggregates item means by item and interval, and draws one
+  panel per item.
+
+The package implementation does not read `Ari_dot.csv`. It consumes the
+source-shaped `gRm_ari` table returned by `ari()`.
+
+```text
+algorithm ari_score_intervals(ari_table, class_size)
+  require ari_table is a non-empty gRm_ari table with ItemNo, Score, and n
+  require class_size is a positive whole number
+
+  first_item <- minimum ItemNo in ari_table
+  score_distribution <- rows with ItemNo == first_item, columns Score and n
+  require score_distribution has no duplicated Score values
+  sort score_distribution by Score ascending
+
+  interval <- 1
+  running_frequency <- 0
+  for each score row in sorted score_distribution:
+    if running_frequency >= class_size:
+      interval <- interval + 1
+      running_frequency <- 0
+    end if
+
+    running_frequency <- running_frequency + n
+    assign current score to interval
+  end for
+
+  if there is more than one interval and the final interval total n is less
+     than class_size:
+    merge the final interval into the previous interval
+  end if
+
+  if there is only one interval, keep it as interval 1 even when total n is
+    below class_size. This is the R-side degenerate guard for a usable plot.
+
+  return Score, interval
+end algorithm
+
+algorithm ari_plot_data(ari_table, class_size, confidence)
+  require ari_table has ItemNo, Item, Score, n, ObsMean, ExpMean, ExpVar
+  require confidence is strictly between 0 and 1
+
+  intervals <- ari_score_intervals(ari_table, class_size)
+  join intervals back to all ari_table rows by Score
+  multiplier <- qnorm((1 + confidence) / 2)
+
+  for each ItemNo, Item, interval in source item and interval order:
+    rows <- ARI rows for this item and interval
+    N <- sum(rows.n)
+    O <- sum(rows.n * rows.ObsMean) / N
+    E <- sum(rows.n * rows.ExpMean) / N
+    V <- sum(rows.n * rows.ExpVar) / N
+    lower <- E - multiplier * sqrt(V / N)
+    upper <- E + multiplier * sqrt(V / N)
+    emit ItemNo, Item, interval, O, N, E, V, lower, upper
+  end for
+end algorithm
+
+algorithm plot.gRm_ari(ari_table)
+  plot_data <- ari_plot_data(ari_table)
+  optionally filter plot_data by ItemNo or Item after interval construction
+  validate requested facet rows and columns
+
+  draw a ggplot with:
+    one expected confidence-band ribbon,
+    one observed mean line,
+    optional dashed expected mean line,
+    facet panels by ItemNo with item names as strip titles,
+    integer x-axis breaks 1..maximum interval,
+    x label "class interval",
+    y label "Mean item score",
+    ggplot2::theme_minimal()
+end algorithm
+```
+
+## Retired Non-J SCREEN Scope
+
+The package no longer implements DIGRAM's older dialog/non-J SCREEN
+workflow. In the current package, `screen()` means the validated SCREEN J item
+screening workflow described below. Historical repository notes about the
+retired workflow may remain outside the package, but they are not part of this
+R implementation or its installed API.
 
 ## SCREEN J Item Screening
 
@@ -216,6 +373,16 @@ end algorithm
 The current R package exposes these values through `screen()` and
 `summary.gRm_screen`; it no longer implements a DIGRAM text renderer for the
 SCREEN J report.
+
+Implementation note: exact and repeated SCREEN J may use C++ slice entry points
+for the source-shaped conditional chi-square/gamma simulations
+(`gRm_screen_j_exact_chi_gamma_slices`, `gRm_screen_j_exact_chi_slices`,
+`gRm_screen_j_exact_gamma_slices`, `gRm_screen_j_conditional_bias_test`, and
+`gRm_screen_j_item_pair_conditional_exact`). Those native routes are optional
+accelerators for the pseudocode above. The R implementation keeps parity probes
+for the conditional native route, and falls back to the R source-shaped path when
+native use is disabled or a probe does not pass. The older generic exact-kernel
+entry point is not part of the current package boundary.
 
 ```text
 algorithm screen_two_way_matrix(project, significance)
@@ -450,7 +617,8 @@ The pseudocode uses zero-based score categories, matching the R representation:
 - `Y[r,i]` is the zero-based item score for row `r`.
 - `B[r,b]` is the one-based background value for row `r`, or `-1` if invalid.
 - `score[r] = sum_i Y[r,i]` for complete valid rows, otherwise `-1`.
-- `status[r] = 1` means row `r` is complete for all items and backgrounds.
+- `status[r] = 1` means row `r` is complete for all items and backgrounds and
+  lies inside the source estimation score window.
 - `g[i,x]` is the fitted multiplicative item score parameter, called
   `item_gamma` in R.
 - `N_s[s]` is the observed count of valid rows with total score `s`.
@@ -469,7 +637,8 @@ old `DIGRAM.var`/`DIGRAM.dat` reader is no longer the package data-entry
 surface.
 
 ```text
-algorithm gRm(data, items, exogenous, id, groups, name)
+algorithm gRm(data, items, exogenous, id, item_levels,
+              exogenous_levels, score_cuts, name)
   require data is a data frame
   require at least one declared item column
   if id is supplied, require it names a column in data
@@ -480,24 +649,23 @@ algorithm gRm(data, items, exogenous, id, groups, name)
     exo = declared exogenous columns,
     item labels = automatic DIGRAM aliases,
     exogenous labels = automatic DIGRAM aliases,
-    item maxima = observed column maxima,
-    exogenous maxima = observed column maxima
+    item levels = item_levels,
+    exogenous levels = exogenous_levels
   )
 
   attach source_data, import metadata, and source_trace
-  score_groups <- normalize_gRm_groups(groups, project)
+  score_groups <- normalize_gRm_score_cuts(score_cuts, project)
   return gRm_analysis(project, data, id, score_groups, name, call)
 end algorithm
 ```
 
 ```text
-algorithm read_digram_project(path, items, exogenous, id, groups, name)
+algorithm read_digram_project(path, items, exogenous, id, score_cuts, name)
   normalize path and require it exists
   require explicit item names
 
-  roles <- resolve_gRm_project_roles(path, items, exogenous, id)
-  project <- read_digram_files(path, roles.items, roles.exogenous, roles.id, name)
-  score_groups <- normalize_gRm_groups(groups, project)
+  project <- read_digram_files(path, items, exogenous, id, name)
+  score_groups <- normalize_gRm_score_cuts(score_cuts, project)
 
   return gRm_analysis(project, project.source_data, project.import.idvar,
                          score_groups, basename(path), call)
@@ -506,12 +674,17 @@ end algorithm
 
 ```text
 algorithm read_digram_files(input_dir, items, exo, idvar, name)
-  require input_dir contains name.csv, name.imp, and name.imv
-  metadata <- read_digram_imv(name.imv)
+  require input_dir contains name.imp
+  imp <- read_digram_imp(name.imp)
+  # DIGRAM.imp supplies only the source directory and project prefix here.
+  # Later command-file lines are intentionally ignored; the R package does
+  # not parse or execute .cmd files.
+  require imp.path contains imp.project_name.csv and imp.project_name.imv
+  metadata <- read_digram_imv(imp.project_name.imv)
   require every declared item/exogenous variable appears exactly once in metadata
   reorder metadata to declared item order followed by declared exogenous order
 
-  data <- read name.csv with literal column names
+  data <- read imp.project_name.csv with literal column names
   if idvar is NULL, use first CSV column
   require idvar appears in data
 
@@ -521,6 +694,8 @@ algorithm read_digram_files(input_dir, items, exo, idvar, name)
     exo = declared exogenous columns,
     item labels/maxima = metadata rows for items,
     exogenous labels/maxima = metadata rows for exogenous variables,
+    item levels = NULL,
+    exogenous levels = NULL,
     paths = import-file paths
   )
 
@@ -536,15 +711,19 @@ algorithm read_digram_csv(csv_path, items, exo, idvar, output_dir,
   if idvar is NULL, use first CSV column
   require idvar appears in data
 
-  project <- build_gRm_internal_project with observed maxima and automatic
-             DIGRAM aliases
+  project <- build_gRm_internal_project with observed source levels and
+             automatic DIGRAM aliases
   attach source_data, import metadata, and source_trace
 
   if save_digram_files:
     require output_dir
-    write DIGRAM.csv with id, item, and exogenous columns
-    write DIGRAM.imp with folder, project name, and two source "-" lines
-    write DIGRAM.imv with label code, variable name, and category labels
+    write DIGRAM.csv with user id column and one-based encoded
+      project.raw_data item/exogenous categories; write internal missing
+      sentinel -999 as blank cells
+    write DIGRAM.imp with folder, project name, and two source "-" placeholder
+      lines; no command file is written or parsed by the package
+    write DIGRAM.imv with label code, variable name, and one-based category
+      labels for the supported categories
     record written file paths in project.import
   end if
 
@@ -553,15 +732,22 @@ end algorithm
 ```
 
 ```text
-algorithm build_gRm_internal_project(data, items, exo, labels, maxima, paths)
+algorithm build_gRm_internal_project(data, items, exo, labels, maxima,
+                                     item_levels, exogenous_levels, paths)
   require item and exogenous declarations are unique and present in data
   require no more than the 50 currently defined DIGRAM aliases
 
   assign label codes from supplied metadata or automatic aliases
-  resolve item/exogenous raw maxima from supplied maxima or observed data
-  validate supplied maxima cover all observed non-missing values
+  if maxima are supplied from DIGRAM.imv:
+    resolve levels as 1..maxima for each variable
+    validate supplied maxima cover all observed non-missing values
+  else:
+    resolve item/exogenous levels from explicit level vectors or sorted
+      observed non-missing values
+  end if
 
   raw_data <- integer matrix over item columns followed by exogenous columns
+  encode each observed value as its one-based DIGRAM category index
   replace missing values in raw_data by -999
 
   variables <- table with label_code, position, raw_max, vtype = 3, name,
@@ -571,11 +757,13 @@ end algorithm
 ```
 
 ```text
-algorithm normalize_gRm_groups(groups, project)
-  if groups is "auto" or score_groups_auto():
-    return upper score cuts from items_select_values(project).score_groups
+algorithm normalize_gRm_score_cuts(score_cuts, project)
+  if score_cuts is "auto":
+    cuts <- upper score cuts from items_select_values(project).score_groups
+    require cuts define at least two usable source score groups
+    return cuts
 
-  if groups is numeric or score_groups_cut():
+  if score_cuts is numeric:
     require non-missing integer-like values
     require strictly increasing values
     require every cut is within 0..sum(raw_max_i - 1)
@@ -591,7 +779,8 @@ The exported package surface is intentionally the statistical modeling API:
 `gRm`, `read_digram_project`, `gllrm`, `fit`, `screen`,
 `score_effects`, `item_parameters`, `item_fit`, `local_dependence`, `dif`, and
 `global_homogeneity`. The package no longer exports report-generation,
-validation, `tidy`, `glance`, `details`, or provenance helper APIs.
+validation, `tidy()`, `glance()`, `details()`, `detail_names()`, or provenance
+helper APIs.
 
 ```text
 algorithm gllrm(project, ld, dif)
@@ -651,13 +840,13 @@ end algorithm
 
 ```text
 algorithm fit(model, max_step, max_delta)
-  require model is a gRm_model or gRm_gllrm_spec
+  require model is a gRm_model
 
   if model has any LD or DIF terms:
-    active_fit <- fit_gllrm_active(model, max_step, max_delta)
-    values <- gllrm_active_values(active_fit, model)
-    return gRm_fit(model, active_fit.bundle, active_fit.state/context,
-                      values, active convergence metadata)
+    gllrm_fit <- fit_gllrm(model, max_step, max_delta)
+    values <- gllrm_values(gllrm_fit, model)
+    return gRm_fit(model, gllrm_fit.bundle, gllrm_fit.state/context,
+                      values, GLLRM convergence metadata)
   else:
     bundle <- build_item_parameters_bundle(model.analysis.project)
     base_fit <- fit_rasch_base(bundle, max_step, max_delta)
@@ -669,12 +858,11 @@ end algorithm
 ```
 
 ```text
-algorithm score_effects(analysis, inference, nsim, seed, score_cap, jobs)
+algorithm score_effects(analysis, inference, nsim, seed, jobs)
   analysis <- as_public_gRm_analysis(analysis)
   exact <- inference is exact or repeated
   repeated <- inference is repeated
-  values <- exo_select_values(analysis.project, score_cap, exact,
-                              repeated, nsim, seed)
+  values <- exo_select_values(analysis.project, exact, repeated, nsim, seed)
   return gRm_score_effects result with inference metadata
 end algorithm
 ```
@@ -687,7 +875,7 @@ end algorithm
 
 algorithm item_fit(fit, include_extended)
   fit <- as_public_gRm_fit(fit)
-  if fit is an active GLLRM fit:
+  if fit is an GLLRM fit:
     values <- item_fits_values(fit, include_extended)
   else:
     values <- item_fits_values(fit.project, include_extended)
@@ -697,8 +885,8 @@ end algorithm
 
 algorithm local_dependence(fit, max_step, max_delta, jobs)
   fit <- as_public_gRm_fit(fit)
-  if fit is an active GLLRM fit:
-    values <- active_gllrm_local_independence_values(fit, max_step, max_delta, jobs)
+  if fit is an GLLRM fit:
+    values <- gllrm_local_independence_values(fit, max_step, max_delta, jobs)
   else:
     values <- local_independence_values(fit.project, max_step, max_delta, jobs)
   end if
@@ -707,17 +895,17 @@ end algorithm
 
 algorithm dif(fit, max_step, max_delta, jobs)
   fit <- as_public_gRm_fit(fit)
-  if fit is an active GLLRM fit:
-    values <- active_gllrm_dif_tests_values(fit, max_step, max_delta, jobs)
+  if fit is an GLLRM fit:
+    values <- gllrm_dif_tests_values(fit, max_step, max_delta, jobs)
   else:
     values <- dif_tests_values(fit.project, max_step, max_delta, jobs)
   end if
   return gRm_dif result
 end algorithm
 
-algorithm global_homogeneity(fit, groups, max_step, max_delta, jobs)
+algorithm global_homogeneity(fit, score_cuts, max_step, max_delta, jobs)
   fit <- as_public_gRm_fit(fit)
-  score_cuts <- supplied groups, or analysis score groups, normalized to
+  score_cuts <- supplied score_cuts, or analysis score groups, normalized to
                 source-compatible increasing integer cuts
   values <- global_homogeneity_values(fit or fit.project, score_cuts,
                                       max_step, max_delta)
@@ -725,12 +913,11 @@ algorithm global_homogeneity(fit, groups, max_step, max_delta, jobs)
 end algorithm
 ```
 
-## Public Summary and Internal Detail Tables
+## Public Summary Output
 
 Public output is exposed through `summary()` methods and compact print methods.
-Structured detail tables still exist internally for validation helpers and
-package-owned tests, but `details()`, `detail_names()`, `tidy()`, and
-`glance()` are not exported.
+The package does not provide an internal or exported `details()`,
+`detail_names()`, `tidy()`, or `glance()` output API.
 
 ```text
 algorithm summary.gRm_analysis(object, which)
@@ -751,7 +938,7 @@ algorithm summary.gRm_fit(object, which)
   return summary.gRm with requested tables:
     fit likelihood/convergence/counts,
     item-parameter item statistics,
-    canonical active model terms
+    canonical current GLLRM terms
 end algorithm
 
 algorithm summary for result objects
@@ -759,85 +946,35 @@ algorithm summary for result objects
   item_parameters: expose coefficients/items, thresholds, and fit summary
   item_fit: expose item fit tests/items and BH thresholds
   local_dependence: expose selected LD, all LD tests, and BH threshold
-  dif: expose selected DIF, all no-DIF tests, active-DIF tests, and BH threshold
+  dif: expose selected DIF, all no-DIF tests, included-DIF tests, and BH threshold
   global_homogeneity: expose summary, score groups, and item rows
+
+  for every exposed table with a converged column:
+    count rows where converged is FALSE
+    if any rows did not converge:
+      add a remarks table row naming the table, the number of non-converged
+      candidate fits, and stop-reason counts when stop_reason is present
+    end if
 end algorithm
 ```
 
-```text
-algorithm details(value_object, name = NULL)  # internal, not exported
-  dispatch by object class to construct a named list of data frames
+## Result Object Metadata Fields
 
-  for gRm_item_analysis:
-    return item metadata, exogenous metadata, score distribution,
-    and estimation score distribution
-
-  for gRm_fit:
-    return item-parameter detail tables; if active GLLRM, append LD/DIF
-    parameter, expected-margin, and update-ratio tables
-
-  for gRm_screen:
-    return model terms, LD/DIF/score-effect terms, BH thresholds, and
-    screen_j_values detail tables
-
-  for gRm_checks:
-    collect detail tables from each named check value, prefix their public
-    names, and add unavailable placeholders for expected missing tables
-
-  if name is supplied:
-    return only that table or error with available table names
-  otherwise:
-    return gRm_details with table index and metadata
-end algorithm
-```
-
-## Internal Check and Metadata Helpers
-
-Implemented in:
-
-- `gRm/R/api-check.R`
-- `gRm/R/api-provenance.R`
-
-The current package source still contains check orchestration and metadata
-generics, but the active NAMESPACE does not export them. They are documented
-here as internal helpers because they compose already implemented value
-algorithms rather than define a separate report layer.
-
-```text
-algorithm check(object, tests, extended, inference, nsim, seed, jobs)  # internal
-  analysis <- as_gRm_analysis(object)
-  normalize tests to implemented choices:
-    item_fit, missing_ld, missing_dif, global_homogeneity, score_effects
-  for each requested test:
-    if object is an active GLLRM fit, pass the fit to checks that can use the
-      active model; otherwise pass the analysis project
-    dispatch to item_fits_values, local_independence_values, dif_tests_values,
-      global_homogeneity_values, or exo_select_values
-  build a summary row for each value object from class, detail-table count,
-    and warnings
-  collect unmodeled notes, warnings, source trace, and call
-  return gRm_checks object
-end algorithm
-```
-
-```text
-algorithm metadata helper generics
-  status(x) returns x.status, x.summary, or unknown status metadata
-  source_trace(x) returns x.source_trace, x.source_functions, or empty trace
-  validation(x) returns x.validation or a not_validated marker
-  unmodeled(x) returns x.unmodeled or an empty character vector
-  gRm_warnings(x) returns x.warnings or an empty character vector
-end algorithm
-```
+The package does not expose separate check-orchestration, provenance, warning,
+or validation helper APIs. Each public workflow returns one typed object, and
+users inspect numeric values through `summary()` plus compact `print()`
+methods. Result objects may still carry internal list fields such as
+`source_trace`, `warnings`, and `unmodeled` for package tests and source
+maintenance, but those fields are not a public accessor layer.
 
 ## Global Homogeneity Report
 
-The global homogeneity implementation is a native R port of the DIGRAM source
+The global homogeneity implementation is a source-shaped R port of the DIGRAM
 path in `DGRirtD.pas` that loops over score cuts, refits the model inside each
 score group, calls the `skbias15.pas` item-margin branch, and prints a
 conditional likelihood-ratio summary. Production R computes from the parsed
-DIGRAM project and native Rasch fit; Pascal and supplied runtime reports remain
-test oracles only.
+DIGRAM project and fitted Rasch/GLLRM state; Pascal and supplied runtime reports
+remain test oracles only.
 
 Inputs:
 
@@ -925,23 +1062,31 @@ The Pascal source oracle used in tests follows the same pseudo-code and emits
 the intermediate denominator terms as structured rows. It is deliberately a
 test/reference surface: production R calls `global_homogeneity_values()` and
 does not call Pascal or read DIGRAM report text. The historical executable's
-printed residual denominator has not been recovered source-faithfully, so the
-R package reports the residual and marker cells as `NA` and validates only the
+printed residual variance materialization has not been recovered
+source-faithfully, so the base Rasch global-homogeneity rows report the
+expected-variance, residual, and marker cells as `NA` and validate only the
 source-backed counts, means, CLR, df, and p values.
 
-Residual parity note:
+Residual boundary note:
 
-- `global_homogeneity_item_mean_rows()` is also reused by global invariance
-  because both source report branches call
-  `skbias15.pas::Calculate_residuals_and_item_fits`.
-- The helper follows the current source-shaped denominator implemented in the
-  Pascal structured oracle: expected score-cell mass controls the strict
-  `tal[a] > 1` variance branch.
-- This reproduces the supplied validation runtime report for row counts, observed
-  means, expected means, residual markers, and CLR/df/p anchors. A few printed
-  residual cells still drift by a few hundredths. That drift is unresolved
-  source/runtime parity and must not be hidden with hard-coded report values or
-  empirical correction factors.
+- `global_homogeneity_item_mean_rows()` follows the source report branch that
+  calls `skbias15.pas::Calculate_residuals_and_item_fits` for global
+  homogeneity.
+- The helper computes expected item-margin tables needed for source-backed item
+  means, but it deliberately does not expose the unsupported residual variance
+  path.
+- Reporting expected variance, residual, or marker values for base global
+  homogeneity would require a fresh source trace of the hidden runtime residual
+  materialization. The package must not fill these cells from hard-coded report
+  values, empirical correction factors, or the removed native expected-summary
+  helper.
+
+For GLLRM fits, `gllrm_global_homogeneity_values()` repeats the
+same score-group refit structure with included LD/DIF terms present. GLLRM item
+mean rows compute expected item-margin tables from the GLLRM probability cache
+and expose source-shaped expected variances from those tables. The residual and
+marker cells remain `NA` with `*_runtime_source_backed = FALSE`, because the
+runtime residual denominator is still not source-backed.
 
 The current R package returns structured homogeneity rows through
 `global_homogeneity()` and `summary.gRm_global_homogeneity`; it does not
@@ -949,11 +1094,11 @@ assemble the historical DIGRAM text report.
 
 ## Compact ItemFits Report
 
-The compact ItemFits implementation is a native R port of the report family
+The compact ItemFits implementation is a source-shaped R port of the report family
 rooted in `skbias15.pas::Calculate_item_fits` and its compact `output(123)`
 branch, with shared algorithms inherited from the corresponding `skbias14.pas`
 and `skbias12a.pas` routines. Production R computes values from the parsed
-DIGRAM project and the native base Rasch fit; Pascal is only a test oracle.
+DIGRAM project and the fitted base Rasch state; Pascal is only a test oracle.
 The example item-restscore gamma anchors and the compact Motiva01/Motiva32
 outfit/infit anchors match the supplied compact report.
 
@@ -1346,6 +1491,7 @@ algorithm build_item_parameters_bundle(project)
 
     if complete_items
       n_complete_items <- n_complete_items + 1
+      complete_item_scores[n_complete_items] <- row_score
     end if
 
     if complete_backgrounds
@@ -1353,18 +1499,43 @@ algorithm build_item_parameters_bundle(project)
     end if
 
     if complete_items and complete_backgrounds
-      status[r] <- 1
       score[r] <- row_score
-      n_valid <- n_valid + 1
     else
       status[r] <- 0
       score[r] <- -1
+    end if
 
-      if not complete_items and complete_backgrounds
-        n_incomplete <- n_incomplete + 1
-      else
+    complete_item_flags[r] <- complete_items
+    complete_background_flags[r] <- complete_backgrounds
+    row_scores[r] <- row_score
+  end for
+
+  least_score <- 1
+  largest_score <- maximum complete item score, or 0 when there are no
+                   complete item rows
+
+  for each row r
+    if score[r] is in least_score..largest_score
+      status[r] <- 1
+      n_valid <- n_valid + 1
+    end if
+  end for
+
+  for each row r
+    if complete_item_flags[r]
+      # Source Count_Margins checks the complete item score window before
+      # reading/checking exogeneous values. Boundary complete-item rows do not
+      # become Nuseless merely because their backgrounds are missing.
+      if row_scores[r] is outside least_score..largest_score
+        continue
+      end if
+      if not complete_background_flags[r]
         n_useless <- n_useless + 1
       end if
+    else if complete_background_flags[r]
+      n_incomplete <- n_incomplete + 1
+    else
+      n_useless <- n_useless + 1
     end if
   end for
 
@@ -1372,6 +1543,8 @@ algorithm build_item_parameters_bundle(project)
     model.items
     model.backgrounds
     model.max_total_score = sum_i(items[i].raw_max - 1)
+    model.least_score = least_score
+    model.largest_score = largest_score
     manifest counters
     data = item_data, background_data, score, status, flags
 end algorithm
@@ -2086,7 +2259,9 @@ MICE_item_effect[i] = exp(z_i)
 
 This is distinct from the lower-level
 `CalculateSourceICEAndMICEFromGamma` helper, which centers by PCM location and
-is used by other source paths.
+is used by other source paths. The package stores numeric ICE/MICE values from
+the output(4) formula and separately stores fixed-width source ICE fields from
+the lower-level source path for report parity checks.
 
 ```text
 algorithm item_parameters_input_stats(bundle)
@@ -2158,6 +2333,10 @@ algorithm item_parameters_values(fit, bundle)
       for x in 0..m_i
         if gamma_values[x] > 0
           ICE[i,x] <- log(gamma_values[x]) - x * z
+          if x == m_i
+            ICE[i,x] <- source signed-zero cancellation of
+                        log(gamma_values[m_i]) - m_i * z
+          end if
           MICE[i,x] <- exp(ICE[i,x])
         else
           ICE[i,x] <- 0
@@ -2175,27 +2354,35 @@ algorithm item_parameters_values(fit, bundle)
   log_likelihood <- base_rasch_loglike(bundle, fit.item_gamma)
   likelihood_n <- fit.counts.n_valid
   input_stats <- item_parameters_input_stats(bundle)
+  ice_fields <- source_item_parameters_extended_ice_fields(fit, bundle)
 
   return report-ready values object
 end algorithm
 ```
 
-## Item Parameter Detail Tables
+Implementation note: fixed-width `ice_fields` are derived from the already
+fitted gamma matrix through the native `gRm_item_parameters_ice_fields_from_gamma`
+boundary. The package no longer has a separate native entry point that refits
+counts just to emit ICE fields. The still-registered extended-gamma entry point
+is a diagnostic/parity surface for the source-shaped extended arithmetic, not
+the production source of item-parameter ICE fields.
+
+## Item Parameter Tables
 
 Implemented in:
 
 - `gRm/R/item_parameters_values.R`
 - `gRm/R/api-results.R`
 - `gRm/R/api-summary.R`
-- `gRm/R/api-output.R`
-- `gRm/R/api-output-helpers.R`
+- `gRm/R/api-summary-tables.R`
+- `gRm/R/api-table-helpers.R`
 
 The current package keeps item-parameter output as structured value objects,
-summary tables, and internal detail tables. It does not expose a DIGRAM report
-renderer.
+summary tables, and package-owned helper tables. It does not expose a DIGRAM
+report renderer or an internal output accessor API.
 
 ```text
-algorithm item_parameter_detail_tables(values)
+algorithm item_parameter_result_tables(values)
   build item_gamma table with one row for each item and score category
   build threshold table with finite source PCM thresholds
   build ICE and MICE tables from values.ice, values.mice, and item effects
@@ -2203,29 +2390,30 @@ algorithm item_parameter_detail_tables(values)
     per-step information
   build fit_summary with n_step, delta, observed score range, n_parameters,
     log_likelihood, AIC, BIC, and likelihood_n
-  return named structured tables for summary(), internal details(), and tests
+  return named structured tables for summary() and package tests
 end algorithm
 ```
 
-## Active GLLRM Estimation
+## GLLRM Estimation
 
 Implemented in:
 
-- `gRm/R/gllrm_active_context.R`
-- `gRm/R/gllrm_active_components.R`
-- `gRm/R/gllrm_active_fit.R`
-- `gRm/R/gllrm_active_probability_cache.R`
-- `gRm/R/gllrm_active_values.R`
+- `gRm/R/gllrm_context.R`
+- `gRm/R/gllrm_components.R`
+- `gRm/R/gllrm_candidate_fit.R`
+- `gRm/R/gllrm_fit.R`
+- `gRm/R/gllrm_probability_cache.R`
+- `gRm/R/gllrm_values.R`
 
-The active GLLRM path is used when a model specification contains local
+The GLLRM path is used when a model specification contains local
 dependence or DIF terms. It extends the source-faithful Rasch IPF machinery with
 enumerated local-dependence components and background-specific DIF factors.
 
 ```text
-algorithm fit_gllrm_active(spec, max_step, max_delta, max_joint_configs, bundle)
+algorithm fit_gllrm(spec, max_step, max_delta, max_joint_configs, bundle)
   bundle <- supplied bundle or build_item_parameters_bundle(spec.project)
-  context <- build_gllrm_active_context(spec, bundle, max_joint_configs)
-  state <- initialize_gllrm_active_state(context)
+  context <- build_gllrm_context(spec, bundle, max_joint_configs)
+  state <- initialize_gllrm_state(context)
 
   if no valid rows or no items:
     mark converged and return context, state, and bundle
@@ -2236,19 +2424,31 @@ algorithm fit_gllrm_active(spec, max_step, max_delta, max_joint_configs, bundle)
     update item, LD, and DIF parameters from observed / expected margins
     adjust LD/DIF reference cells and source-scale item gammas
     record delta and report_delta
-    stop when delta < max_delta, repeated deltas are detected, the source
-      periodic stop fires, or non-improvement persists
+    if delta < max_delta:
+      mark converged and stop with stop_reason = "delta_below_tolerance"
+    else if max_step is reached:
+      stop with stop_reason = "max_step"
+    else if source periodic checkpoint condition fires:
+      stop with stop_reason = "source_periodic_checkpoint"
+    else if repeated deltas are detected:
+      stop with stop_reason = "repeated_delta" or "two_back_repeated_delta"
+    else if non-improvement persists:
+      stop with stop_reason = "finish_count_plateau"
+    end if
   end repeat
 
+  if the fit did not converge, or no report delta has been recorded:
+    report_delta <- final delta
+  end if
   recalculate expected margins without applying another update
   recompute final observed/expected deltas for detail tables
-  state.log_likelihood <- active_gllrm_loglike(context, state)
-  return context, state, and bundle
+  state.log_likelihood <- gllrm_loglike(context, state)
+  return context, state, bundle, converged, report_delta, and stop_reason
 end algorithm
 ```
 
 ```text
-algorithm build_gllrm_active_context(spec, bundle, max_joint_configs)
+algorithm build_gllrm_context(spec, bundle, max_joint_configs)
   extract item and background metadata plus zero-based item/background matrices
   valid_rows <- rows with source status 1
   translate LD and DIF formula terms to item/background indices
@@ -2256,9 +2456,9 @@ algorithm build_gllrm_active_context(spec, bundle, max_joint_configs)
   precompute component configurations, scores, lookup maps, and local LD
     metadata for every component
   compute observed item counts from rasch_counts(bundle)
-  compute observed LD margins over valid rows for each active item pair
+  compute observed LD margins over valid rows for each GLLRM item pair
   compute observed DIF margins over valid rows for each item/background term
-  aggregate valid rows by total score and active DIF background values
+  aggregate valid rows by total score and included DIF background values
   stop if any LD component has more than max_joint_configs score
     configurations
   return context
@@ -2270,8 +2470,8 @@ algorithm gllrm_component_gamma(context, state, component_items, background_valu
   enumerate the component's item-score configurations
   for each configuration:
     weight <- product of item gammas for the configured scores
-    multiply any active DIF gamma for each item and background value
-    multiply any active LD gamma whose two items are inside the component
+    multiply any included DIF gamma for each item and background value
+    multiply any included LD gamma whose two items are inside the component
     add weight to gamma[sum(configuration scores)]
   normalize gamma by its maximum positive entry and keep the scale separately
   return normalized component gamma, scale, and configuration weights
@@ -2281,7 +2481,7 @@ end algorithm
 ```text
 algorithm calculate_gllrm_joint_expected_margins(context, state)
   zero expected item, LD, and DIF margins
-  cache component gammas and prefix/suffix convolutions by active background
+  cache component gammas and prefix/suffix convolutions by DIF background
     value pattern
 
   for each score/background group:
@@ -2292,8 +2492,8 @@ algorithm calculate_gllrm_joint_expected_margins(context, state)
         expected mass <- group count * component weight * rest gamma /
                          denominator, accounting for component scale
         add expected mass to the corresponding item-score margins
-        add expected mass to matching active DIF margins
-        add expected mass to matching active LD pair margins
+        add expected mass to matching included DIF margins
+        add expected mass to matching included LD pair margins
       end for
     end for
   end for
@@ -2302,15 +2502,22 @@ algorithm calculate_gllrm_joint_expected_margins(context, state)
 end algorithm
 ```
 
+Implementation note: `calculate_gllrm_joint_expected_margins()` may dispatch to
+the native `gRm_gllrm_expected_margins` backend for speed. The native payload is
+only a compact representation of the R context/state boundary: item gamma must
+have one row per item, LD/DIF parameter arrays come from the GLLRM state, and
+component identity is reconstructed from the structured component metadata. Dead
+debug fields such as `component_keys` are not part of the current boundary.
+
 ```text
-algorithm update_gllrm_active_parameters(context, state, apply_update, track_delta)
+algorithm update_gllrm_parameters(context, state, apply_update, track_delta)
   update item gammas through the same Rasch observed/expected ratio helper used
     by the base model
-  for each active LD table:
+  for each included LD table:
     update positive observed/expected cells by observed / expected
     set structural-zero observed cells to zero
     optionally track maximum absolute margin discrepancy
-  for each active DIF table:
+  for each included DIF table:
     update positive expected cells by observed / expected
     optionally track maximum absolute margin discrepancy
   optionally multiply parameters by the update ratios
@@ -2333,12 +2540,12 @@ end algorithm
 ```
 
 ```text
-algorithm active_gllrm_loglike(context, state)
-  cache conditional score gamma vectors by active background value pattern
+algorithm gllrm_loglike(context, state)
+  cache conditional score gamma vectors by DIF background value pattern
   for each valid row:
     numerator <- product of fitted item gammas for the observed item scores
-    multiply active DIF gammas matching observed item scores/backgrounds
-    multiply active LD gammas matching observed item-pair scores
+    multiply included DIF gammas matching observed item scores/backgrounds
+    multiply included LD gammas matching observed item-pair scores
     probability <- numerator / score_gamma[observed_total_score]
     add -log(probability) when probability is positive
   return conditional negative log likelihood
@@ -2346,14 +2553,14 @@ end algorithm
 ```
 
 ```text
-algorithm gllrm_active_values(active_fit, spec)
-  derive item parameter values from active item gammas using the same threshold,
+algorithm gllrm_values(gllrm_fit, spec)
+  derive item parameter values from GLLRM item gammas using the same threshold,
     location, ICE, MICE, and item-statistic formulas as the base Rasch fit
-  attach active context, item/LD/DIF expected margins, update tables, and raw
+  attach GLLRM context, item/LD/DIF expected margins, update tables, and raw
     LD/DIF parameter matrices
   build standardized LD and DIF parameter tables by iterated marginal scaling
     and convert source gamma to odds ratios
-  expose active detail tables for item parameters, LD/DIF parameters, expected
+  expose GLLRM detail tables for item parameters, LD/DIF parameters, expected
     margins, and update ratios
 end algorithm
 ```
@@ -2365,11 +2572,15 @@ Source trace:
 - `source/PAS_scd/DGRirtD.pas`: CHECK D branch headed `Check assumptions of no DIF`
 - `source/PAS_scd/DGRirtD.pas`: `lr:=2*abs(Raschloglike-Raschloglike1)`
 - `source/PAS_scd/DGRirtD.pas`: `p := pfchi(df,lr)`
+- `source/PAS_scd/DGRirtD.pas`: significant MissingDIF rows append
+  `IJXgamma(.i,nitems+j.)`
+- `source/PAS_skunits/SKbias7.pas`: `inexpensive_itembias1` and
+  `Item_Screening` populate `IJXgamma`/`IJXgamma_pvalues`
 - `source/PAS_scd/SkStat.pas`: `PFCHI` and `BenjaminiHochberg`
 - `pascal_harness/SourceRaschCore.pas`: source-faithful estimator subset and
-  active DIF likelihood rows
+  included DIF likelihood rows
 
-The current R slice implements the active-DIF IPF estimator directly in R.
+The current R slice implements the included-DIF IPF estimator directly in R.
 Pascal commands remain test/reference oracles only; `dif_tests_values()` does
 not call the Pascal harness for production computation.
 
@@ -2378,7 +2589,7 @@ Inputs:
 - Parsed DIGRAM project `P`
 - Item responses `Y[p,i]`
 - Exogenous variables `X[p,e]`
-- Base Rasch/GLLRM model without active DIF
+- Base Rasch/GLLRM model without included DIF
 - Candidate model for each item-by-exogenous pair `(i,e)`
 
 ```text
@@ -2388,7 +2599,7 @@ algorithm source_dif_tests_values(project)
 
   for each exogenous variable e in source order
     for each item i in source order
-      create candidate model M_ie with item_bias[i,e] active
+      create candidate model M_ie with item_bias[i,e] included
       fit M_ie with the same max_step and max_delta controls
       L1 <- source negative log likelihood of M_ie
 
@@ -2396,9 +2607,12 @@ algorithm source_dif_tests_values(project)
       df[i,e] <- (number of item non-reference scores)
                  * (number of background non-reference values)
       p[i,e] <- PFCHI(df[i,e], CLR[i,e])
+      gamma[i,e] <- source item-screening partial gamma IJXgamma[i,nitems+e]
+      p_gamma[i,e] <- source item-screening IJXgamma_pvalues[i,nitems+e]
 
       store item label, exogenous label, item name, exogenous name,
-            CLR[i,e], df[i,e], and p[i,e]
+            CLR[i,e], df[i,e], p[i,e], gamma[i,e], p_gamma[i,e],
+            and gamma_source = "item_screening"
     end for
   end for
 
@@ -2407,15 +2621,26 @@ algorithm source_dif_tests_values(project)
 end algorithm
 ```
 
+For an already fitted GLLRM, `gllrm_dif_tests_values()` uses the
+same source-facing candidate-refit idea for no-DIF candidates: start from the
+current GLLRM, add one missing item-by-exogeneous DIF term, refit with the
+requested controls, and compare the GLLRM log likelihoods. The gamma and
+p-gamma columns for those no-DIF candidate rows still come from the
+item-screening `IJXgamma`/`IJXgamma_pvalues` matrix and are marked
+`gamma_source = "item_screening"`; they are not recomputed from the candidate
+refit. Already-included DIF terms are reported separately by the conditional
+score-stratified included-term test. The removed orphan conditional no-DIF helper
+is not a production path.
+
 ```text
-algorithm fit_active_dif_candidate(bundle, target item i, exogenous variable e)
+algorithm fit_dif_candidate(bundle, target item i, exogenous variable e)
   initialize item gammas from the already-fitted base Rasch model
-  initialize active DIF gammas D[k,x] <- 1 for each score k and exogenous value x
+  initialize included DIF gammas D[k,x] <- 1 for each score k and exogenous value x
 
   count observed score-by-exogenous margins:
     N[s,x] <- number of persons with total score s and X_e = x
 
-  count observed active DIF margins:
+  count observed included DIF margins:
     O[k,x] <- number of persons with item score Y_i = k and X_e = x
 
   repeat until max_delta or max_step:
@@ -2444,7 +2669,7 @@ algorithm fit_active_dif_candidate(bundle, target item i, exogenous variable e)
       else if C[j,k] = 0:
         item_gamma[j,k] <- 0
 
-    for each active DIF margin cell (k,x):
+    for each included DIF margin cell (k,x):
       if O[k,x] > 0 and E_dif[k,x] > 0:
         D[k,x] <- D[k,x] * O[k,x] / E_dif[k,x]
       else if O[k,x] = 0:
@@ -2454,14 +2679,14 @@ algorithm fit_active_dif_candidate(bundle, target item i, exogenous variable e)
     delta <- maximum absolute fitted-observed margin difference in this step
   end repeat
 
-  return item gammas, active DIF gammas, convergence flag, and final delta
+  return item gammas, included DIF gammas, convergence flag, and final delta
 end algorithm
 ```
 
 ```text
-algorithm active_dif_loglike(bundle, fit, target item i, exogenous variable e)
+algorithm candidate_dif_loglike(bundle, fit, target item i, exogenous variable e)
   for each exogenous value x:
-    compute G_x, the active-DIF conditional score polynomial
+    compute G_x, the included-DIF conditional score polynomial
 
   L <- 0
   for each valid person p:
@@ -2484,7 +2709,7 @@ report.
 
 ## Local Independence Candidate Report
 
-The local-independence report implementation is a native R port of the
+The local-independence report implementation is a source-shaped R port of the
 candidate-addition likelihood-ratio path used by DIGRAM for
 `check-local-independence.txt` and
 `check-local-independence-extended.txt`. This is the `DGRirtD.pas` `MissingLD`
@@ -2508,15 +2733,19 @@ algorithm local_independence_values(project, max_step, max_delta)
   tests <- empty table
   for item i from 1 to nitems - 1:
     for item j from i + 1 to nitems:
-      fit candidate model Mij with exactly LD(i,j) active
-      LLij <- active-LD negative conditional log likelihood of Mij
+      fit candidate model Mij with exactly LD(i,j) included
+      LLij <- included-LD negative conditional log likelihood of Mij
 
       CLRij <- 2 * abs(LL0 - LLij)
       dfij <- candidate LD parameter increment
               = (max_score_i) * (max_score_j) for complete example items
       pij <- PFCHI(dfij, CLRij)
+      WPGgammaij <- item-screening weighted partial gamma for item pair (i,j);
+        this is a MissingLD report diagnostic, not a candidate-refit statistic
 
-      append item labels, item names, CLRij, dfij, pij, convergence, and delta
+      append item labels, item names, CLRij, dfij, pij, WPGgammaij,
+        convergence, delta, stop_reason, attempted-fit metadata, and
+        report_value_source
     end for
   end for
 
@@ -2526,12 +2755,22 @@ algorithm local_independence_values(project, max_step, max_delta)
 end algorithm
 ```
 
+For an already fitted GLLRM, `gllrm_local_independence_values()` tests
+missing LD candidates by adding one LD term to the current GLLRM and
+refitting. If that attempted candidate fit does not converge and `max_step > 51`,
+the package follows the CHECK LID report convention by reporting the first
+post-50 checkpoint fit (`reported_checkpoint_step = 51`) while preserving
+`attempted_*` metadata for the full attempted fit. `report_value_source`
+distinguishes checkpoint-reported rows from ordinary attempted-fit rows. The
+WPG gamma column remains the item-screening WPG gamma diagnostic, not a
+candidate-refit statistic.
+
 ```text
-algorithm fit_active_ld_candidate(bundle, item pair i,j)
+algorithm fit_ld_candidate(bundle, item pair i,j)
   initialize item gammas from the base fit
   initialize LD gamma D[x,y] <- 1 for all score cells of items i and j
 
-  count observed active LD margin:
+  count observed included LD margin:
     O[x,y] <- number of valid persons with item i score x and item j score y
 
   repeat until max_delta or max_step:
@@ -2564,7 +2803,7 @@ algorithm fit_active_ld_candidate(bundle, item pair i,j)
       else if C[k,x] = 0:
         gamma_k[x] <- 0
 
-    for each active LD margin cell (x,y):
+    for each included LD margin cell (x,y):
       if O[x,y] > 0 and E_ld[x,y] > 0:
         D[x,y] <- D[x,y] * O[x,y] / E_ld[x,y]
       else if O[x,y] = 0:
@@ -2579,8 +2818,8 @@ end algorithm
 ```
 
 ```text
-algorithm active_ld_loglike(bundle, fit, item pair i,j)
-  compute G, the active-LD conditional score polynomial
+algorithm candidate_ld_loglike(bundle, fit, item pair i,j)
+  compute G, the included-LD conditional score polynomial
 
   L <- 0
   for each valid person p:
@@ -2600,78 +2839,19 @@ The current R package exposes local-dependence candidates through
 extended report text is no longer a package output surface; the full candidate
 rows remain available as structured values.
 
-## Global Invariance Report
+## Retired Global Invariance Scope
 
-Implemented in:
-
-- `gRm/R/global_invariance_values.R`
-
-Source traces:
-
-- `source/PAS_scd/DGRirtD.pas`: `TestGlobalDIF`
-- `source/PAS_scd/skbias15.pas`: `Calculate_residuals_and_item_fits`, output
-  branch `22`
-- `source/PAS_scd/SKmca.pas`: `BenjaminiHochberg1`
-- `docs/example_GLOBAL_INVARIANCE_SOURCE_TRACE.md`
-
-```text
-algorithm global_invariance_values(project)
-  bundle <- build source-shaped item/background bundle from project
-  fit full Rasch model M0 on all valid complete item/background records
-  LL0 <- negative conditional log likelihood of M0
-  P <- source parameter count of M0
-
-  sections <- empty list
-  tests <- empty table
-
-  for each exogenous variable x in source order:
-    LLsum <- 0
-    max_delta <- 0
-    invalid_groups <- 0
-
-    for each category value v of x:
-      group_bundle <- bundle restricted to valid records with x = v
-      fit category model M_xv by the source Rasch IPF loop
-
-      if the category has valid cases:
-        LLsum <- LLsum + negative conditional log likelihood of M_xv
-        rows <- skbias15 item mean rows using:
-          observed counts from group_bundle
-          expected counts from full-model item parameters M0
-          residual denominator from the shared skbias15-compatible helper
-          known residual numeric drift remains visible as in global homogeneity
-        max_delta <- maximum non-convergence delta over categories
-      else:
-        invalid_groups <- invalid_groups + 1
-        rows <- no-valid-cases section
-      end if
-
-      append one structured section for x = v
-    end for
-
-    CLR_x <- 2 * abs(LL0 - LLsum)
-    df_x <- (number_of_categories_x - 1 - invalid_groups) * P
-    subtract existing DIF parameter contributions if the current model has DIF
-    p_x <- PFCHI(df_x, CLR_x)
-    append test row for x
-  end for
-
-  summary_p_values <- source DGRirtD summary p-vector
-    note: the source branch stores clrtable[0,3] in the exogenous loop,
-          reproducing nominal BH cutoffs for this standalone report
-  BH_0.05 <- BenjaminiHochberg1(summary_p_values, 0.05)
-  BH_0.01 <- BenjaminiHochberg1(summary_p_values, 0.01)
-  BH_0.001 <- BenjaminiHochberg1(summary_p_values, 0.001)
-
-  return sections, variable test rows, and BH summary cutoffs
-end algorithm
-```
+Global invariance/global DIF is outside the current package scope. The
+implemented public diagnostics are `global_homogeneity()`, `local_dependence()`,
+`dif()`, `score_effects()`, `item_fit()`, and `item_parameters()`. Historical
+source notes about global invariance remain repository history, but no current
+package algorithm or installed API is defined for that report family.
 
 ## Items-Select Report
 
 Implemented in:
 
-- `gRm/R/items_select_values.R`
+- `gRm/R/source_score_groups.R`
 
 Source traces:
 
@@ -2789,39 +2969,39 @@ algorithm exo_select_values(project, score_cap = 56)
     gamma <- (concordant - discordant) / (concordant + discordant)
     s <- source RC gamma variance numerator from SKbias13/Inexpensive_bt_tests
     gamma_p_one_sided <- source_normal_upper_tail(abs(gamma / (sqrt(s) / ppq)))
-	    gamma_p_two_sided <- 2 * gamma_p_one_sided
-	
-	    if exact:
-	      set the R implementation seed requested by the validation run
-	      n_chi <- 0
-	      n_gamma_directional <- 0
-	      n_gamma_absolute <- 0
-	      for sim in 1..nsim:
-	        generated <- GENTAB1_source_shape(table)
-	        generated_chi <- chi-square statistic for generated with fixed margins
-	        generated_gamma <- RC gamma for generated
-	        if generated_chi >= chi_square:
-	          n_chi <- n_chi + 1
-	        if gamma > 0 and generated_gamma >= gamma:
-	          n_gamma_directional <- n_gamma_directional + 1
-	        else if gamma < 0 and generated_gamma <= gamma:
-	          n_gamma_directional <- n_gamma_directional + 1
-	        else if gamma == 0:
-	          n_gamma_directional <- n_gamma_directional + 1
-	        if abs(generated_gamma) >= abs(gamma):
-	          n_gamma_absolute <- n_gamma_absolute + 1
-	      exact_chi_p <- n_chi / nsim
-	      exact_gamma_p_one_sided <- n_gamma_directional / nsim
-	      exact_gamma_p_two_sided <- n_gamma_absolute / nsim
-	    end if
-	
-	    selected_e <- min(chi_p, gamma_p_two_sided) <= 0.05
-	  end for
-	
-	  if exact:
-	    bh_p_values <- concatenate all exact_chi_p and exact_gamma_p_two_sided values
-	  else:
-	    bh_p_values <- concatenate all chi_p and gamma_p_two_sided values
+    gamma_p_two_sided <- 2 * gamma_p_one_sided
+
+    if exact:
+      set the R implementation seed requested by the validation run
+      n_chi <- 0
+      n_gamma_directional <- 0
+      n_gamma_absolute <- 0
+      for sim in 1..nsim:
+        generated <- GENTAB1_source_shape(table)
+        generated_chi <- chi-square statistic for generated with fixed margins
+        generated_gamma <- RC gamma for generated
+        if generated_chi >= chi_square:
+          n_chi <- n_chi + 1
+        if gamma > 0 and generated_gamma >= gamma:
+          n_gamma_directional <- n_gamma_directional + 1
+        else if gamma < 0 and generated_gamma <= gamma:
+          n_gamma_directional <- n_gamma_directional + 1
+        else if gamma == 0:
+          n_gamma_directional <- n_gamma_directional + 1
+        if abs(generated_gamma) >= abs(gamma):
+          n_gamma_absolute <- n_gamma_absolute + 1
+      exact_chi_p <- n_chi / nsim
+      exact_gamma_p_one_sided <- n_gamma_directional / nsim
+      exact_gamma_p_two_sided <- n_gamma_absolute / nsim
+    end if
+
+    selected_e <- min(chi_p, gamma_p_two_sided) <= 0.05
+  end for
+
+  if exact:
+    bh_p_values <- concatenate all exact_chi_p and exact_gamma_p_two_sided values
+  else:
+    bh_p_values <- concatenate all chi_p and gamma_p_two_sided values
 	  bh_05 <- source BenjaminiHochberg(bh_p_values, alpha = 0.05)
 	  bh_01 <- source BenjaminiHochberg(bh_p_values, alpha = 0.01)
 	  chi marker_e <- compare asymptotic or exact chi p-value to bh_01 and bh_05
@@ -3021,89 +3201,13 @@ algorithm extended_local_item_restscore_tables(project, fit, adjacent_score)
 end algorithm
 ```
 
-Residual parity note:
-
-- Global invariance intentionally reuses
-  `global_homogeneity_item_mean_rows()` because `DGRirtD.pas::TestGlobalDIF`
-  reaches the same `skbias15.pas` item-margin branch as global homogeneity.
-- Therefore it inherits the same documented residual numeric drift: the R
-  implementation matches example row counts, observed means, expected means,
-  residual markers, CLR/df/p summaries, and source-compatible BH anchors, but
-  not every rounded residual value in the supplied runtime text.
-
-The current R package keeps global-invariance output in structured value rows;
-no report assembly layer is present.
+The current R package does not expose global-invariance output. The tables above
+document traced source mechanics that remain relevant to item-fit maintenance,
+not a current public workflow.
 
 ## Local invariance restricted MCA
 
-Source trace:
-
-- `source/PAS_scd/DGRirtD.pas`, `LocalDIF` branch.
-- `source/PAS_skunits/skbias14.pas::MCAanalysis_of_LL_ratingscale`.
-- `source/PAS_skunits/SKmca.pas::SummarizeBenjaminiHochberg`.
-- `source/PAS_skunits/SkStat.pas::PFCHI`.
-
-```text
-algorithm local_invariance_values(project)
-  bundle <- build source-shaped item-parameter bundle
-  n_parameters <- source observed-margin parameter count from the full fit
-
-  for each exogenous/background variable:
-    if number of categories <= 2:
-      skip, because the source local-MCA branch requires more than two groups
-    end if
-
-    initialize active groups as contiguous singleton categories
-    cache fitted Rasch results by contiguous category interval
-
-    function fit_range(from_category, to_category)
-      keep rows with valid status and background in [from_category, to_category]
-      fit the base Rasch model to that subset
-      compute conditional negative log likelihood from the fitted item gammas
-      return n, log likelihood, convergence flag, and delta
-    end function
-
-    category_counts <- fit_range(k, k).n for every category k
-
-    repeat while at least two active groups exist:
-      pairs <- empty
-      for each adjacent pair of active contiguous groups (left, right):
-        left_fit <- fit_range(left.from, left.to)
-        right_fit <- fit_range(right.from, right.to)
-        union_fit <- fit_range(left.from, right.to)
-
-        # skbias14 stores Min2Loglike as 2 * RaschLoglike.
-        clr <- abs(2 * union_fit.log_likelihood
-                   - 2 * left_fit.log_likelihood
-                   - 2 * right_fit.log_likelihood)
-        df <- n_parameters
-        p <- PFCHI(df, clr)
-        append pair row
-      end for
-
-      fdr05 <- source Benjamini-Hochberg cutoff over current pair p-values
-      max_pair <- pair with largest p
-      record the step row before changing any groups
-
-      if this is the first step:
-        save pair matrix and first-step FDR cutoff for the initial MCA summary
-      end if
-
-      # Source detail: the row is printed before the decision. Collapse only
-      # when maxp is at least the current FDR05 cutoff.
-      if max_pair.p >= fdr05:
-        replace the left group by the union of left and right
-        mark the right group inactive
-      else:
-        stop the search
-      end if
-    end repeat
-
-    final groups are the active contiguous groups
-    compute final adjacent p-values over those final groups
-  end for
-end algorithm
-```
-
-The current R package keeps local-invariance MCA output as structured values.
-It does not expose a historical DIGRAM text renderer for this branch.
+Local invariance is not part of the current gRm package scope. The package
+focuses on the validated GLLRM/Rasch fitting, SCREEN J, item parameters,
+item fit, local dependence, DIF, global homogeneity, score effects, and
+model-graph workflows.

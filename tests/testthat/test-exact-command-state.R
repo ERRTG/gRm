@@ -70,23 +70,40 @@ test_that("exact command state applies DIGRAM source parameter semantics", {
   expect_equal(sequential$seq_limit, 25L)
 })
 
-test_that("DIGRAM exact command parser maps command strings to source state", {
-  expect_equal(parse_gRm_exact_command("ASYMPTOTIC")$command_no, 17L)
-  expect_equal(parse_gRm_exact_command("EXA")$command_no, 2L)
-  expect_equal(parse_gRm_exact_command("EXA 400 11")$nsim, 400L)
-  expect_equal(parse_gRm_exact_command("EXA 400 11")$seed, 11L)
+test_that("exact command state rejects malformed scalar parameters", {
+  bad_nonnegative <- list(1.9, c(25L, 999L), NA_integer_, Inf, -1L)
+  for (x in bad_nonnegative) {
+    expect_error(
+      gRm_exact_command_state("exact", nsim = x),
+      "`nsim` must be a single non-negative integer-like value"
+    )
+  }
 
-  repeated <- parse_gRm_exact_command("REP 400 11 25 2")
-  expect_equal(repeated$command_no, 74L)
-  expect_equal(repeated$seq_p0, 0.05)
-  expect_equal(repeated$seq_alpha, 0.001)
-  expect_equal(repeated$seq_limit, 20L)
+  bad_seed <- list(9.9, c(9L, 10L), NA_integer_, Inf)
+  for (x in bad_seed) {
+    expect_error(
+      gRm_exact_command_state("exact", seed = x),
+      "`seed` must be a single integer-like value"
+    )
+  }
 
-  sequential <- parse_gRm_exact_command("SEQ 400 11 25")
-  expect_equal(sequential$command_no, 57L)
-  expect_equal(sequential$seq_p0, 0.05)
-  expect_equal(sequential$seq_alpha, 0)
-  expect_equal(sequential$seq_limit, 25L)
+  bad_per1000 <- list(25.5, c(25L, 50L), NA_integer_, Inf, -1L)
+  for (x in bad_per1000) {
+    expect_error(
+      gRm_exact_command_state("repeated", critlevel = x),
+      "`critlevel` must be a single non-negative integer-like value"
+    )
+    expect_error(
+      gRm_exact_command_state("repeated", risk = x),
+      "`risk` must be a single non-negative integer-like value"
+    )
+  }
+
+  expect_equal(gRm_exact_command_state("exact", nsim = 0L)$nsim, 1000L)
+})
+
+test_that("package does not expose a DIGRAM command-file parser", {
+  expect_false(exists("parse_gRm_exact_command", envir = asNamespace("gRm"), inherits = FALSE))
 })
 
 test_that("source command state replaces artifact-specific branch cues", {

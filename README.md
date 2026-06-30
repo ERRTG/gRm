@@ -8,8 +8,9 @@ analysis <- gRm(data, items = c("I1", "I2", "I3"), exogenous = "site")
 model <- gllrm(analysis, ld = ~ I1:I2, dif = ~ I3:site)
 fit0 <- fit(model)
 
+fit0
 summary(fit0)
-summary(item_parameters(fit0), which = "coefficients")
+summary(item_parameters(fit0))
 summary(item_fit(fit0), which = "tests")
 summary(local_dependence(fit0), which = "tests")
 summary(dif(fit0), which = "tests")
@@ -35,7 +36,7 @@ The exported functions are:
   `global_homogeneity()` for post-fit numeric results.
 
 `summary()` is the public presentation surface. Use `which =` to select a
-named summary section, such as `"fit"`, `"coefficients"`, `"tests"`, or
+named summary section, such as `"parameters"`, `"thresholds"`, `"tests"`, or
 `"bh"`, depending on the object.
 
 ## Source Faithfulness
@@ -45,6 +46,17 @@ wrapper around the Pascal harness. Exported R functions and production
 computational helpers must compute results in R and must not invoke Pascal
 binaries, Pascal harness scripts, shell commands, generated Pascal TSV outputs,
 or cached Pascal results.
+
+The current package version is ordinal-only. Items and exogenous variables are
+interpreted as ordinal source variables. Nominal and mixed DIGRAM variable-type
+behavior is not implemented, so multi-category nominal exogenous variables are
+outside the currently source-faithful package scope.
+
+Legacy DIGRAM import support is also restricted to the simple ordinal category
+coding subset: category codes in `DIGRAM.imv` must be contiguous one-based codes
+matching the values in `DIGRAM.csv`. Historical projects with zero-based,
+non-contiguous, or separately recoded `.imv` category mappings are not
+source-faithfully implemented in the current package.
 
 When a historical DIGRAM value is not source-backed, R exposes `NA` plus
 unmodeled metadata rather than fitting constants from oracle output. In

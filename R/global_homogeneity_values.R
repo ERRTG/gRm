@@ -1,12 +1,11 @@
-#' Build DIGRAM score groups from source score cuts
-#'
-#' @param bundle Source-shaped bundle from [build_item_parameters_bundle()].
-#' @param score_cuts Integer vector of upper score cuts.
-#' @return A data frame with active score-group bounds.
-#' @keywords internal
+# Build DIGRAM score groups from source score cuts
+#
+# @param bundle Source-shaped bundle from [build_item_parameters_bundle()].
+# @param score_cuts Integer vector of upper score cuts.
+# @return A data frame with retained score-group bounds.
 global_homogeneity_score_groups <- function(bundle, score_cuts) {
   # Source trace: DGRirtD.pas global homogeneity loop after scorecuts[0] :=
-  # minscore - 1. The active group bounds are clipped to LeastScore/LargestScore
+  # minscore - 1. The retained group bounds are clipped to LeastScore/LargestScore
   # and skipped when outside the source-valid interior score range.
   if (length(score_cuts) < 2L) {
     stop("At least two score cuts are required for global homogeneity.", call. = FALSE)
@@ -44,7 +43,7 @@ global_homogeneity_score_groups <- function(bundle, score_cuts) {
   }
 
   if (length(rows) == 0L) {
-    stop("No active global homogeneity score groups remain after source clipping.", call. = FALSE)
+    stop("No global homogeneity score groups remain after source clipping.", call. = FALSE)
   }
   do.call(rbind, rows)
 }
@@ -68,7 +67,7 @@ global_homogeneity_score_group_lookup <- function(groups, max_score) {
 }
 
 global_homogeneity_uniform_score_group_lookup <- function(groups, max_score) {
-  # Source trace: the extended active uniform LD/DIF block calls
+  # Source trace: the extended uniform LD/DIF block calls
   # Count_IJX_tabel/Count_IXZ_tabel before the subgroup refits. Those table
   # counters use ScoreGruppe(score, scoredim, minscore, maxscore, scorecuts),
   # where cutpoint-defined score groups keep minscore = 0. The subgroup
@@ -87,7 +86,7 @@ global_homogeneity_lookup_score <- function(lookup, score) {
   lookup[[score + 1L]]
 }
 
-active_uniform_complete_rows <- function(context, score_group_lookup) {
+gllrm_uniform_complete_rows <- function(context, score_group_lookup) {
   item_complete <- rowSums(context$item_matrix < 0L) == 0L
   background_complete <- if (context$n_backgrounds > 0L) {
     rowSums(context$background_matrix < 1L) == 0L
@@ -133,13 +132,12 @@ gRm_default_global_homogeneity_score_cuts <- function(project) {
   as.integer(c(first_cut, max_score))
 }
 
-#' Subset a DIGRAM bundle to one score interval
-#'
-#' @param bundle Source-shaped bundle.
-#' @param from_score Lower inclusive score bound.
-#' @param to_score Upper inclusive score bound.
-#' @return Bundle with rows outside the interval marked invalid.
-#' @keywords internal
+# Subset a DIGRAM bundle to one score interval
+#
+# @param bundle Source-shaped bundle.
+# @param from_score Lower inclusive score bound.
+# @param to_score Upper inclusive score bound.
+# @return Bundle with rows outside the interval marked invalid.
 subset_bundle_to_score_group <- function(bundle, from_score, to_score) {
   # Source trace: DGRirtD.pas passes fra/til into Estimate_GLLRM. The data
   # records remain the same source rows, but only valid complete records whose
@@ -155,17 +153,16 @@ subset_bundle_to_score_group <- function(bundle, from_score, to_score) {
   group_bundle
 }
 
-#' Summarize DIGRAM item means and unmodeled residual cells
-#'
-#' @param bundle Score-group bundle.
-#' @param fit Score-group Rasch fit.
-#' @param group One-based score-group index.
-#' @return Data frame of observed/expected item mean rows. The `residual`,
-#'   hidden expected-variance, and marker cells are `NA`: the available Pascal
-#'   source identifies the `skbias15.pas` item-mean residual path, but the
-#'   historical runtime residual boundary has not been reproduced without
-#'   empirical report-specific correction factors.
-#' @keywords internal
+# Summarize DIGRAM item means and unmodeled residual cells
+#
+# @param bundle Score-group bundle.
+# @param fit Score-group Rasch fit.
+# @param group One-based score-group index.
+# @return Data frame of observed/expected item mean rows. The `residual`,
+#   hidden expected-variance, and marker cells are `NA`: the available Pascal
+#   source identifies the `skbias15.pas` item-mean residual path, but the
+#   historical runtime residual boundary has not been reproduced without
+#   empirical report-specific correction factors.
 global_homogeneity_item_mean_rows <- function(bundle, fit, group, expected_item_gamma) {
   # Source trace: skbias15.pas::Calculate_residuals_and_item_fits output(22).
   # CalculateMeans stores n, mean, and expected score variance at item_max+1,
@@ -227,108 +224,10 @@ global_homogeneity_item_mean_rows <- function(bundle, fit, group, expected_item_
   do.call(rbind, rows)
 }
 
-#' Calculate DIGRAM's score-weighted expected item mean variances
-#'
-#' @param bundle Score-group bundle.
-#' @param counts Count list from [rasch_counts()].
-#' @param item_gamma Item gamma matrix used for expected margins.
-#' @param expected_tables Optional precomputed expected item margin tables.
-#' @param score_item_n Optional observed score-by-item row totals.
-#' @return Numeric vector with one variance per item.
-#' @keywords internal
-global_homogeneity_expected_score_variances <- function(bundle,
-                                                        counts,
-                                                        item_gamma,
-                                                        expected_tables = NULL,
-                                                        score_item_n = NULL) {
-  items <- bundle$model$items
-  if (is.null(score_item_n)) {
-    score_item_n <- global_homogeneity_score_item_n(bundle)
-  }
-
-  result <- numeric(nrow(items))
-  max_total_score <- bundle$model$max_total_score
-  if (max_total_score < 2L) {
-    return(result)
-  }
-
-  if (is.null(expected_tables)) {
-    expected_tables <- global_homogeneity_expected_item_margin_tables(
-      bundle,
-      counts,
-      item_gamma
-    )
-  }
-  # Source trace: skbias15.pas::CalculateExpectedValues builds
-  # ExpectedItemMargTables from full and item-excluded gamma arrays:
-  # e = g_item * g_without_item * n_s / g_full_s. CalculateMeans then applies
-  # SummarizeTal to those accumulated expected tables, and SummarizeVar combines
-  # the per-score variances with observed score-count weights.
-
-  for (item_index in seq_len(nrow(items))) {
-    item_max <- items$raw_max[[item_index]] - 1L
-    expected_table <- expected_tables[[item_index]]
-    total_summary <- global_homogeneity_summarize_tal(
-      colSums(expected_table),
-      item_max
-    )
-    total_expected_n <- total_summary$n
-    if (total_expected_n <= 0) {
-      next
-    }
-
-    for (score in seq.int(1L, max_total_score - 1L)) {
-      observed_score_n <- score_item_n[score + 1L, item_index]
-      if (observed_score_n <= 0) {
-        next
-      }
-      score_summary <- global_homogeneity_summarize_tal(
-        expected_table[score + 1L, ],
-        item_max
-      )
-      result[[item_index]] <- result[[item_index]] +
-        (observed_score_n / total_expected_n) * score_summary$variance
-    }
-  }
-
-  result
-}
-
-#' Calculate global homogeneity expected item summaries in the native C++ kernel
-#'
-#' @param bundle Score-group bundle.
-#' @param counts Count list from [rasch_counts()].
-#' @param item_gamma Item gamma matrix used for expected margins.
-#' @param score_item_n Score-by-item observed row totals.
-#' @return List with expected variance, n, and mean vectors, or `NULL`.
-#' @keywords internal
-global_homogeneity_expected_summary_cpp <- function(bundle,
-                                                    counts,
-                                                    item_gamma,
-                                                    score_item_n = NULL) {
-  if (is.null(score_item_n)) {
-    score_item_n <- global_homogeneity_score_item_n(bundle)
-  }
-  tryCatch(
-    .Call(
-      "gRm_global_homogeneity_expected_summary",
-      item_gamma,
-      counts$score_counts,
-      score_item_n,
-      bundle$model$items$raw_max,
-      bundle$model$least_score,
-      bundle$model$largest_score,
-      PACKAGE = "gRm"
-    ),
-    error = function(e) NULL
-  )
-}
-
-#' Count observed item-margin row totals by score
-#'
-#' @param bundle Score-group bundle.
-#' @return Numeric score-by-item matrix of observed item row totals.
-#' @keywords internal
+# Count observed item-margin row totals by score
+#
+# @param bundle Score-group bundle.
+# @return Numeric score-by-item matrix of observed item row totals.
 global_homogeneity_score_item_n <- function(bundle) {
   # Source trace: skbias15.pas::SummarizeVar uses
   # ItemMargTables[score,item,a] as the per-score numerator. This equals the
@@ -357,13 +256,12 @@ global_homogeneity_score_item_n <- function(bundle) {
   result
 }
 
-#' Build Pascal-shaped expected item margin tables for global homogeneity
-#'
-#' @param bundle Score-group bundle.
-#' @param counts Count list from [rasch_counts()].
-#' @param item_gamma Item gamma matrix used for expected margins.
-#' @return List of score-by-item-score expected margin matrices.
-#' @keywords internal
+# Build Pascal-shaped expected item margin tables for global homogeneity
+#
+# @param bundle Score-group bundle.
+# @param counts Count list from [rasch_counts()].
+# @param item_gamma Item gamma matrix used for expected margins.
+# @return List of score-by-item-score expected margin matrices.
 global_homogeneity_expected_item_margin_tables <- function(bundle, counts, item_gamma) {
   items <- bundle$model$items
   max_total_score <- bundle$model$max_total_score
@@ -428,14 +326,13 @@ global_homogeneity_expected_item_margin_tables <- function(bundle, counts, item_
   tables
 }
 
-#' Build the component gamma array used by skbias15 expected item margins
-#'
-#' @param bundle Source-shaped bundle.
-#' @param item_gamma Item gamma matrix.
-#' @param excluded_item Optional one-based item index removed from the
-#'   convolution.
-#' @return Numeric vector indexed by total score plus one.
-#' @keywords internal
+# Build the component gamma array used by skbias15 expected item margins
+#
+# @param bundle Source-shaped bundle.
+# @param item_gamma Item gamma matrix.
+# @param excluded_item Optional one-based item index removed from the
+#   convolution.
+# @return Numeric vector indexed by total score plus one.
 global_homogeneity_component_score_gamma <- function(bundle, item_gamma, excluded_item = NA_integer_) {
   # Source trace: skbias15.pas::CalculateExpectedValues removes one item
   # component with CalculateBiasedGammaValues2 before RunThroughItemComponent.
@@ -474,12 +371,11 @@ global_homogeneity_component_score_gamma <- function(bundle, item_gamma, exclude
   gamma_values
 }
 
-#' Build the full score gamma array used by ExpectedItemMargTables
-#'
-#' @param bundle Score-group bundle.
-#' @param item_gamma Item gamma matrix used for expected margins.
-#' @return Numeric vector indexed by total score plus one.
-#' @keywords internal
+# Build the full score gamma array used by ExpectedItemMargTables
+#
+# @param bundle Score-group bundle.
+# @param item_gamma Item gamma matrix used for expected margins.
+# @return Numeric vector indexed by total score plus one.
 global_homogeneity_full_score_gamma <- function(bundle, item_gamma) {
   global_homogeneity_score_gamma(
     bundle,
@@ -488,23 +384,21 @@ global_homogeneity_full_score_gamma <- function(bundle, item_gamma) {
   )
 }
 
-#' Build a score gamma array using the skbias12 Inexpensive_Gamma_Calculation order
-#'
-#' @param bundle Score-group bundle.
-#' @param item_gamma Item gamma matrix used for expected margins.
-#' @param use_items Logical vector selecting items included in the score gamma.
-#' @return Numeric vector indexed by total score plus one.
-#' @keywords internal
+# Build a score gamma array using the skbias12 Inexpensive_Gamma_Calculation order
+#
+# @param bundle Score-group bundle.
+# @param item_gamma Item gamma matrix used for expected margins.
+# @param use_items Logical vector selecting items included in the score gamma.
+# @return Numeric vector indexed by total score plus one.
 global_homogeneity_score_gamma <- function(bundle, item_gamma, use_items) {
   build_source_score_gamma(bundle, item_gamma, use_items)
 }
 
-#' Run skbias15.pas SummarizeTal on item-score cells
-#'
-#' @param cells Numeric expected item-score cells.
-#' @param item_max Maximum item score for the item.
-#' @return List containing Pascal `tal[a]`, `tal[b]`, and `tal[c]`.
-#' @keywords internal
+# Run skbias15.pas SummarizeTal on item-score cells
+#
+# @param cells Numeric expected item-score cells.
+# @param item_max Maximum item score for the item.
+# @return List containing Pascal `tal[a]`, `tal[b]`, and `tal[c]`.
 global_homogeneity_summarize_tal <- function(cells, item_max) {
   n <- 0
   mean_value <- 0
@@ -528,32 +422,31 @@ global_homogeneity_summarize_tal <- function(cells, item_max) {
   list(n = n, mean = mean_value, variance = variance)
 }
 
-#' Derive DIGRAM global homogeneity numeric values
-#'
-#' Computes non-GUI DIGRAM global homogeneity values from raw DIGRAM
-#' input using native R code.
-#'
-#' The item mean rows are computed from the shared `skbias15.pas`-shaped helper
-#' used by both global homogeneity and global invariance. Row counts, observed
-#' means, expected means, and summary CLR/df/p values are protected by tests.
-#' The printed item-mean residual and marker cells are deliberately `NA`
-#' because the available source does not fully explain the historical runtime's
-#' hidden residual variance materialization.
-#'
-#' @param project A parsed DIGRAM project from [read_digram_project()].
-#' @param score_cuts Integer upper score cuts. For the supplied validation runtime
-#'   example this is `c(30, 87)`, corresponding to `CUT 30 87`.
-#' @param max_step Maximum number of Rasch IPF iterations.
-#' @param max_delta Convergence threshold for Rasch IPF.
-#' @return A `gRm_global_homogeneity_values` object with the full-model fit,
-#'   score-group fits, item mean rows, and CLR summary.
-#' @examples
-#' \dontrun{
-#' project <- read_digram_project("path/to/DIGRAM")
-#' values <- global_homogeneity_values(project, score_cuts = c(30, 87))
-#' values$summary
-#' }
-#' @keywords internal
+# Derive DIGRAM global homogeneity numeric values
+#
+# Computes non-GUI DIGRAM global homogeneity values from raw DIGRAM
+# input using native R code.
+#
+# The item mean rows are computed from the `skbias15.pas`-shaped global
+# homogeneity helper. Row counts, observed means, expected means, and summary
+# CLR/df/p values are protected by tests.
+# The printed item-mean residual and marker cells are deliberately `NA`
+# because the available source does not fully explain the historical runtime's
+# hidden residual variance materialization.
+#
+# @param project A parsed DIGRAM project from [read_digram_project()].
+# @param score_cuts Integer upper score cuts. For the supplied validation runtime
+#   example this is `c(30, 87)`, corresponding to `CUT 30 87`.
+# @param max_step Maximum number of Rasch IPF iterations.
+# @param max_delta Convergence threshold for Rasch IPF.
+# @return A `gRm_global_homogeneity_values` object with the full-model fit,
+#   score-group fits, item mean rows, and CLR summary.
+# @examples
+# \dontrun{
+# project <- read_digram_project("path/to/DIGRAM")
+# values <- global_homogeneity_values(project, score_cuts = c(30, 87))
+# values$summary
+# }
 global_homogeneity_values <- function(project,
                                       score_cuts,
                                       max_step = 5000L,
@@ -561,8 +454,8 @@ global_homogeneity_values <- function(project,
                                       bundle = NULL,
                                       base_fit = NULL,
                                       fit = NULL) {
-  if ((inherits(project, "gRm_fit") || inherits(project, "gRm_gllrm_fit")) && inherits(project$values, "gRm_active_gllrm_values")) {
-    return(active_gllrm_global_homogeneity_values(
+  if (inherits(project, "gRm_fit") && inherits(project$values, "gRm_gllrm_values")) {
+    return(gllrm_global_homogeneity_values(
       project,
       score_cuts = score_cuts,
       max_step = max_step,
@@ -637,7 +530,7 @@ global_homogeneity_values <- function(project,
   result
 }
 
-active_gllrm_global_homogeneity_values <- function(fit,
+gllrm_global_homogeneity_values <- function(fit,
                                                    score_cuts,
                                                    max_step = 5000L,
                                                    max_delta = 0.0001) {
@@ -660,34 +553,34 @@ active_gllrm_global_homogeneity_values <- function(fit,
       groups$from_score[[group_index]],
       groups$to_score[[group_index]]
     )
-    group_active <- fit_gllrm_active(
+    group_gllrm_fit <- fit_gllrm(
       fit$spec,
       max_step = max_step,
       max_delta = max_delta,
       bundle = group_bundle
     )
-    group_values_object <- gllrm_active_values(group_active, fit$spec)
-    group_loglike <- group_active$state$log_likelihood
+    group_values_object <- gllrm_values(group_gllrm_fit, fit$spec)
+    group_loglike <- group_gllrm_fit$state$log_likelihood
     subgroup_loglike_sum <- subgroup_loglike_sum + group_loglike
     group_values[[group_index]] <- list(
       bundle = group_bundle,
       fit = list(
-        context = group_active$context,
-        state = group_active$state,
+        context = group_gllrm_fit$context,
+        state = group_gllrm_fit$state,
         values = group_values_object
       ),
       log_likelihood = group_loglike
     )
-    item_rows[[group_index]] <- active_global_homogeneity_item_mean_rows(
-      group_active$context,
+    item_rows[[group_index]] <- gllrm_global_homogeneity_item_mean_rows(
+      group_gllrm_fit$context,
       full_state,
       groups$group[[group_index]],
-      probability_cache = new_active_gllrm_probability_cache(group_active$context, full_state)
+      probability_cache = new_gllrm_probability_cache(group_gllrm_fit$context, full_state)
     )
-    groups$n[[group_index]] <- group_active$context$counts$n_valid
+    groups$n[[group_index]] <- group_gllrm_fit$context$counts$n_valid
     groups$log_likelihood[[group_index]] <- group_loglike
-    groups$converged[[group_index]] <- group_active$state$converged
-    groups$delta[[group_index]] <- group_active$state$report_delta
+    groups$converged[[group_index]] <- group_gllrm_fit$state$converged
+    groups$delta[[group_index]] <- group_gllrm_fit$state$report_delta
   }
 
   full_loglike <- fit$values$log_likelihood
@@ -695,7 +588,7 @@ active_gllrm_global_homogeneity_values <- function(fit,
   clr <- 2 * abs(full_loglike - subgroup_loglike_sum)
   df <- (nrow(groups) - 1L) * n_parameters
   p_value <- source_pfchi(df, clr)
-  full_probability_cache <- new_active_gllrm_probability_cache(fit$fit$context, fit$fit)
+  full_probability_cache <- new_gllrm_probability_cache(fit$fit$context, fit$fit)
 
   result <- list(
     item_parameters = fit$values,
@@ -704,12 +597,12 @@ active_gllrm_global_homogeneity_values <- function(fit,
     score_groups = groups,
     group_values = group_values,
     items = do.call(rbind, item_rows),
-    uniform_ld = active_global_homogeneity_uniform_ld(
+    uniform_ld = gllrm_global_homogeneity_uniform_ld(
       fit,
       groups,
       probability_cache = full_probability_cache
     ),
-    uniform_dif = active_global_homogeneity_uniform_dif(
+    uniform_dif = gllrm_global_homogeneity_uniform_dif(
       fit,
       groups,
       probability_cache = full_probability_cache
@@ -728,7 +621,7 @@ active_gllrm_global_homogeneity_values <- function(fit,
   result
 }
 
-active_global_homogeneity_uniform_ld <- function(fit, groups, probability_cache = NULL) {
+gllrm_global_homogeneity_uniform_ld <- function(fit, groups, probability_cache = NULL) {
   context <- fit$fit$context
   state <- fit$fit
   if (length(context$ld_specs) == 0L) {
@@ -737,21 +630,21 @@ active_global_homogeneity_uniform_ld <- function(fit, groups, probability_cache 
 
   components <- context$ld_components_items %||% gllrm_ld_components(context)$items
   probability_cache <- probability_cache %||%
-    new_active_gllrm_probability_cache(context, state, components = components)
-  tables_by_ld <- active_uniform_ld_scoregroup_tables_all(context, groups, probability_cache)
+    new_gllrm_probability_cache(context, state, components = components)
+  tables_by_ld <- gllrm_uniform_ld_scoregroup_tables_all(context, groups, probability_cache)
   rows <- vector("list", length(context$ld_specs))
   for (ld_index in seq_along(context$ld_specs)) {
     spec <- context$ld_specs[[ld_index]]
-    rows[[ld_index]] <- active_uniform_ld_summary_row(context, groups, spec, tables_by_ld[[ld_index]])
+    rows[[ld_index]] <- gllrm_uniform_ld_summary_row(context, groups, spec, tables_by_ld[[ld_index]])
   }
   do.call(rbind, rows)
 }
 
-active_uniform_ld_scoregroup_tables <- function(context, groups, spec, ld_index, probability_cache) {
-  active_uniform_ld_scoregroup_tables_all(context, groups, probability_cache)[[ld_index]]
+gllrm_uniform_ld_scoregroup_tables <- function(context, groups, spec, ld_index, probability_cache) {
+  gllrm_uniform_ld_scoregroup_tables_all(context, groups, probability_cache)[[ld_index]]
 }
 
-active_uniform_ld_scoregroup_tables_all <- function(context, groups, probability_cache) {
+gllrm_uniform_ld_scoregroup_tables_all <- function(context, groups, probability_cache) {
   tables_by_ld <- lapply(context$ld_specs, function(spec) {
     dimensions <- c(context$item_raw_max[[spec$item1]], context$item_raw_max[[spec$item2]], nrow(groups))
     list(
@@ -764,7 +657,7 @@ active_uniform_ld_scoregroup_tables_all <- function(context, groups, probability
   }
 
   score_group_lookup <- global_homogeneity_uniform_score_group_lookup(groups, context$max_total_score)
-  uniform_rows <- active_uniform_complete_rows(context, score_group_lookup)
+  uniform_rows <- gllrm_uniform_complete_rows(context, score_group_lookup)
   for (row in uniform_rows) {
     group_index <- global_homogeneity_lookup_score(score_group_lookup, context$score[[row]])
     if (is.na(group_index)) {
@@ -788,7 +681,7 @@ active_uniform_ld_scoregroup_tables_all <- function(context, groups, probability
       next
     }
     background_values <- gllrm_group_background_values(context, group)
-    probabilities_by_ld <- active_gllrm_cached_ld_probabilities(
+    probabilities_by_ld <- gllrm_cached_ld_probabilities(
       probability_cache,
       total_score = score,
       background_values = background_values
@@ -803,8 +696,7 @@ active_uniform_ld_scoregroup_tables_all <- function(context, groups, probability
   tables_by_ld
 }
 
-active_uniform_ld_summary_row <- function(context, groups, spec, tables) {
-  n_groups <- nrow(groups)
+gllrm_uniform_summary_stats <- function(tables, n_groups) {
   observed_gamma <- numeric(n_groups)
   expected_gamma <- numeric(n_groups)
   chi_square <- 0
@@ -819,31 +711,49 @@ active_uniform_ld_summary_row <- function(context, groups, spec, tables) {
     if (any(positive)) {
       chi_square <- chi_square + sum((observed[positive] - expected[positive])^2 / expected[positive])
     }
-    standardized <- active_uniform_dif_standardize_expected(observed, expected)
+    standardized <- gllrm_uniform_dif_standardize_expected(observed, expected)
     observed_gamma[[group_index]] <- source_gamma_from_table(observed)
     expected_gamma[[group_index]] <- source_gamma_from_table(standardized$table)
     df <- df + standardized$df
   }
   df <- df - (x_dim - 1L) * (y_dim - 1L)
+  # Source-faithfulness guardrail: this uniform degrees-of-freedom floor
+  # is intentionally left unchanged until source or validator evidence supports
+  # a different convention. It was identified as mathematically unusual in
+  # docs/GRM_R_PACKAGE_READ_ONLY_CODE_AUDIT_2026-06-12.md, so future edits
+  # should not "simplify" it without a source-backed comparison; any change
+  # requires source or validator evidence before changing the convention.
   if (df < 1L) {
     df <- 1L
   }
+
+  list(
+    observed_gamma = observed_gamma,
+    expected_gamma = expected_gamma,
+    chi_square = chi_square,
+    df = as.integer(df),
+    p_value = source_pfchi(df, chi_square)
+  )
+}
+
+gllrm_uniform_ld_summary_row <- function(context, groups, spec, tables) {
+  stats <- gllrm_uniform_summary_stats(tables, nrow(groups))
 
   data.frame(
     item1 = spec$item1,
     item2 = spec$item2,
     item1_label = context$items$label_code[[spec$item1]],
     item2_label = context$items$label_code[[spec$item2]],
-    observed_gamma = I(list(observed_gamma)),
-    expected_gamma = I(list(expected_gamma)),
-    chi_square = chi_square,
-    df = as.integer(df),
-    p_value = source_pfchi(df, chi_square),
+    observed_gamma = I(list(stats$observed_gamma)),
+    expected_gamma = I(list(stats$expected_gamma)),
+    chi_square = stats$chi_square,
+    df = stats$df,
+    p_value = stats$p_value,
     stringsAsFactors = FALSE
   )
 }
 
-active_gllrm_group_ld_probabilities <- function(context,
+gllrm_group_ld_probabilities <- function(context,
                                                 state,
                                                 total_score,
                                                 background_values,
@@ -914,7 +824,7 @@ active_gllrm_group_ld_probabilities <- function(context,
   out
 }
 
-active_global_homogeneity_uniform_dif <- function(fit, groups, probability_cache = NULL) {
+gllrm_global_homogeneity_uniform_dif <- function(fit, groups, probability_cache = NULL) {
   context <- fit$fit$context
   state <- fit$fit
   if (length(context$dif_specs) == 0L) {
@@ -924,34 +834,62 @@ active_global_homogeneity_uniform_dif <- function(fit, groups, probability_cache
   rows <- vector("list", length(context$dif_specs))
   components <- context$ld_components_items %||% gllrm_ld_components(context)$items
   probability_cache <- probability_cache %||%
-    new_active_gllrm_probability_cache(context, state, components = components)
+    new_gllrm_probability_cache(context, state, components = components)
+  tables_by_dif <- gllrm_uniform_dif_scoregroup_tables_all(context, groups, probability_cache)
   for (dif_index in seq_along(context$dif_specs)) {
     spec <- context$dif_specs[[dif_index]]
-    tables <- active_uniform_dif_scoregroup_tables(context, groups, spec, probability_cache)
-    rows[[dif_index]] <- active_uniform_dif_summary_row(context, groups, spec, tables)
+    rows[[dif_index]] <- gllrm_uniform_dif_summary_row(context, groups, spec, tables_by_dif[[dif_index]])
   }
   do.call(rbind, rows)
 }
 
-active_uniform_dif_scoregroup_tables <- function(context, groups, spec, probability_cache) {
-  item_max <- context$item_raw_max[[spec$item]] - 1L
-  background_max <- context$background_raw_max[[spec$background]]
-  dimensions <- c(item_max + 1L, background_max, nrow(groups))
-  observed <- array(0, dim = dimensions)
-  expected <- array(0, dim = dimensions)
+gllrm_uniform_dif_scoregroup_tables <- function(context, groups, spec, probability_cache) {
+  gllrm_uniform_dif_scoregroup_tables_for_specs(
+    context,
+    groups,
+    list(spec),
+    probability_cache
+  )[[1L]]
+}
+
+gllrm_uniform_dif_scoregroup_tables_all <- function(context, groups, probability_cache) {
+  gllrm_uniform_dif_scoregroup_tables_for_specs(
+    context,
+    groups,
+    context$dif_specs,
+    probability_cache
+  )
+}
+
+gllrm_uniform_dif_scoregroup_tables_for_specs <- function(context, groups, specs, probability_cache) {
+  tables_by_dif <- lapply(specs, function(spec) {
+    item_max <- context$item_raw_max[[spec$item]] - 1L
+    background_max <- context$background_raw_max[[spec$background]]
+    dimensions <- c(item_max + 1L, background_max, nrow(groups))
+    list(
+      observed = array(0, dim = dimensions),
+      expected = array(0, dim = dimensions)
+    )
+  })
+  if (length(tables_by_dif) == 0L) {
+    return(tables_by_dif)
+  }
 
   score_group_lookup <- global_homogeneity_uniform_score_group_lookup(groups, context$max_total_score)
 
-  uniform_rows <- active_uniform_complete_rows(context, score_group_lookup)
+  uniform_rows <- gllrm_uniform_complete_rows(context, score_group_lookup)
   for (row in uniform_rows) {
     group_index <- global_homogeneity_lookup_score(score_group_lookup, context$score[[row]])
     if (is.na(group_index)) {
       next
     }
-    item_score <- context$item_matrix[row, spec$item] + 1L
-    background_value <- context$background_matrix[row, spec$background]
-    observed[item_score, background_value, group_index] <-
-      observed[item_score, background_value, group_index] + 1
+    for (dif_index in seq_along(specs)) {
+      spec <- specs[[dif_index]]
+      item_score <- context$item_matrix[row, spec$item] + 1L
+      background_value <- context$background_matrix[row, spec$background]
+      tables_by_dif[[dif_index]]$observed[item_score, background_value, group_index] <-
+        tables_by_dif[[dif_index]]$observed[item_score, background_value, group_index] + 1
+    }
   }
 
   score_exo_groups <- gllrm_score_exo_groups(context, rows = uniform_rows)
@@ -963,96 +901,68 @@ active_uniform_dif_scoregroup_tables <- function(context, groups, spec, probabil
       next
     }
     background_values <- gllrm_group_background_values(context, group)
-    background_value <- background_values[[spec$background]]
-    probabilities <- active_gllrm_cached_item_probabilities(
+    probabilities_by_item <- gllrm_cached_item_probabilities(
       probability_cache,
       total_score = score,
       background_values = background_values
-    )[[spec$item]]
-    expected[seq_along(probabilities), background_value, homogeneity_group] <-
-      expected[seq_along(probabilities), background_value, homogeneity_group] +
-        group$count[[1L]] * probabilities
+    )
+    for (dif_index in seq_along(specs)) {
+      spec <- specs[[dif_index]]
+      background_value <- background_values[[spec$background]]
+      probabilities <- probabilities_by_item[[spec$item]]
+      tables_by_dif[[dif_index]]$expected[seq_along(probabilities), background_value, homogeneity_group] <-
+        tables_by_dif[[dif_index]]$expected[seq_along(probabilities), background_value, homogeneity_group] +
+          group$count[[1L]] * probabilities
+    }
   }
 
-  list(observed = observed, expected = expected)
+  tables_by_dif
 }
 
-active_uniform_dif_summary_row <- function(context, groups, spec, tables) {
-  n_groups <- nrow(groups)
-  observed_gamma <- numeric(n_groups)
-  expected_gamma <- numeric(n_groups)
-  chi_square <- 0
-  df <- 0L
-  x_dim <- dim(tables$observed)[[1L]]
-  y_dim <- dim(tables$observed)[[2L]]
-
-  for (group_index in seq_len(n_groups)) {
-    observed <- tables$observed[, , group_index, drop = FALSE][, , 1L]
-    expected <- tables$expected[, , group_index, drop = FALSE][, , 1L]
-    positive <- expected > 0
-    if (any(positive)) {
-      chi_square <- chi_square + sum((observed[positive] - expected[positive])^2 / expected[positive])
-    }
-    standardized <- active_uniform_dif_standardize_expected(observed, expected)
-    observed_gamma[[group_index]] <- source_gamma_from_table(observed)
-    expected_gamma[[group_index]] <- source_gamma_from_table(standardized$table)
-    df <- df + standardized$df
-  }
-  df <- df - (x_dim - 1L) * (y_dim - 1L)
-  if (df < 1L) {
-    df <- 1L
-  }
+gllrm_uniform_dif_summary_row <- function(context, groups, spec, tables) {
+  stats <- gllrm_uniform_summary_stats(tables, nrow(groups))
 
   data.frame(
     item = spec$item,
     background = spec$background,
     item_label = context$items$label_code[[spec$item]],
     background_label = context$backgrounds$label_code[[spec$background]],
-    observed_gamma = I(list(observed_gamma)),
-    expected_gamma = I(list(expected_gamma)),
-    chi_square = chi_square,
-    df = as.integer(df),
-    p_value = source_pfchi(df, chi_square),
+    observed_gamma = I(list(stats$observed_gamma)),
+    expected_gamma = I(list(stats$expected_gamma)),
+    chi_square = stats$chi_square,
+    df = stats$df,
+    p_value = stats$p_value,
     stringsAsFactors = FALSE
   )
 }
 
-active_uniform_dif_standardize_expected <- function(observed, expected) {
-  out <- expected
+gllrm_uniform_dif_standardize_expected <- function(observed, expected) {
+  # Source trace: source/PAS_skunits/skfit2.pas::Standardize_ETAB2_to_TAB2_margins
+  # derives observed margins, then delegates to
+  # source/PAS_skunits/skfit2.pas::Standardize_tab4. The R table stores only
+  # body cells, so the shared helper applies the same fixed row/column scaling
+  # to the expected table before the global-homogeneity gamma is calculated.
   row_margins <- rowSums(observed)
   col_margins <- colSums(observed)
-  for (step in seq_len(30L)) {
-    row_sums <- rowSums(out)
-    for (row in seq_along(row_sums)) {
-      if (row_sums[[row]] > 0) {
-        out[row, ] <- out[row, ] * row_margins[[row]] / row_sums[[row]]
-      }
-    }
-    col_sums <- colSums(out)
-    for (col in seq_along(col_sums)) {
-      if (col_sums[[col]] > 0) {
-        out[, col] <- out[, col] * col_margins[[col]] / col_sums[[col]]
-      }
-    }
-  }
+  out <- source_standardize_table_margins(expected, row_margins, col_margins)
   list(
     table = out,
     df = max(0L, (sum(row_margins > 0) - 1L) * (sum(col_margins > 0) - 1L))
   )
 }
 
-active_global_homogeneity_item_mean_rows <- function(context,
+gllrm_global_homogeneity_item_mean_rows <- function(context,
                                                      full_state,
                                                      group,
                                                      probability_cache = NULL) {
   items <- context$items
   counts <- context$counts$item_counts
-  expected_tables <- active_global_homogeneity_expected_item_margin_tables(
+  expected_tables <- gllrm_global_homogeneity_expected_item_margin_tables(
     context,
     full_state,
     probability_cache = probability_cache
   )
-  expected_variance <- active_global_homogeneity_item_variances(
+  expected_variance <- gllrm_global_homogeneity_item_variances(
     context,
     expected_tables = expected_tables
   )
@@ -1077,7 +987,7 @@ active_global_homogeneity_item_mean_rows <- function(context,
       0
     }
     item_expected_variance <- expected_variance[[item_index]]
-    # The available Pascal source backs the active-model counts, expected
+    # The available Pascal source backs the GLLRM counts, expected
     # means, score-group likelihoods, and CLR, but it does not reproduce the
     # runtime denominator used for this compact residual column. Historical
     # harness traces in this repository end at the same boundary, so the
@@ -1104,10 +1014,10 @@ active_global_homogeneity_item_mean_rows <- function(context,
   do.call(rbind, rows)
 }
 
-active_global_homogeneity_expected_item_margin_tables <- function(context, full_state, probability_cache = NULL) {
+gllrm_global_homogeneity_expected_item_margin_tables <- function(context, full_state, probability_cache = NULL) {
   components <- context$ld_components_items %||% gllrm_ld_components(context)$items
   probability_cache <- probability_cache %||%
-    new_active_gllrm_probability_cache(context, full_state, components = components)
+    new_gllrm_probability_cache(context, full_state, components = components)
   tables <- lapply(seq_len(context$n_items), function(item_index) {
     item_max <- context$item_raw_max[[item_index]] - 1L
     matrix(
@@ -1125,7 +1035,7 @@ active_global_homogeneity_expected_item_margin_tables <- function(context, full_
     group <- context$score_exo_groups[group_index, , drop = FALSE]
     total_score <- group$score[[1L]]
     background_values <- gllrm_group_background_values(context, group)
-    probabilities <- active_gllrm_cached_item_probabilities(
+    probabilities <- gllrm_cached_item_probabilities(
       probability_cache,
       total_score = total_score,
       background_values = background_values
@@ -1141,9 +1051,9 @@ active_global_homogeneity_expected_item_margin_tables <- function(context, full_
   tables
 }
 
-active_global_homogeneity_item_variances <- function(context, expected_tables) {
+gllrm_global_homogeneity_item_variances <- function(context, expected_tables) {
   out <- numeric(context$n_items)
-  score_item_n <- active_global_homogeneity_score_item_n(context)
+  score_item_n <- gllrm_global_homogeneity_score_item_n(context)
   scfra <- if (min(context$score[context$valid_rows]) == 0L) {
     1L
   } else {
@@ -1182,7 +1092,7 @@ active_global_homogeneity_item_variances <- function(context, expected_tables) {
   out
 }
 
-active_global_homogeneity_score_item_n <- function(context) {
+gllrm_global_homogeneity_score_item_n <- function(context) {
   out <- matrix(
     0,
     nrow = context$max_total_score + 1L,

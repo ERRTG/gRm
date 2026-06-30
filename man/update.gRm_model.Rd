@@ -40,10 +40,16 @@ data <- data.frame(
   I2 = c(1, 0, 1, 0, 1, 0, 1, 0),
   site = c(0, 0, 1, 1, 0, 1, 0, 1)
 )
-analysis <- gRm(data, items = c("I1", "I2"), exogenous = "site", id = "ID")
+analysis <- gRm(
+  data,
+  items = c("I1", "I2"),
+  exogenous = "site",
+  id = "ID",
+  score_cuts = c(1L, 2L)
+)
 model <- gllrm(analysis)
 updated <- update(model, ld = ~ I1:I2, dif = ~ I1:site)
-summary(updated, which = "model")
+summary(updated)
 }
 \seealso{
 \code{\link[=gllrm]{gllrm()}}, \code{\link[=fit]{fit()}}

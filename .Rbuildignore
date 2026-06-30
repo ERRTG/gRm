@@ -1,0 +1,3 @@
+^src/.*[.](o|so|dll|dylib)$
+^src/symbols[.]rds$
+^[^/]*[.]Rcheck$

@@ -1,6 +1,8 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
+#include <cstddef>
+#include <cstring>
 #include <map>
 #include <stdexcept>
 #include <string>
@@ -38,9 +40,13 @@ struct SourceLcg {
 struct PreparedSlice {
   int nrow = 0;
   int ncol = 0;
+  int ncell = 0;
   int total = 0;
+  int positive_rows = 0;
+  int positive_cols = 0;
   std::vector<int> row_total;
   std::vector<int> col_total;
+  std::vector<int> positive_expected_index;
   std::vector<double> log_factorial;
   std::vector<double> expected;
 };
@@ -169,11 +175,25 @@ int rounded_cell(SEXP matrix, R_xlen_t index) {
   return static_cast<int>(std::nearbyint(value));
 }
 
+int numeric_at(SEXP value, R_xlen_t index, const char *name) {
+  if (TYPEOF(value) == INTSXP) {
+    int out = INTEGER(value)[index];
+    return out == NA_INTEGER ? NA_INTEGER : out;
+  }
+  if (TYPEOF(value) == REALSXP) {
+    double out = REAL(value)[index];
+    if (!R_FINITE(out)) return NA_INTEGER;
+    return static_cast<int>(out);
+  }
+  throw ExactError(std::string("`") + name + "` must be numeric.");
+}
+
 inline int index2(int row, int col, int nrow) {
   return row + nrow * col;
 }
 
 void fill_expected(PreparedSlice &prepared);
+void fill_slice_metadata(PreparedSlice &prepared);
 
 PreparedSlice prepare_slice(SEXP matrix) {
   SEXP dim = Rf_getAttrib(matrix, R_DimSymbol);
@@ -211,6 +231,7 @@ PreparedSlice prepare_slice(SEXP matrix) {
     }
   }
   fill_expected(prepared);
+  fill_slice_metadata(prepared);
   return prepared;
 }
 
@@ -246,6 +267,33 @@ void fill_expected(PreparedSlice &prepared) {
   }
 }
 
+void fill_slice_metadata(PreparedSlice &prepared) {
+  prepared.ncell = prepared.nrow * prepared.ncol;
+  prepared.positive_rows = 0;
+  prepared.positive_cols = 0;
+  for (int row_total : prepared.row_total) {
+    if (row_total > 0) ++prepared.positive_rows;
+  }
+  for (int col_total : prepared.col_total) {
+    if (col_total > 0) ++prepared.positive_cols;
+  }
+  prepared.positive_expected_index.clear();
+  prepared.positive_expected_index.reserve(static_cast<std::size_t>(prepared.ncell));
+  // Source trace: SkStat.RCCHI accumulates cells as `FOR I:=1 TO C DO FOR
+  // J:=1 TO R DO`, i.e. row/category of the first variable first and then the
+  // second variable. Preserve that order because exact tests compare generated
+  // chi-square totals with `>=`, so source-tied tables can move by a few ulps if
+  // the native cache iterates in R/C column-major order instead.
+  for (int row = 0; row < prepared.nrow; ++row) {
+    for (int col = 0; col < prepared.ncol; ++col) {
+      int index = index2(row, col, prepared.nrow);
+      if (prepared.expected[static_cast<std::size_t>(index)] > 0.0) {
+        prepared.positive_expected_index.push_back(index);
+      }
+    }
+  }
+}
+
 PreparedSlice prepare_slice_counts(const std::vector<int> &tab, int nrow, int ncol) {
   PreparedSlice prepared;
   prepared.nrow = nrow;
@@ -262,6 +310,7 @@ PreparedSlice prepare_slice_counts(const std::vector<int> &tab, int nrow, int nc
   }
   fill_log_factorial(prepared);
   fill_expected(prepared);
+  fill_slice_metadata(prepared);
   return prepared;
 }
 
@@ -301,18 +350,7 @@ PreparedSlice prepared_slice_from_list(SEXP value) {
   } else {
     fill_expected(prepared);
   }
-  return prepared;
-}
-
-std::vector<PreparedSlice> prepared_slices_from_list(SEXP slices) {
-  if (!Rf_isNewList(slices)) throw ExactError("`prepared_slices` must be a list.");
-  std::vector<PreparedSlice> prepared;
-  R_xlen_t n = XLENGTH(slices);
-  prepared.reserve(static_cast<std::size_t>(n));
-  for (R_xlen_t i = 0; i < n; ++i) {
-    PreparedSlice slice = prepared_slice_from_list(VECTOR_ELT(slices, i));
-    if (slice.total > 0) prepared.push_back(std::move(slice));
-  }
+  fill_slice_metadata(prepared);
   return prepared;
 }
 
@@ -342,12 +380,31 @@ double cell_probability(const PreparedSlice &prepared,
   return std::exp(logp);
 }
 
-std::vector<int> gentab1(const PreparedSlice &prepared, SourceLcg &rng) {
-  std::vector<int> generated(static_cast<std::size_t>(prepared.nrow) * prepared.ncol, 0);
-  std::vector<int> generated_rows(prepared.ncol, 0);
+struct SliceScratch {
+  std::vector<int> generated;
+  std::vector<int> generated_rows;
+  std::vector<double> cumulative;
+
+  void reset_for(const PreparedSlice &slice) {
+    const std::size_t ncell = static_cast<std::size_t>(slice.ncell);
+    if (generated.size() != ncell) generated.resize(ncell);
+    std::fill(generated.begin(), generated.end(), 0);
+    if (generated_rows.size() != static_cast<std::size_t>(slice.ncol)) {
+      generated_rows.resize(static_cast<std::size_t>(slice.ncol));
+    }
+    std::fill(generated_rows.begin(), generated_rows.end(), 0);
+    if (cumulative.size() != ncell) cumulative.resize(ncell);
+    std::fill(cumulative.begin(), cumulative.end(), 0.0);
+  }
+};
+
+void gentab1_into(const PreparedSlice &prepared, SourceLcg &rng, SliceScratch &scratch) {
+  scratch.reset_for(prepared);
+  std::vector<int> &generated = scratch.generated;
+  std::vector<int> &generated_rows = scratch.generated_rows;
   int generated_total = 0;
 
-  if (prepared.total == 0) return generated;
+  if (prepared.total == 0) return;
 
   for (int ic = 0; ic < prepared.nrow - 1; ++ic) {
     if (prepared.row_total[ic] == 0) continue;
@@ -428,20 +485,21 @@ std::vector<int> gentab1(const PreparedSlice &prepared, SourceLcg &rng) {
   for (int ir = 0; ir < prepared.ncol; ++ir) {
     generated[index2(prepared.nrow - 1, ir, prepared.nrow)] = prepared.col_total[ir] - generated_rows[ir];
   }
+}
 
-  return generated;
+std::vector<int> gentab1(const PreparedSlice &prepared, SourceLcg &rng) {
+  SliceScratch scratch;
+  gentab1_into(prepared, rng, scratch);
+  return scratch.generated;
 }
 
 double chi_square(const PreparedSlice &prepared, const std::vector<int> &tab) {
   if (prepared.total <= 0) return 0.0;
   double chi = 0.0;
-  for (int col = 0; col < prepared.ncol; ++col) {
-    for (int row = 0; row < prepared.nrow; ++row) {
-      double expected = prepared.expected[index2(row, col, prepared.nrow)];
-      if (expected <= 0.0) continue;
-      double residual = static_cast<double>(tab[index2(row, col, prepared.nrow)]) - expected;
-      chi += residual * residual / expected;
-    }
+  for (int index : prepared.positive_expected_index) {
+    double expected = prepared.expected[static_cast<std::size_t>(index)];
+    double residual = static_cast<double>(tab[static_cast<std::size_t>(index)]) - expected;
+    chi += residual * (residual / expected);
   }
   return chi;
 }
@@ -491,6 +549,70 @@ GammaCounts gamma_counts(const PreparedSlice &prepared, const std::vector<int> &
   return out;
 }
 
+struct GeneratedStats {
+  double chi_square = 0.0;
+  double ppq = 0.0;
+  double pmq = 0.0;
+};
+
+GeneratedStats generated_stats(const PreparedSlice &prepared,
+                               const std::vector<int> &tab,
+                               SliceScratch &scratch,
+                               bool do_chi,
+                               bool do_gamma) {
+  GeneratedStats out;
+
+  if (do_chi && prepared.total > 0) {
+    for (int index : prepared.positive_expected_index) {
+      double expected = prepared.expected[static_cast<std::size_t>(index)];
+      double residual = static_cast<double>(tab[static_cast<std::size_t>(index)]) - expected;
+      out.chi_square += residual * (residual / expected);
+    }
+  }
+
+  if (!do_gamma) return out;
+
+  std::vector<double> &cumulative = scratch.cumulative;
+  const std::size_t ncell = static_cast<std::size_t>(prepared.ncell);
+  std::fill(cumulative.begin(), cumulative.begin() + static_cast<std::ptrdiff_t>(ncell), 0.0);
+
+  for (int col = 0; col < prepared.ncol; ++col) {
+    for (int row = 0; row < prepared.nrow; ++row) {
+      double value = static_cast<double>(tab[index2(row, col, prepared.nrow)]);
+      double up = row > 0 ? cumulative[index2(row - 1, col, prepared.nrow)] : 0.0;
+      double left = col > 0 ? cumulative[index2(row, col - 1, prepared.nrow)] : 0.0;
+      double diag = (row > 0 && col > 0) ? cumulative[index2(row - 1, col - 1, prepared.nrow)] : 0.0;
+      cumulative[index2(row, col, prepared.nrow)] = value + up + left - diag;
+    }
+  }
+
+  auto cell_sum = [&](int row_to, int col_to) -> double {
+    if (row_to < 0 || col_to < 0) return 0.0;
+    return cumulative[index2(row_to, col_to, prepared.nrow)];
+  };
+
+  float p = 0.0F;
+  float q = 0.0F;
+  for (int col = 0; col < prepared.ncol; ++col) {
+    for (int row = 0; row < prepared.nrow; ++row) {
+      double n = static_cast<double>(tab[index2(row, col, prepared.nrow)]);
+      double less_less = cell_sum(row - 1, col - 1);
+      double greater_greater = prepared.total -
+        cell_sum(row, prepared.ncol - 1) -
+        cell_sum(prepared.nrow - 1, col) +
+        cell_sum(row, col);
+      double less_greater = cell_sum(row - 1, prepared.ncol - 1) - cell_sum(row - 1, col);
+      double greater_less = cell_sum(prepared.nrow - 1, col - 1) - cell_sum(row, col - 1);
+      p = static_cast<float>(p + static_cast<float>(n * (less_less + greater_greater)));
+      q = static_cast<float>(q + static_cast<float>(n * (less_greater + greater_less)));
+    }
+  }
+
+  out.ppq = static_cast<double>(static_cast<float>(p + q));
+  out.pmq = static_cast<double>(static_cast<float>(p - q));
+  return out;
+}
+
 struct ObservedStats {
   double chi_square = 0.0;
   int df = 0;
@@ -503,23 +625,12 @@ ObservedStats observed_stats(const PreparedSlice &prepared, const std::vector<in
   ObservedStats out;
   if (prepared.total <= 0) return out;
 
-  int positive_rows = 0;
-  int positive_cols = 0;
-  for (int row = 0; row < prepared.nrow; ++row) {
-    if (prepared.row_total[row] > 0) ++positive_rows;
-  }
-  for (int col = 0; col < prepared.ncol; ++col) {
-    if (prepared.col_total[col] > 0) ++positive_cols;
-  }
-  out.df = std::max(positive_rows - 1, 0) * std::max(positive_cols - 1, 0);
+  out.df = std::max(prepared.positive_rows - 1, 0) * std::max(prepared.positive_cols - 1, 0);
 
-  for (int col = 0; col < prepared.ncol; ++col) {
-    for (int row = 0; row < prepared.nrow; ++row) {
-      double expected = prepared.expected[index2(row, col, prepared.nrow)];
-      if (expected <= 0.0) continue;
-      double residual = static_cast<double>(tab[index2(row, col, prepared.nrow)]) - expected;
-      out.chi_square += residual * residual / expected;
-    }
+  for (int index : prepared.positive_expected_index) {
+    double expected = prepared.expected[static_cast<std::size_t>(index)];
+    double residual = static_cast<double>(tab[static_cast<std::size_t>(index)]) - expected;
+    out.chi_square += residual * (residual / expected);
   }
 
   std::vector<double> cumulative(static_cast<std::size_t>(prepared.nrow) * prepared.ncol, 0.0);
@@ -574,15 +685,7 @@ ObservedStats observed_stats(const PreparedSlice &prepared, const std::vector<in
 }
 
 bool informative_slice(const PreparedSlice &prepared) {
-  int positive_rows = 0;
-  int positive_cols = 0;
-  for (int row_total : prepared.row_total) {
-    if (row_total > 0) ++positive_rows;
-  }
-  for (int col_total : prepared.col_total) {
-    if (col_total > 0) ++positive_cols;
-  }
-  return positive_rows >= 2 && positive_cols >= 2;
+  return prepared.positive_rows >= 2 && prepared.positive_cols >= 2;
 }
 
 struct SimulationResult {
@@ -620,20 +723,28 @@ SimulationResult simulate_chi_gamma(const std::vector<PreparedSlice> &slices,
   if (seq_limit < 1) seq_limit = nsim;
   const double observed_chi_source = observed_chi;
   const double observed_gamma_source = observed_gamma;
+  std::vector<SliceScratch> scratch;
+  scratch.resize(slices.size());
+  for (std::size_t i = 0; i < slices.size(); ++i) {
+    scratch[i].reset_for(slices[i]);
+  }
 
   for (int sim = 0; sim < nsim; ++sim) {
     double chi_total = 0.0;
     double ppq_total = 0.0;
     double pmq_total = 0.0;
-    for (const PreparedSlice &slice : slices) {
-      std::vector<int> generated = gentab1(slice, rng);
+    for (std::size_t slice_index = 0; slice_index < slices.size(); ++slice_index) {
+      const PreparedSlice &slice = slices[slice_index];
+      SliceScratch &slice_scratch = scratch[slice_index];
+      gentab1_into(slice, rng, slice_scratch);
+      const std::vector<int> &generated = slice_scratch.generated;
+      GeneratedStats stats = generated_stats(slice, generated, slice_scratch, do_chi, do_gamma);
       if (do_chi) {
-        chi_total += chi_square(slice, generated);
+        chi_total += stats.chi_square;
       }
       if (do_gamma) {
-        GammaCounts counts = gamma_counts(slice, generated);
-        ppq_total += counts.ppq;
-        pmq_total += counts.pmq;
+        ppq_total += stats.ppq;
+        pmq_total += stats.pmq;
       }
     }
     if (do_chi && chi_total >= observed_chi_source) {
@@ -677,17 +788,26 @@ SimulationResult simulate_chi_gamma(const std::vector<PreparedSlice> &slices,
 SEXP scalar_with_attrs(double value, int exceed, const SimulationResult &result) {
   SEXP out = PROTECT(Rf_allocVector(REALSXP, 1));
   REAL(out)[0] = value;
-  Rf_setAttrib(out, Rf_install("exceed"), Rf_ScalarInteger(exceed));
-  Rf_setAttrib(out, Rf_install("nsim"), Rf_ScalarInteger(result.nsim));
-  Rf_setAttrib(out, Rf_install("draw_count"), Rf_ScalarReal(static_cast<double>(result.draw_count)));
-  Rf_setAttrib(out, Rf_install("rng_draws"), Rf_ScalarReal(static_cast<double>(result.draw_count)));
-  Rf_setAttrib(out, Rf_install("final_seed"), Rf_ScalarReal(static_cast<double>(result.final_seed)));
-  UNPROTECT(1);
+  SEXP exceed_attr = PROTECT(Rf_ScalarInteger(exceed));
+  SEXP nsim_attr = PROTECT(Rf_ScalarInteger(result.nsim));
+  SEXP draw_count_attr = PROTECT(Rf_ScalarReal(static_cast<double>(result.draw_count)));
+  SEXP rng_draws_attr = PROTECT(Rf_ScalarReal(static_cast<double>(result.draw_count)));
+  SEXP final_seed_attr = PROTECT(Rf_ScalarReal(static_cast<double>(result.final_seed)));
+  Rf_setAttrib(out, Rf_install("exceed"), exceed_attr);
+  Rf_setAttrib(out, Rf_install("nsim"), nsim_attr);
+  Rf_setAttrib(out, Rf_install("draw_count"), draw_count_attr);
+  Rf_setAttrib(out, Rf_install("rng_draws"), rng_draws_attr);
+  Rf_setAttrib(out, Rf_install("final_seed"), final_seed_attr);
+  UNPROTECT(6);
   return out;
 }
 
 double source_p_value(int exceed, int nsim) {
-  return static_cast<double>(static_cast<float>(exceed) / static_cast<float>(nsim));
+  // Source trace: SKexa2.XYZ_TEST and SKexa1.EXA_SUMMARY1_2 store exact
+  // p-values as real RESULTS entries from count / NSIM. Keep this in double
+  // precision so the native path is bit-for-bit aligned with the R source
+  // reference used by the parity gate.
+  return static_cast<double>(exceed) / static_cast<double>(nsim);
 }
 
 SEXP result_list(const SimulationResult &result) {
@@ -718,38 +838,103 @@ SEXP result_list(const SimulationResult &result) {
   return out;
 }
 
-}  // namespace
+struct ConditionalBiasBuild {
+  std::vector<PreparedSlice> slices;
+  double observed_chi = 0.0;
+  int observed_df = 0;
+  double observed_gamma = 0.0;
+  double ppq = 0.0;
+  double pmq = 0.0;
+  double s = 0.0;
+};
 
-extern "C" SEXP gRm_screen_j_exact_kernel(SEXP prepared_slices,
-                                              SEXP observed_chi,
-                                              SEXP observed_gamma,
-                                              SEXP nsim,
-                                              SEXP seed,
-                                              SEXP compute_chi,
-                                              SEXP compute_gamma) {
-  try {
-    bool do_chi = as_single_bool(compute_chi, "compute_chi");
-    bool do_gamma = as_single_bool(compute_gamma, "compute_gamma");
-    if (!do_chi && !do_gamma) {
-      throw ExactError("At least one of `compute_chi` or `compute_gamma` must be TRUE.");
-    }
-    std::vector<PreparedSlice> prepared = prepared_slices_from_list(prepared_slices);
-    SimulationResult result = simulate_chi_gamma(
-      prepared,
-      as_single_double(observed_chi, "observed_chi"),
-      as_single_double(observed_gamma, "observed_gamma"),
-      as_single_int(nsim, "nsim"),
-      as_single_int(seed, "seed"),
-      do_chi,
-      do_gamma,
-      do_chi && do_gamma,
-      as_single_int(nsim, "nsim")
-    );
-    return result_list(result);
-  } catch (const std::exception &err) {
-    Rf_error("%s", err.what());
+ConditionalBiasBuild build_conditional_bias_result(SEXP x,
+                                                   SEXP y,
+                                                   int nrow,
+                                                   int ncol,
+                                                   SEXP condition_values,
+                                                   const std::vector<int> &condition_dims,
+                                                   SEXP valid,
+                                                   bool exact_requires_informative_slices) {
+  R_xlen_t n = XLENGTH(x);
+  if (XLENGTH(y) != n || XLENGTH(valid) != n) {
+    throw ExactError("`x`, `y`, and `valid` must have the same length.");
   }
+  if (TYPEOF(valid) != LGLSXP) {
+    throw ExactError("`valid` must be logical.");
+  }
+  if (nrow < 1 || ncol < 1) {
+    throw ExactError("`x_dim` and `y_dim` must be positive.");
+  }
+
+  SEXP condition_dim_attr = Rf_getAttrib(condition_values, R_DimSymbol);
+  int condition_cols = 1;
+  if (Rf_length(condition_dim_attr) == 2) {
+    if (INTEGER(condition_dim_attr)[0] != n) {
+      throw ExactError("`condition_values` must have one row per observation.");
+    }
+    condition_cols = INTEGER(condition_dim_attr)[1];
+  } else {
+    if (XLENGTH(condition_values) != n) {
+      throw ExactError("`condition_values` must have one value per observation.");
+    }
+  }
+  if (static_cast<int>(condition_dims.size()) != condition_cols) {
+    throw ExactError("`condition_dims` must have one entry per conditioning column.");
+  }
+
+  std::map<long long, std::vector<int>> tables;
+  for (R_xlen_t obs = 0; obs < n; ++obs) {
+    if (LOGICAL(valid)[obs] != TRUE) continue;
+    int xv = numeric_at(x, obs, "x");
+    int yv = numeric_at(y, obs, "y");
+    if (xv < 1 || xv > nrow || yv < 1 || yv > ncol) continue;
+
+    long long key = 1;
+    long long multiplier = 1;
+    bool keep = true;
+    for (int condition_col = 0; condition_col < condition_cols; ++condition_col) {
+      R_xlen_t condition_index = Rf_length(condition_dim_attr) == 2 ?
+        obs + n * static_cast<R_xlen_t>(condition_col) :
+        obs;
+      int cv = numeric_at(condition_values, condition_index, "condition_values");
+      int cdim = condition_dims[static_cast<std::size_t>(condition_col)];
+      if (cv < 1 || cv > cdim) {
+        keep = false;
+        break;
+      }
+      key += static_cast<long long>(cv - 1) * multiplier;
+      multiplier *= static_cast<long long>(cdim);
+    }
+    if (!keep) continue;
+
+    auto inserted = tables.emplace(key, std::vector<int>(static_cast<std::size_t>(nrow) * ncol, 0));
+    std::vector<int> &tab = inserted.first->second;
+    ++tab[index2(xv - 1, yv - 1, nrow)];
+  }
+
+  ConditionalBiasBuild out;
+  double s_total = 0.0;
+  for (const auto &entry : tables) {
+    PreparedSlice prepared = prepare_slice_counts(entry.second, nrow, ncol);
+    ObservedStats stats = observed_stats(prepared, entry.second);
+    out.observed_chi += stats.chi_square;
+    out.observed_df += stats.df;
+    out.ppq += stats.ppq;
+    out.pmq += stats.pmq;
+    s_total += stats.s;
+    if (prepared.total > 0 &&
+        (!exact_requires_informative_slices || informative_slice(prepared))) {
+      out.slices.push_back(std::move(prepared));
+    }
+  }
+
+  out.observed_gamma = out.ppq > 0.0 ? out.pmq / out.ppq : 0.0;
+  out.s = out.ppq > 0.0 ? s_total / out.ppq / out.ppq : 0.0;
+  return out;
 }
+
+}  // namespace
 
 extern "C" SEXP gRm_screen_j_exact_chi_gamma_slices(SEXP slices,
                                                         SEXP observed_chi,
@@ -780,7 +965,9 @@ extern "C" SEXP gRm_screen_j_exact_chi_gamma_slices(SEXP slices,
 extern "C" SEXP gRm_screen_j_exact_chi_slices(SEXP slices,
                                                   SEXP observed_chi,
                                                   SEXP nsim,
-                                                  SEXP seed) {
+                                                  SEXP seed,
+                                                  SEXP sequential,
+                                                  SEXP seq_limit) {
   try {
     std::vector<PreparedSlice> prepared = prepare_slices(slices);
     SimulationResult result = simulate_chi_gamma(
@@ -791,8 +978,8 @@ extern "C" SEXP gRm_screen_j_exact_chi_slices(SEXP slices,
       as_single_int(seed, "seed"),
       true,
       false,
-      false,
-      as_single_int(nsim, "nsim")
+      as_single_bool(sequential, "sequential"),
+      as_single_int(seq_limit, "seq_limit")
     );
     return scalar_with_attrs(static_cast<double>(result.chi_exceed) / result.nsim, result.chi_exceed, result);
   } catch (const std::exception &err) {
@@ -836,99 +1023,25 @@ extern "C" SEXP gRm_screen_j_conditional_bias_test(SEXP x,
                                                        SEXP sequential,
                                                        SEXP seq_limit) {
   try {
-    int n = Rf_length(x);
-    if (Rf_length(y) != n || Rf_length(valid) != n) {
-      throw ExactError("`x`, `y`, and `valid` must have the same length.");
-    }
-    if (TYPEOF(valid) != LGLSXP) {
-      throw ExactError("`valid` must be logical.");
-    }
     int nrow = as_single_int(x_dim, "x_dim");
     int ncol = as_single_int(y_dim, "y_dim");
-    if (nrow < 1 || ncol < 1) {
-      throw ExactError("`x_dim` and `y_dim` must be positive.");
-    }
 
     SEXP condition_dim_attr = Rf_getAttrib(condition_values, R_DimSymbol);
     if (Rf_length(condition_dim_attr) != 2) {
       throw ExactError("`condition_values` must be a matrix.");
     }
-    int condition_n = INTEGER(condition_dim_attr)[0];
     int condition_cols = INTEGER(condition_dim_attr)[1];
-    if (condition_n != n) {
-      throw ExactError("`condition_values` must have one row per observation.");
-    }
     std::vector<int> cdims = integer_vector(condition_dims, condition_cols, "condition_dims");
-
-    auto numeric_at = [](SEXP value, int index, const char *name) -> int {
-      if (TYPEOF(value) == INTSXP) {
-        int out = INTEGER(value)[index];
-        return out == NA_INTEGER ? NA_INTEGER : out;
-      }
-      if (TYPEOF(value) == REALSXP) {
-        double out = REAL(value)[index];
-        if (!R_FINITE(out)) return NA_INTEGER;
-        return static_cast<int>(out);
-      }
-      throw ExactError(std::string("`") + name + "` must be numeric.");
-    };
-
-    std::map<long long, std::vector<int>> tables;
-    for (int obs = 0; obs < n; ++obs) {
-      if (LOGICAL(valid)[obs] != TRUE) continue;
-      int xv = numeric_at(x, obs, "x");
-      int yv = numeric_at(y, obs, "y");
-      if (xv < 1 || xv > nrow || yv < 1 || yv > ncol) continue;
-
-      long long key = 1;
-      long long multiplier = 1;
-      bool keep = true;
-      for (int condition_col = 0; condition_col < condition_cols; ++condition_col) {
-        int cv = numeric_at(condition_values, obs + n * condition_col, "condition_values");
-        int cdim = cdims[condition_col];
-        if (cv < 1 || cv > cdim) {
-          keep = false;
-          break;
-        }
-        key += static_cast<long long>(cv - 1) * multiplier;
-        multiplier *= static_cast<long long>(cdim);
-      }
-      if (!keep) continue;
-
-      auto inserted = tables.emplace(key, std::vector<int>(static_cast<std::size_t>(nrow) * ncol, 0));
-      std::vector<int> &tab = inserted.first->second;
-      ++tab[index2(xv - 1, yv - 1, nrow)];
-    }
-
-    double chi_total = 0.0;
-    int df_total = 0;
-    double ppq_total = 0.0;
-    double pmq_total = 0.0;
-    double s_total = 0.0;
-    std::vector<PreparedSlice> exact_slices;
+    ConditionalBiasBuild built = build_conditional_bias_result(
+      x, y, nrow, ncol, condition_values, cdims, valid, true
+    );
     bool do_exact = as_single_bool(exact, "exact");
-
-    for (const auto &entry : tables) {
-      PreparedSlice prepared = prepare_slice_counts(entry.second, nrow, ncol);
-      ObservedStats stats = observed_stats(prepared, entry.second);
-      chi_total += stats.chi_square;
-      df_total += stats.df;
-      ppq_total += stats.ppq;
-      pmq_total += stats.pmq;
-      s_total += stats.s;
-      if (!do_exact || informative_slice(prepared)) {
-        if (prepared.total > 0) exact_slices.push_back(std::move(prepared));
-      }
-    }
-
-    double gamma = ppq_total > 0.0 ? pmq_total / ppq_total : 0.0;
-    double s = ppq_total > 0.0 ? s_total / ppq_total / ppq_total : 0.0;
     SimulationResult sim_result;
     if (do_exact) {
       sim_result = simulate_chi_gamma(
-        exact_slices,
-        chi_total,
-        gamma,
+        built.slices,
+        built.observed_chi,
+        built.observed_gamma,
         as_single_int(nsim, "nsim"),
         as_single_int(seed, "seed"),
         true,
@@ -946,12 +1059,12 @@ extern "C" SEXP gRm_screen_j_conditional_bias_test(SEXP x,
       "chi_exceed", "gamma_exceed", "draw_count", "final_seed"
     };
     for (int i = 0; i < 13; ++i) SET_STRING_ELT(names, i, Rf_mkChar(out_names[i]));
-    SET_VECTOR_ELT(out, 0, Rf_ScalarReal(chi_total));
-    SET_VECTOR_ELT(out, 1, Rf_ScalarInteger(df_total));
-    SET_VECTOR_ELT(out, 2, Rf_ScalarReal(ppq_total));
-    SET_VECTOR_ELT(out, 3, Rf_ScalarReal(pmq_total));
-    SET_VECTOR_ELT(out, 4, Rf_ScalarReal(s));
-    SET_VECTOR_ELT(out, 5, Rf_ScalarReal(gamma));
+    SET_VECTOR_ELT(out, 0, Rf_ScalarReal(built.observed_chi));
+    SET_VECTOR_ELT(out, 1, Rf_ScalarInteger(built.observed_df));
+    SET_VECTOR_ELT(out, 2, Rf_ScalarReal(built.ppq));
+    SET_VECTOR_ELT(out, 3, Rf_ScalarReal(built.pmq));
+    SET_VECTOR_ELT(out, 4, Rf_ScalarReal(built.s));
+    SET_VECTOR_ELT(out, 5, Rf_ScalarReal(built.observed_gamma));
     SET_VECTOR_ELT(out, 6, Rf_ScalarReal(do_exact ? source_p_value(sim_result.chi_exceed, sim_result.nsim) : NA_REAL));
     SET_VECTOR_ELT(out, 7, Rf_ScalarReal(do_exact ? source_p_value(sim_result.gamma_exceed, sim_result.nsim) : NA_REAL));
     SET_VECTOR_ELT(out, 8, Rf_ScalarInteger(do_exact ? sim_result.nsim : 0));
@@ -959,6 +1072,71 @@ extern "C" SEXP gRm_screen_j_conditional_bias_test(SEXP x,
     SET_VECTOR_ELT(out, 10, Rf_ScalarInteger(do_exact ? sim_result.gamma_exceed : NA_INTEGER));
     SET_VECTOR_ELT(out, 11, Rf_ScalarReal(do_exact ? static_cast<double>(sim_result.draw_count) : NA_REAL));
     SET_VECTOR_ELT(out, 12, Rf_ScalarReal(do_exact ? static_cast<double>(sim_result.final_seed) : NA_REAL));
+    Rf_setAttrib(out, R_NamesSymbol, names);
+    UNPROTECT(2);
+    return out;
+  } catch (const std::exception &err) {
+    Rf_error("%s", err.what());
+  }
+}
+
+extern "C" SEXP gRm_screen_j_item_pair_conditional_exact(SEXP x,
+                                                             SEXP y,
+                                                             SEXP x_dim,
+                                                             SEXP y_dim,
+                                                             SEXP condition_values,
+                                                             SEXP condition_dim,
+                                                             SEXP valid,
+                                                             SEXP nsim,
+                                                             SEXP seed,
+                                                             SEXP sequential,
+                                                             SEXP seq_limit) {
+  try {
+    std::vector<int> condition_dims(1, as_single_int(condition_dim, "condition_dim"));
+    ConditionalBiasBuild built = build_conditional_bias_result(
+      x,
+      y,
+      as_single_int(x_dim, "x_dim"),
+      as_single_int(y_dim, "y_dim"),
+      condition_values,
+      condition_dims,
+      valid,
+      false
+    );
+
+    SimulationResult exact = simulate_chi_gamma(
+      built.slices,
+      built.observed_chi,
+      built.observed_gamma,
+      as_single_int(nsim, "nsim"),
+      as_single_int(seed, "seed"),
+      true,
+      true,
+      as_single_bool(sequential, "sequential"),
+      as_single_int(seq_limit, "seq_limit")
+    );
+
+    SEXP out = PROTECT(Rf_allocVector(VECSXP, 13));
+    SEXP names = PROTECT(Rf_allocVector(STRSXP, 13));
+    const char *out_names[] = {
+      "chi", "df", "gamma", "ppq", "pmq", "s",
+      "p_chi", "p_gamma", "nsim", "chi_exceed",
+      "gamma_exceed", "rng_draws", "final_seed"
+    };
+    for (int i = 0; i < 13; ++i) SET_STRING_ELT(names, i, Rf_mkChar(out_names[i]));
+    SET_VECTOR_ELT(out, 0, Rf_ScalarReal(built.observed_chi));
+    SET_VECTOR_ELT(out, 1, Rf_ScalarInteger(built.observed_df));
+    SET_VECTOR_ELT(out, 2, Rf_ScalarReal(built.observed_gamma));
+    SET_VECTOR_ELT(out, 3, Rf_ScalarReal(built.ppq));
+    SET_VECTOR_ELT(out, 4, Rf_ScalarReal(built.pmq));
+    SET_VECTOR_ELT(out, 5, Rf_ScalarReal(built.s));
+    SET_VECTOR_ELT(out, 6, Rf_ScalarReal(source_p_value(exact.chi_exceed, exact.nsim)));
+    SET_VECTOR_ELT(out, 7, Rf_ScalarReal(source_p_value(exact.gamma_exceed, exact.nsim)));
+    SET_VECTOR_ELT(out, 8, Rf_ScalarInteger(exact.nsim));
+    SET_VECTOR_ELT(out, 9, Rf_ScalarInteger(exact.chi_exceed));
+    SET_VECTOR_ELT(out, 10, Rf_ScalarInteger(exact.gamma_exceed));
+    SET_VECTOR_ELT(out, 11, Rf_ScalarReal(static_cast<double>(exact.draw_count)));
+    SET_VECTOR_ELT(out, 12, Rf_ScalarReal(static_cast<double>(exact.final_seed)));
     Rf_setAttrib(out, R_NamesSymbol, names);
     UNPROTECT(2);
     return out;
@@ -994,42 +1172,26 @@ extern "C" SEXP gRm_item_parameters_extended_gamma(SEXP item_counts,
                                                        SEXP raw_max,
                                                        SEXP max_step,
                                                        SEXP max_delta);
-extern "C" SEXP gRm_item_parameters_extended_ice_fields(SEXP item_counts,
-                                                            SEXP score_counts,
-                                                            SEXP raw_max,
-                                                            SEXP max_step,
-                                                            SEXP max_delta);
 extern "C" SEXP gRm_item_parameters_ice_fields_from_gamma(SEXP item_gamma,
                                                               SEXP raw_max);
-extern "C" SEXP gRm_global_homogeneity_expected_summary(SEXP item_gamma,
-                                                            SEXP score_counts,
-                                                            SEXP score_item_n,
-                                                            SEXP raw_max,
-                                                            SEXP least_score,
-                                                            SEXP largest_score);
-extern "C" SEXP gRm_global_homogeneity_expected_summary_from_fit(SEXP full_item_counts,
-                                                                     SEXP full_score_counts,
-                                                                     SEXP group_score_counts,
-                                                                     SEXP score_item_n,
-                                                                     SEXP raw_max,
-                                                                     SEXP least_score,
-                                                                     SEXP largest_score,
-                                                                     SEXP max_step,
-                                                                     SEXP max_delta);
+extern "C" SEXP gRm_gllrm_expected_margins(SEXP native_input,
+                                            SEXP item_gamma,
+                                            SEXP ld_parameters,
+                                            SEXP dif_parameters);
 
 static const R_CallMethodDef CallEntries[] = {
-  {"_gRm_screen_j_exact_kernel", reinterpret_cast<DL_FUNC>(&gRm_screen_j_exact_kernel), 7},
   {"gRm_screen_j_exact_chi_gamma_slices", reinterpret_cast<DL_FUNC>(&gRm_screen_j_exact_chi_gamma_slices), 7},
-  {"gRm_screen_j_exact_chi_slices", reinterpret_cast<DL_FUNC>(&gRm_screen_j_exact_chi_slices), 4},
+  {"gRm_screen_j_exact_chi_slices", reinterpret_cast<DL_FUNC>(&gRm_screen_j_exact_chi_slices), 6},
   {"gRm_screen_j_exact_gamma_slices", reinterpret_cast<DL_FUNC>(&gRm_screen_j_exact_gamma_slices), 4},
   {"gRm_screen_j_conditional_bias_test", reinterpret_cast<DL_FUNC>(&gRm_screen_j_conditional_bias_test), 12},
+  {"gRm_screen_j_item_pair_conditional_exact", reinterpret_cast<DL_FUNC>(&gRm_screen_j_item_pair_conditional_exact), 11},
   {"gRm_item_parameters_top_ice_field", reinterpret_cast<DL_FUNC>(&gRm_item_parameters_top_ice_field), 2},
   {"gRm_item_parameters_extended_top_ice_fields", reinterpret_cast<DL_FUNC>(&gRm_item_parameters_extended_top_ice_fields), 5},
   {"gRm_item_parameters_extended_gamma", reinterpret_cast<DL_FUNC>(&gRm_item_parameters_extended_gamma), 5},
-  {"gRm_item_parameters_extended_ice_fields", reinterpret_cast<DL_FUNC>(&gRm_item_parameters_extended_ice_fields), 5},
   {"gRm_item_parameters_ice_fields_from_gamma", reinterpret_cast<DL_FUNC>(&gRm_item_parameters_ice_fields_from_gamma), 2},
-  {"gRm_global_homogeneity_expected_summary", reinterpret_cast<DL_FUNC>(&gRm_global_homogeneity_expected_summary), 6},
-  {"gRm_global_homogeneity_expected_summary_from_fit", reinterpret_cast<DL_FUNC>(&gRm_global_homogeneity_expected_summary_from_fit), 9},
+  {"gRm_gllrm_expected_margins", reinterpret_cast<DL_FUNC>(&gRm_gllrm_expected_margins), 4},
+  // Keep the underscore compatibility alias for older validation callers; the
+  // R package itself uses the non-underscored registration below.
   {"_gRm_screen_j_source_random_draws", reinterpret_cast<DL_FUNC>(&gRm_screen_j_source_random_draws), 2},
   {"gRm_screen_j_source_random_draws", reinterpret_cast<DL_FUNC>(&gRm_screen_j_source_random_draws), 2},
   {nullptr, nullptr, 0}

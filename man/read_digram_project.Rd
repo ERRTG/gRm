@@ -14,22 +14,40 @@ read_digram_project(
 )
 }
 \arguments{
-\item{path}{Directory containing \code{DIGRAM.csv}, \code{DIGRAM.imp}, and \code{DIGRAM.imv}.}
+\item{path}{Directory containing the initial \code{DIGRAM.imp} import file. The
+reader follows the source convention that this file names the project
+directory and project prefix used to locate the corresponding \code{.csv} and
+\code{.imv} files.
+The current package reader supports the ordinal-analysis subset of DIGRAM
+projects. Nominal and mixed DIGRAM variable-type behavior is not
+implemented. Category codes in \code{DIGRAM.imv} must be contiguous one-based
+codes matching the values in \code{DIGRAM.csv}; zero-based, non-contiguous, or
+separately recoded historical category mappings are outside the currently
+source-faithful import subset. Recursive-level marker rows in \code{.imv} files
+are accepted as structural metadata rather than variables.}
 
 \item{items}{Character vector of item variable names.}
 
-\item{exogenous}{Character vector of exogeneous/person-factor variable names.}
+\item{exogenous}{Character vector of exogeneous/person-factor variable names.
+Exogeneous variables are interpreted as ordinal source variables in the
+current package version. Multi-category nominal exogeneous variables are
+outside the currently source-faithful scope.}
 
-\item{id}{Identifier column name. Defaults to the first CSV column.}
+\item{id}{Optional identifier column name. Defaults to the first CSV column
+when omitted.}
 
 \item{score_cuts}{\code{"auto"} for source-faithful automatic score cuts, or an
 integer-like vector of explicit upper total-score cut values. The cuts are
 stored with the analysis and later define score groups as consecutive
 intervals: the first group runs from the source-valid lowest score through
 the first cut, the next group starts at the following score and runs through
-the next cut, and so on.}
+the next cut, and so on. Automatic cuts must define at least two usable
+source score groups; otherwise construction fails with a non-estimable
+score-group error.}
 
-\item{name}{DIGRAM file prefix.}
+\item{name}{Prefix of the initial \code{.imp} file to open. Defaults to
+\code{"DIGRAM"}. The analysis name and the \code{.csv}/\code{.imv} file prefix are then
+read from that \code{.imp} file.}
 }
 \value{
 A \code{gRm_analysis} object.

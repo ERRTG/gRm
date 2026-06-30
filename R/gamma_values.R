@@ -1,24 +1,23 @@
-#' Derive DIGRAM marginal gamma report values
-#'
-#' Computes the Goodman-Kruskal marginal association-gamma matrix printed by
-#' DIGRAM's `GAMMA` command. The source path is
-#' `DGRexe.execute_marginal_gamma`, which builds one two-variable marginal
-#' hypothesis for every ordinal pair and stores `results[1,5]`. That value is
-#' produced by `SkStat.RCGAMMA`; the same quadrant-count formula is mirrored in
-#' `SourceRaschCore.SourceRCGammaStats`.
-#'
-#' Production R computes from `DIGRAM.var` and `DIGRAM.dat`; Pascal and the
-#' supplied DIGRAM report are test oracles only.
-#'
-#' @param project A parsed DIGRAM project from [read_digram_project()].
-#' @return A `gRm_gamma_values` object.
-#' @examples
-#' \dontrun{
-#' project <- read_digram_project("path/to/DIGRAM")
-#' values <- gamma_values(project)
-#' values$gamma[1:3, 1:3]
-#' }
-#' @keywords internal
+# Derive DIGRAM marginal gamma report values
+#
+# Computes the Goodman-Kruskal marginal association-gamma matrix printed by
+# DIGRAM's `GAMMA` command. The source path is
+# `DGRexe.execute_marginal_gamma`, which builds one two-variable marginal
+# hypothesis for every ordinal pair and stores `results[1,5]`. That value is
+# produced by `SkStat.RCGAMMA`; the same quadrant-count formula is mirrored in
+# `SourceRaschCore.SourceRCGammaStats`.
+#
+# Production R computes from `DIGRAM.var` and `DIGRAM.dat`; Pascal and the
+# supplied DIGRAM report are test oracles only.
+#
+# @param project A parsed DIGRAM project from [read_digram_project()].
+# @return A `gRm_gamma_values` object.
+# @examples
+# \dontrun{
+# project <- read_digram_project("path/to/DIGRAM")
+# values <- gamma_values(project)
+# values$gamma[1:3, 1:3]
+# }
 gamma_values <- function(project) {
   variables <- project$variables
   ordinal <- variables$raw_max > 1L & variables$vtype == 3L
@@ -32,7 +31,9 @@ gamma_values <- function(project) {
   dimnames(ppq) <- dimnames(gamma)
   dimnames(pmq) <- dimnames(gamma)
   dimnames(pair_n) <- dimnames(gamma)
-  diag(gamma) <- 0
+  # DIGRAM renders marginal gamma self-pairs as "." rather than as a numeric
+  # association; expose the R-facing numeric value as missing/not applicable.
+  diag(gamma) <- NA_real_
 
   for (row_index in seq_len(n_vars - 1L)) {
     for (col_index in seq.int(row_index + 1L, n_vars)) {
@@ -72,14 +73,13 @@ gamma_values <- function(project) {
   )
 }
 
-#' Build a pairwise complete ordinal table for marginal gamma
-#'
-#' @param row_values Integer source-coded values for the row variable.
-#' @param col_values Integer source-coded values for the column variable.
-#' @param row_dim Number of ordinal row categories.
-#' @param col_dim Number of ordinal column categories.
-#' @return Integer matrix of pairwise complete counts.
-#' @keywords internal
+# Build a pairwise complete ordinal table for marginal gamma
+#
+# @param row_values Integer source-coded values for the row variable.
+# @param col_values Integer source-coded values for the column variable.
+# @param row_dim Number of ordinal row categories.
+# @param col_dim Number of ordinal column categories.
+# @return Integer matrix of pairwise complete counts.
 gRm_pairwise_gamma_table <- function(row_values, col_values, row_dim, col_dim) {
   valid <- row_values >= 1L & row_values <= row_dim & col_values >= 1L & col_values <= col_dim
   tab <- matrix(0L, nrow = row_dim, ncol = col_dim)
@@ -89,42 +89,10 @@ gRm_pairwise_gamma_table <- function(row_values, col_values, row_dim, col_dim) {
   tab
 }
 
-#' Goodman-Kruskal gamma statistics using DIGRAM's RC gamma formula
-#'
-#' @param tab A two-way ordinal count table.
-#' @return List with `gamma`, `ppq`, and `pmq`.
-#' @keywords internal
+# Goodman-Kruskal gamma statistics using DIGRAM's RC gamma formula
+#
+# @param tab A two-way ordinal count table.
+# @return List with `gamma`, `ppq`, and `pmq`.
 gRm_goodman_kruskal_gamma <- function(tab) {
-  tab <- as.matrix(tab)
-  aij <- matrix(0, nrow = nrow(tab), ncol = ncol(tab))
-  dij <- matrix(0, nrow = nrow(tab), ncol = ncol(tab))
-  p <- 0
-  q <- 0
-
-  for (row in seq_len(nrow(tab))) {
-    for (col in seq_len(ncol(tab))) {
-      # Source trace: SkStat.PREPARE_GAMMA_STATISTICS and
-      # SourceRaschCore.SourceRCGammaStats. For each cell, observations in
-      # concordant quadrants are counted into AIJ/P and observations in
-      # discordant quadrants are counted into DIJ/Q.
-      for (other_row in seq_len(nrow(tab))) {
-        for (other_col in seq_len(ncol(tab))) {
-          if ((row > other_row && col > other_col) || (row < other_row && col < other_col)) {
-            aij[row, col] <- aij[row, col] + tab[other_row, other_col]
-          } else if ((row < other_row && col > other_col) || (row > other_row && col < other_col)) {
-            dij[row, col] <- dij[row, col] + tab[other_row, other_col]
-          }
-        }
-      }
-      p <- p + tab[row, col] * aij[row, col]
-      q <- q + tab[row, col] * dij[row, col]
-    }
-  }
-
-  # Source trace: SkStat.RCGAMMA and SourceRaschCore.SourceRCGammaStats set
-  # PMQ = P - Q, PPQ = P + Q, and gamma = PMQ / PPQ when PPQ is positive.
-  ppq <- p + q
-  pmq <- p - q
-  gamma <- if (ppq > 0) pmq / ppq else 0
-  list(gamma = gamma, ppq = ppq, pmq = pmq)
+  source_rc_gamma_counts(tab)
 }

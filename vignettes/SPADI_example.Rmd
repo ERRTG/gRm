@@ -1,0 +1,211 @@
+---
+title: "SPADI example"
+author: "Andreas Kryger Jensen"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{SPADI example}
+  %\VignetteEncoding{UTF-8}
+  %\VignetteEngine{knitr::rmarkdown}
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(comment = NA)
+```
+
+
+Optionally install the R package
+```{r, eval = FALSE}
+remotes::install_github("aejensen/digram", subdir = "gRm")
+```
+
+Then we load the package.
+```{r}
+library(gRm)
+```
+
+Load the data and inspect the names of the variables
+```{r}
+SPADI <- read.csv(url("https://erda.ku.dk/public/archives/bacc560d26b01f7a65e77a9712a92e86/SPADI.csv"))
+colnames(SPADI)
+```
+
+
+# Defining an analysis
+
+We start by defining a gRm analysis object based on five items and two exogenous variables from the data set. Calling the resulting object implicitly executes the print function of the object which gives basic information. For more information you can call summary on the object. Score groups are automatically defined by a median split, but they can also be specified explicitly by an argument in the construction.
+
+```{r}
+spadi_proj <- gRm(SPADI, 
+                  items = sprintf("P%01d", 1:5),
+                  exogenous = c("over60", "gender"))
+spadi_proj
+summary(spadi_proj)
+```
+
+# Rasch model
+
+The next step is to set up a GLLRM model. We will start by fitting a standard Rasch model, so the call to gllrm is very simple. Calling the resulting object gives you basic information about the model. We see that there are neither LD nor DIF in the model. We will later see how to specify these and thus extend the Rasch model to a Graphical Log-Linear Rasch Model.
+
+```{r}
+m_rasch <- gllrm(spadi_proj)
+m_rasch
+```
+
+Then we can fit the model. 
+
+```{r}
+fit_rasch <- fit(m_rasch)
+fit_rasch
+```
+
+The print function used above gives a condensed summary, while the summary function gives more information. 
+
+```{r}
+summary(fit_rasch)
+```
+
+It contains two main blocks, item parameters and thresholds. The plain summary command prints both but they can also be individually printed by using the which argument.
+
+```{r}
+summary(fit_rasch, which = "parameters")
+```
+
+## Item fit
+
+Item fit has two different views. The default is the tests view,
+
+```{r}
+item_fit(fit_rasch) #defaults to which = "tests"
+```
+
+Additional information is given by setting the view equal to items.
+
+```{r}
+item_fit(fit_rasch, which = "items")
+```
+
+
+## Test of global homogeneity
+
+Test for global homogeneity follows a similar pattern where print gives the brief summary and the summary function exposes more information. The global homogeneity function will by default use the score cuts defined when constructing the analysis object, but different cuts can explicitly be defined when calling the function thus overriding the already defined ones.
+
+
+```{r}
+gh_rasch <- global_homogeneity(fit_rasch)
+gh_rasch
+```
+
+```{r}
+summary(gh_rasch)
+```
+
+## Check for local dependencies
+
+We can check for local dependence using the local_dependence function.
+
+```{r}
+ld_rasch <- local_dependence(fit_rasch)
+ld_rasch
+```
+
+```{r}
+summary(ld_rasch)
+```
+
+## Check for DIF
+
+Similarly, we can check for DIF using the dif function.
+
+```{r}
+dif_rasch <- dif(fit_rasch)
+dif_rasch
+```
+
+```{r}
+summary(dif_rasch)
+```
+
+
+# Screening
+
+The package also implements the SCREEN J procedure from DIGRAM.
+
+```{r}
+spadi_screen <- screen(spadi_proj)
+spadi_screen
+```
+
+```{r}
+summary(spadi_screen)
+```
+
+The result from the screening can automatically be turned into a GLLRM model by feeding it into the gllrm function. We can then see that the model includes the two LD terms and the two DIF terms identified in the screening.
+
+```{r}
+m_screen <- gllrm(spadi_screen)
+m_screen
+```
+
+A visualization of the model can be obtained by the plot function.
+
+```{r, fig.width=6, fig.height=4, out.width="100%", dpi=192}
+plot(m_screen)
+```
+
+As before we can fit the new GLLRM and do the test for global homogeneity. We here show how it can be done in a single pipeline.
+
+```{r}
+spadi_proj |> screen() |> gllrm() |> fit() |> global_homogeneity() |> summary()
+```
+
+We see that the output now includes test for uniform local dependence and DIF.
+
+# Setting up a general GLLRM
+
+A custom GLLRM can also be defined by giving the specific LDs and DIFs as one-sided formula objects.
+
+```{r}
+m_gllrm <- gllrm(spadi_proj, ld =~ P3:P4 + P1:P3, dif =~ P1:over60 + P4:over60)
+```
+
+We can do a direct likelihood ratio test of the GLLRM against the Rach model
+
+```{r}
+fit_gllrm <- fit(m_gllrm)
+anova(fit_rasch, fit_gllrm)
+```
+
+
+# ARI plot
+
+The package also includes ARI plots
+
+```{r, fig.width=6, fig.height=4, out.width="100%", dpi=192}
+m_gllrm |> fit() |> ari() |> plot()
+```
+
+# M2 
+
+```{r}
+m2_fit <- m_gllrm |> fit() |> m2()
+m2_fit
+```
+
+```{r}
+summary(m2_fit)
+```
+
+
+# M3
+
+```{r}
+m3_fit <- m_gllrm |> fit() |> m3()
+m3_fit
+```
+
+```{r}
+summary(m3_fit)
+```

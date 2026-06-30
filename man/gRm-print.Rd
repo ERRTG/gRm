@@ -6,24 +6,24 @@
 \alias{print.gRm_model}
 \alias{print.gRm_fit}
 \alias{print.gRm_screen}
-\alias{print.gRm_score_effects}
-\alias{print.gRm_item_parameters}
-\alias{print.gRm_item_fit}
+\alias{print.gRm_direct_table}
 \alias{print.gRm_local_dependence}
 \alias{print.gRm_dif}
 \alias{print.gRm_global_homogeneity}
+\alias{print.gRm_m2}
+\alias{print.gRm_m3}
 \title{Print gRm objects}
 \usage{
 \method{print}{gRm_analysis}(x, ...)
 \method{print}{gRm_model}(x, ...)
 \method{print}{gRm_fit}(x, ...)
 \method{print}{gRm_screen}(x, ...)
-\method{print}{gRm_score_effects}(x, ...)
-\method{print}{gRm_item_parameters}(x, ...)
-\method{print}{gRm_item_fit}(x, ...)
+\method{print}{gRm_direct_table}(x, ...)
 \method{print}{gRm_local_dependence}(x, ...)
 \method{print}{gRm_dif}(x, ...)
 \method{print}{gRm_global_homogeneity}(x, ...)
+\method{print}{gRm_m2}(x, ...)
+\method{print}{gRm_m3}(x, ...)
 }
 \arguments{
 \item{x}{An gRm analysis, model, fit, screen, or result object.}
@@ -40,7 +40,20 @@ Print compact status information for public gRm objects.
 \details{
 The print methods are intentionally compact. They identify the object type
 and key counts or status fields, but they do not expose the full numerical
-result surface. Use \code{summary()} for R-native result tables.
+result surface. Analysis print output shows the source label, row count, ID,
+variable counts, and score-group count. Model print output intentionally
+matches the complete human-facing model summary text because a model
+specification is compact. Fitted-model print output shows convergence,
+iteration, delta, and log-likelihood status. SCREEN J print output shows
+compact model-search status, including inference mode, source-backed tested
+relation count, selected LD/DIF term counts, and selected score-effect
+count. Local-dependence and DIF diagnostic print methods show candidate
+counts, Benjamini-Hochberg selected counts, convergence status counts, and
+the applied BH threshold; DIF print output also reports included DIF terms
+and output-stable fits. Direct table
+results, such as those returned by \code{item_fit()} and \code{score_effects()}, print
+their selected table directly with a \verb{gRm:} title. Use \code{summary()} for
+R-native summary result tables where those summary methods are available.
 }
 \examples{
 data <- data.frame(
@@ -48,7 +61,7 @@ data <- data.frame(
   I1 = c(0, 1, 0, 1),
   I2 = c(1, 0, 1, 0)
 )
-analysis <- gRm(data, items = c("I1", "I2"), id = "ID")
+analysis <- gRm(data, items = c("I1", "I2"), id = "ID", score_cuts = c(1L, 2L))
 print(analysis)
 print(gllrm(analysis))
 }

@@ -2,9 +2,11 @@
 % Please edit documentation in R/api-fit.R
 \name{fit}
 \alias{fit}
+\alias{fit.gRm_model}
 \title{Fit a DIGRAM model}
 \usage{
-fit(object, max_step = 5000L, max_delta = 0.0001, ...)
+fit(object, ...)
+\method{fit}{gRm_model}(object, max_step = 5000L, max_delta = 0.0001, ...)
 }
 \arguments{
 \item{object}{A \code{gRm_model} object created by \code{\link[=gllrm]{gllrm()}}. Calling
@@ -14,10 +16,11 @@ first.}
 \item{...}{Reserved for S3 dispatch compatibility; no additional fitting
 arguments are currently supported.}
 
-\item{max_step}{Maximum number of fitting iterations.}
+\item{max_step}{Single positive integer-like maximum number of fitting
+iterations.}
 
-\item{max_delta}{Convergence tolerance for the maximum absolute parameter
-update.}
+\item{max_delta}{Single positive finite convergence tolerance for the maximum
+absolute parameter update.}
 }
 \value{
 A \code{gRm_fit} object containing the fitted model, convergence
@@ -29,13 +32,14 @@ Estimate the parameters of a model specified by \code{\link[=gllrm]{gllrm()}}.
 }
 \details{
 For Rasch models, \code{fit()} uses the source-faithful base Rasch fitting path.
-For models with LD or DIF terms, it uses the active GLLRM fitting path. The
-returned fit object is the input to \code{\link[=item_parameters]{item_parameters()}}, \code{\link[=item_fit]{item_fit()}},
-\code{\link[=local_dependence]{local_dependence()}}, \code{\link[=dif]{dif()}}, and \code{\link[=global_homogeneity]{global_homogeneity()}}.
+For models with LD or DIF terms, it uses the GLLRM fitting path. The
+returned fit object is the input to \code{\link[=item_fit]{item_fit()}}, \code{\link[=local_dependence]{local_dependence()}},
+\code{\link[=dif]{dif()}}, and \code{\link[=global_homogeneity]{global_homogeneity()}}.
 
-Use \code{summary(fit, which = "fit")} for convergence and likelihood summaries,
-\code{summary(fit, which = "parameters")} for item-parameter summaries, and
-\code{summary(fit, which = "terms")} for fitted model terms.
+Printing the fitted object shows compact fit status. \code{summary(fit)} shows
+fitted item parameters, thresholds, and fitted LD/DIF terms. Use
+\code{summary(fit, which = "parameters")} for item-parameter summaries only and
+\code{summary(fit, which = "thresholds")} for threshold rows only.
 }
 \examples{
 data <- data.frame(
@@ -43,12 +47,13 @@ data <- data.frame(
   I1 = c(0, 1, 0, 1, 0, 1, 1, 0),
   I2 = c(1, 0, 1, 0, 1, 0, 1, 0)
 )
-analysis <- gRm(data, items = c("I1", "I2"), id = "ID")
+analysis <- gRm(data, items = c("I1", "I2"), id = "ID", score_cuts = c(1L, 2L))
 model <- gllrm(analysis)
-fitted <- fit(model, max_step = 100L)
-summary(fitted, which = "fit")
+fitted <- fit(model)
+fitted
+summary(fitted)
 }
 \seealso{
-\code{\link[=gllrm]{gllrm()}}, \code{\link[=item_parameters]{item_parameters()}}, \code{\link[=item_fit]{item_fit()}},
-\code{\link[=local_dependence]{local_dependence()}}, \code{\link[=dif]{dif()}}, \code{\link[=global_homogeneity]{global_homogeneity()}}
+\code{\link[=gllrm]{gllrm()}}, \code{\link[=item_fit]{item_fit()}}, \code{\link[=local_dependence]{local_dependence()}}, \code{\link[=dif]{dif()}},
+\code{\link[=global_homogeneity]{global_homogeneity()}}
 }

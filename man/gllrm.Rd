@@ -25,6 +25,9 @@ A GLLRM model defines a score-inclusive IRT graph. Every item is connected
 to the score node, LD terms add item:item edges, and DIF terms add
 item:exogenous edges. Use \code{\link[=model_graph]{model_graph()}} to return that graph as an
 \code{igraph} object, or \code{plot(model)} to draw it with the score node on the left.
+Item and exogeneous names that are not syntactic R names can be used in
+formulas by wrapping them in R backquote characters. For example, an item
+named \code{"item one"} should be written between backquotes in the formula.
 }
 \examples{
 data <- data.frame(
@@ -33,7 +36,13 @@ data <- data.frame(
   I2 = c(1, 0, 1, 0, 1, 0),
   site = c(0, 0, 1, 1, 0, 1)
 )
-analysis <- gRm(data, items = c("I1", "I2"), exogenous = "site", id = "ID")
+analysis <- gRm(
+  data,
+  items = c("I1", "I2"),
+  exogenous = "site",
+  id = "ID",
+  score_cuts = c(1L, 2L)
+)
 model <- gllrm(analysis, ld = ~ I1:I2, dif = ~ I1:site)
 summary(model)
 graph <- model_graph(model)

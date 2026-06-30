@@ -10,10 +10,7 @@ score_effects(
   nsim = 1000L,
   seed = 9L,
   critlevel = NULL,
-  risk = NULL,
-  score_cap = 56L,
-  jobs = 1L,
-  ...
+  risk = NULL
 )
 }
 \arguments{
@@ -22,26 +19,40 @@ score_effects(
 \item{inference}{Inference mode. \code{"asymptotic"} maps to DIGRAM command 17,
 \code{"exact"} to command 2, and \code{"repeated"} to command 74.}
 
-\item{nsim}{Number of simulations for exact branches.}
+\item{nsim}{Single non-negative integer-like number of simulations for exact
+branches. The source convention \code{0} requests the DIGRAM default of \code{1000}.}
 
-\item{seed}{Random seed for exact branches.}
+\item{seed}{Single integer-like random seed for exact branches.}
 
 \item{critlevel}{Optional DIGRAM exact command critical level on the
-per-1000 scale.}
+per-1000 scale; when supplied it must be a single non-negative
+integer-like value.}
 
-\item{risk}{Optional DIGRAM repeated-Monte-Carlo risk on the per-1000 scale.}
-
-\item{score_cap}{Highest score category retained before source collapsing.}
-
-\item{jobs}{Reserved for future parallel implementations.}
-
-\item{...}{Reserved for S3 dispatch compatibility; ignored.}
+\item{risk}{Optional DIGRAM repeated-Monte-Carlo risk on the per-1000 scale;
+when supplied it must be a single non-negative integer-like value.}
 }
 \value{
-A \code{gRm_score_effects} result object.
+A data-frame-like \code{gRm_score_effects} table. The unchanged
+\code{gRm_exo_select_values} backend object is available as
+\code{attr(result, "values")}; the selected rows and Benjamini-Hochberg
+threshold table are available as \code{attr(result, "selected")} and
+\code{attr(result, "bh")}.
 }
 \description{
 Exogenous score-effect diagnostics
+}
+\details{
+\code{score_effects()} returns its public test table directly. The source-shaped
+backend values remain available as attributes rather than through separate
+\code{summary()} views. Use \code{attr(result, "values")} for the full backend object,
+\code{attr(result, "selected")} for source-selected rows, and \code{attr(result, "bh")}
+for the Benjamini-Hochberg thresholds.
+
+The public table always includes \code{Exogenous}, \code{Hypothesis}, \code{Chisq}, \code{Df},
+\verb{Pr(>Chisq)}, \code{Gamma}, \verb{Pr(Gamma+)}, and \verb{Pr(|Gamma|)}. For \code{inference = "exact"} and \code{inference = "repeated"}, the table also includes exact or
+simulation p-value columns and \code{Simulations} when those values are present.
+Internal source-selection fields such as labels, markers, and selected flags
+remain in \code{attr(result, "values")} or \code{attr(result, "selected")}.
 }
 \examples{
 \donttest{
@@ -51,8 +62,14 @@ data <- data.frame(
   I2 = c(1, 0, 1, 0, 1, 0, 1, 0),
   site = c(0, 0, 1, 1, 0, 1, 0, 1)
 )
-analysis <- gRm(data, items = c("I1", "I2"), exogenous = "site", id = "ID")
+analysis <- gRm(
+  data,
+  items = c("I1", "I2"),
+  exogenous = "site",
+  id = "ID",
+  score_cuts = c(1L, 2L)
+)
 effects <- score_effects(analysis)
-summary(effects, which = "tests")
+effects
 }
 }

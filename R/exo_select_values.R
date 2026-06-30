@@ -1,31 +1,36 @@
-#' Derive DIGRAM exogenous-selection numeric values
-#'
-#' Computes source-shaped exogenous overview, missing-exogenous diagnostics,
-#' score distribution, and score/exogenous screening values. The source path is
-#' `SKbias2.pas` for exogenous overview, missing-exogenous diagnostics and
-#' score distribution, then `SKbias13.pas::StepwiseScoreScreening` for the
-#' score/exogenous screening.
-#'
-#' Production R computes from `DIGRAM.var` and `DIGRAM.dat`; Pascal and the
-#' supplied DIGRAM output files are external validation inputs only.
-#'
-#' @param project A parsed DIGRAM project from [read_digram_project()].
-#' @param score_cap Highest printed score category for the score/exogenous
-#'   screening table. Source `maxdim` gives `56` for the validation target.
-#' @param exact Logical; when `TRUE`, run the source-shaped Monte Carlo exact
-#'   table branch used by `SKexa2`/`SKrandom.GENTAB1`.
-#' @param nsim Number of random tables for exact p-values.
-#' @param seed Seed for the R implementation of the source Monte Carlo branch.
-#' @return A `gRm_exo_select_values` object.
-#' @examples
-#' \dontrun{
-#' project <- read_digram_project("path/to/DIGRAM")
-#' values <- exo_select_values(project)
-#' values$screen
-#' }
-#' @keywords internal
+gRm_source_score_cap <- function() {
+  # Source trace: source/PAS_skunits/SKTypes.pas defines MAXDIM = 57, and
+  # source/PAS_skunits/SKbias13.pas collapses scores above maxdim - 1.
+  56L
+}
+
+# Derive DIGRAM exogenous-selection numeric values
+#
+# Computes source-shaped exogenous overview, missing-exogenous diagnostics,
+# score distribution, and score/exogenous screening values. The source path is
+# `SKbias2.pas` for exogenous overview, missing-exogenous diagnostics and
+# score distribution, then `SKbias13.pas::StepwiseScoreScreening` for the
+# score/exogenous screening.
+#
+# Production R computes from `DIGRAM.var` and `DIGRAM.dat`; Pascal and the
+# supplied DIGRAM output files are external validation inputs only.
+#
+# @param project A parsed DIGRAM project from [read_digram_project()].
+# @param score_cap Highest printed score category for the score/exogenous
+#   screening table. Source `maxdim - 1` gives `56` for this source tree.
+# @param exact Logical; when `TRUE`, run the source-shaped Monte Carlo exact
+#   table branch used by `SKexa2`/`SKrandom.GENTAB1`.
+# @param nsim Number of random tables for exact p-values.
+# @param seed Seed for the R implementation of the source Monte Carlo branch.
+# @return A `gRm_exo_select_values` object.
+# @examples
+# \dontrun{
+# project <- read_digram_project("path/to/DIGRAM")
+# values <- exo_select_values(project)
+# values$screen
+# }
 exo_select_values <- function(project,
-                              score_cap = 56L,
+                              score_cap = gRm_source_score_cap(),
                               exact = FALSE,
                               repeated = FALSE,
                               nsim = 1000L,
@@ -58,7 +63,14 @@ exo_select_values <- function(project,
   valid_exo <- sweep(exo_matrix, 2L, backgrounds$raw_max, `<=`) & exo_matrix >= 1L
   complete_item_exo <- complete_item & rowSums(valid_exo) == ncol(exo_matrix)
 
-  score_distribution <- exo_select_score_distribution(scores[complete_item_exo])
+  score_distribution <- exo_select_score_distribution(
+    scores,
+    known = complete_item_exo,
+    missing_known = rep(TRUE, length(scores)),
+    min_score = 0L,
+    max_score = sum(items$raw_max - 1L),
+    largest_possible_score = sum(items$raw_max - 1L)
+  )
   missing <- exo_select_missing_diagnostics(project, scores, complete_item, valid_exo)
   screen <- exo_select_score_screen(
     project,
@@ -112,14 +124,13 @@ exo_select_values <- function(project,
   )
 }
 
-#' Missing-exogenous diagnostics for complete item cases
-#'
-#' @param project Parsed project.
-#' @param scores Raw scores for all records.
-#' @param complete_item Complete-item mask.
-#' @param valid_exo Valid exogenous-value matrix.
-#' @return Data frame of source-shaped missing diagnostics.
-#' @keywords internal
+# Missing-exogenous diagnostics for complete item cases
+#
+# @param project Parsed project.
+# @param scores Raw scores for all records.
+# @param complete_item Complete-item mask.
+# @param valid_exo Valid exogenous-value matrix.
+# @return Data frame of source-shaped missing diagnostics.
 exo_select_missing_diagnostics <- function(project, scores, complete_item, valid_exo) {
   backgrounds <- project$backgrounds
   rows <- vector("list", nrow(backgrounds))
@@ -162,29 +173,96 @@ exo_select_missing_diagnostics <- function(project, scores, complete_item, valid
   do.call(rbind, rows)
 }
 
-#' Score distribution for exo-selection complete cases
-#'
-#' @param scores Raw scores for complete item-plus-exogenous records.
-#' @return Distribution and summary list.
-#' @keywords internal
-exo_select_score_distribution <- function(scores) {
-  obtainable_min <- 0L
-  obtainable_max <- max(scores)
-  score_values <- seq.int(obtainable_min, obtainable_max)
-  counts <- tabulate(scores + 1L, nbins = obtainable_max + 1L)
-  n <- length(scores)
+# Score distribution for exo-selection item-score cases
+#
+# @param scores Raw scores for all records.
+# @param known Logical mask for records with source-known item scores.
+# @param min_score Lower score limit.
+# @param max_score Upper score limit.
+# @param largest_possible_score Largest source-possible score.
+# @return Distribution and summary list.
+exo_select_score_distribution <- function(scores,
+                                          known = rep(TRUE, length(scores)),
+                                          missing_known = known,
+                                          min_score = 0L,
+                                          max_score = NULL,
+                                          largest_possible_score = NULL) {
+  known <- as.logical(known)
+  known[is.na(known)] <- FALSE
+  missing_known <- as.logical(missing_known)
+  missing_known[is.na(missing_known)] <- FALSE
+  if (length(known) != length(scores)) {
+    stop("`known` must have the same length as `scores`.", call. = FALSE)
+  }
+  if (length(missing_known) != length(scores)) {
+    stop("`missing_known` must have the same length as `scores`.", call. = FALSE)
+  }
+
+  min_score <- as.integer(min_score)
+  if (is.null(max_score)) {
+    max_score <- if (any(known)) max(scores[known]) else min_score
+  }
+  if (is.null(largest_possible_score)) {
+    largest_possible_score <- max_score
+  }
+  max_score <- as.integer(max_score)
+  largest_possible_score <- as.integer(largest_possible_score)
+  known_scores <- as.integer(scores[known])
+  eligible_scores <- known_scores[known_scores >= min_score & known_scores <= max_score]
+  n <- length(eligible_scores)
+  missing <- sum(!missing_known)
+  below <- sum(known_scores < min_score)
+  above <- sum(known_scores > max_score & known_scores <= largest_possible_score)
+
+  # Source trace: SKbias2.pas::SHOW_SCOREDISTRIBUTION prints a dedicated
+  # "No cases with known scores" branch when the eligible score count is zero.
+  if (n == 0L) {
+    return(list(
+      distribution = data.frame(
+        score = integer(),
+        count = integer(),
+        percent = numeric(),
+        cumulative = numeric(),
+        stringsAsFactors = FALSE
+      ),
+      summary = list(
+        n = 0L,
+        mean = NA_real_,
+        variance = NA_real_,
+        sd = NA_real_,
+        skewness = NA_real_,
+        below = as.integer(below),
+        above = as.integer(above),
+        missing = as.integer(missing)
+      )
+    ))
+  }
+
+  highest_score <- max(eligible_scores)
+  score_values <- seq.int(min_score, highest_score)
+  score_factor <- factor(eligible_scores, levels = score_values)
+  counts <- as.integer(tabulate(score_factor, nbins = length(score_values)))
   mean_score <- sum(score_values * counts) / n
   # Source trace: SKbias2.pas::SHOW_SCOREDISTRIBUTION prints the sample
   # variance after accumulating score sums over the displayed distribution.
-  variance <- (sum(score_values^2 * counts) / n - mean_score^2) * n / (n - 1L)
+  variance <- if (n > 1L) {
+    (sum(score_values^2 * counts) / n - mean_score^2) * n / (n - 1L)
+  } else {
+    NA_real_
+  }
   sd_score <- sqrt(variance)
-  third_moment <- sum((score_values - mean_score)^3 * counts / n)
-  skewness <- third_moment * n^2 / ((n - 1L) * (n - 2L)) / sd_score^3
+  skewness <- if (n > 2L && is.finite(sd_score) && sd_score > 0) {
+    third_moment <- sum((score_values - mean_score)^3 * counts / n)
+    third_moment * n^2 / ((n - 1L) * (n - 2L)) / sd_score^3
+  } else {
+    NA_real_
+  }
+  percent <- 100 * counts / n
   distribution <- data.frame(
     score = score_values,
     count = counts,
-    percent = 100 * counts / n,
-    cumulative = cumsum(100 * counts / n),
+    percent = percent,
+    cumulative = cumsum(percent),
     stringsAsFactors = FALSE
   )
   list(
@@ -195,24 +273,24 @@ exo_select_score_distribution <- function(scores) {
       variance = variance,
       sd = sd_score,
       skewness = skewness,
-      above = 0L,
-      missing = 0L
+      below = as.integer(below),
+      above = as.integer(above),
+      missing = as.integer(missing)
     )
   )
 }
 
-#' Source score/exogenous screening values
-#'
-#' @param project Parsed project.
-#' @param scores Raw scores.
-#' @param complete_item Complete-item mask.
-#' @param score_cap Maximum score category after source collapsing.
-#' @return Data frame of screening rows.
-#' @keywords internal
+# Source score/exogenous screening values
+#
+# @param project Parsed project.
+# @param scores Raw scores.
+# @param complete_item Complete-item mask.
+# @param score_cap Maximum score category after source collapsing.
+# @return Data frame of screening rows.
 exo_select_score_screen <- function(project,
                                     scores,
                                     complete_item,
-                                    score_cap = 56L,
+                                    score_cap = gRm_source_score_cap(),
                                     exact = FALSE,
                                     repeated = FALSE,
                                     nsim = 1000L,
@@ -340,7 +418,6 @@ exo_select_score_screen <- function(project,
   screen
 }
 
-#' @keywords internal
 exo_select_stepwise_score_screening <- function(score_category,
                                                 score_valid,
                                                 score_in_range,
@@ -441,7 +518,6 @@ exo_select_stepwise_score_screening <- function(score_category,
   list(rows = rows_df, iterations = iterations, remaining = current)
 }
 
-#' @keywords internal
 exo_select_repeated_count_cutoff <- function(project, exact_state = NULL) {
   if (is.null(exact_state)) {
     exact_state <- gRm_exact_command_state("repeated")
@@ -449,11 +525,10 @@ exo_select_repeated_count_cutoff <- function(project, exact_state = NULL) {
   as.integer(exact_state$seq_limit[[1L]])
 }
 
-#' Source Benjamini-Hochberg thresholds for score/exogenous screening
-#'
-#' @param screen Screening rows from [exo_select_score_screen()].
-#' @return List with FDR 0.05 and 0.01 source critical p-values.
-#' @keywords internal
+# Source Benjamini-Hochberg thresholds for score/exogenous screening
+#
+# @param screen Screening rows from [exo_select_score_screen()].
+# @return List with FDR 0.05 and 0.01 source critical p-values.
 exo_select_bh_thresholds <- function(screen) {
   exact_available <- "exact_chi_p" %in% names(screen) &&
     all(!is.na(screen$exact_chi_p)) &&
@@ -469,14 +544,13 @@ exo_select_bh_thresholds <- function(screen) {
   )
 }
 
-#' Source-shaped Monte Carlo exact score/exogenous test
-#'
-#' @param tab Observed score by exogenous table after source score collapsing.
-#' @param observed_chi Observed chi-square statistic.
-#' @param observed_gamma Observed RC gamma statistic.
-#' @param nsim Number of random tables.
-#' @return List of simulated exact p-values and effective simulation count.
-#' @keywords internal
+# Source-shaped Monte Carlo exact score/exogenous test
+#
+# @param tab Observed score by exogenous table after source score collapsing.
+# @param observed_chi Observed chi-square statistic.
+# @param observed_gamma Observed RC gamma statistic.
+# @param nsim Number of random tables.
+# @return List of simulated exact p-values and effective simulation count.
 exo_select_exact_test <- function(tab,
                                   observed_chi,
                                   observed_gamma,
@@ -552,20 +626,18 @@ exo_select_exact_test <- function(tab,
   )
 }
 
-#' Generate one conditional random table with fixed margins
-#'
-#' This is the R port of `source/PAS_scd/SKrandom.pas::GENTAB1`. It fills the
-#' free cells sequentially using the source hypergeometric probability ordering
-#' around the rounded expected cell and preserves the observed margins.
-#'
-#' @param tab Observed two-way table.
-#' @return Generated two-way table with the same margins.
-#' @keywords internal
+# Generate one conditional random table with fixed margins
+#
+# This is the R port of `source/PAS_scd/SKrandom.pas::GENTAB1`. It fills the
+# free cells sequentially using the source hypergeometric probability ordering
+# around the rounded expected cell and preserves the observed margins.
+#
+# @param tab Observed two-way table.
+# @return Generated two-way table with the same margins.
 exo_select_gentab1 <- function(tab, random_draw = NULL) {
   exo_select_gentab1_prepared(exo_select_prepare_gentab1(tab), random_draw = random_draw)
 }
 
-#' @keywords internal
 exo_select_prepare_gentab1 <- function(tab) {
   tab <- as.matrix(tab)
   row_total <- as.integer(rowSums(tab))
@@ -590,7 +662,6 @@ exo_select_prepare_gentab1 <- function(tab) {
   )
 }
 
-#' @keywords internal
 exo_select_gentab1_prepared <- function(prepared, random_draw = NULL) {
   cdim <- prepared$cdim
   rdim <- prepared$rdim
@@ -689,12 +760,11 @@ exo_select_gentab1_prepared <- function(prepared, random_draw = NULL) {
   newtab
 }
 
-#' Wilson-style 99 percent source confidence limits
-#'
-#' @param n Number of simulations.
-#' @param p Simulated p-value.
-#' @return Numeric vector with lower and upper limits.
-#' @keywords internal
+# Wilson-style 99 percent source confidence limits
+#
+# @param n Number of simulations.
+# @param p Simulated p-value.
+# @return Numeric vector with lower and upper limits.
 source_conflimit99 <- function(n, p) {
   z <- 2.5758
   zsquare <- z * z
@@ -706,11 +776,10 @@ source_conflimit99 <- function(n, p) {
   c(low = (a - b) / c_value, high = (a + b) / c_value)
 }
 
-#' Source gamma test for a score/exogenous table
-#'
-#' @param tab Contingency table.
-#' @return List with gamma and one-sided p-value.
-#' @keywords internal
+# Source gamma test for a score/exogenous table
+#
+# @param tab Contingency table.
+# @return List with gamma and one-sided p-value.
 exo_select_gamma_test <- function(tab) {
   tab <- as.matrix(tab)
   cells <- gamma_cell_tables(tab)
@@ -723,7 +792,7 @@ exo_select_gamma_test <- function(tab) {
   # Source trace: SKbias13/Inexpensive_bt_tests stores gamma in Results[1,5]
   # and the asymptotic one-sided gamma p-value in Results[1,6]. This variance
   # is the SKbias13 RC gamma statistic, not the fitted-gamma variance used by
-  # item-fit residual reports.
+  # item fit residual reports.
   s <- -pmq * (pmq / n)
   for (row in seq_len(nrow(tab))) {
     for (col in seq_len(ncol(tab))) {
@@ -737,16 +806,15 @@ exo_select_gamma_test <- function(tab) {
   list(gamma = gamma, p_one_sided = p_one)
 }
 
-#' Source significance marker
-#'
-#' @param p_value P-value used for the marker.
-#' @param statistic Statistic sign source.
-#' @param bh05 FDR 0.05 threshold.
-#' @param bh01 FDR 0.01 threshold.
-#' @param positive Direction for gamma markers.
-#' @param chi Whether to use chi-square marker style.
-#' @return Marker text.
-#' @keywords internal
+# Source significance marker
+#
+# @param p_value P-value used for the marker.
+# @param statistic Statistic sign source.
+# @param bh05 FDR 0.05 threshold.
+# @param bh01 FDR 0.01 threshold.
+# @param positive Direction for gamma markers.
+# @param chi Whether to use chi-square marker style.
+# @return Marker text.
 exo_select_marker <- function(p_value, statistic, bh05, bh01, positive = TRUE, chi = FALSE) {
   if (p_value <= bh01) {
     if (chi) return("xx")

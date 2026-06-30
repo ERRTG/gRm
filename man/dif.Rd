@@ -9,9 +9,11 @@ dif(fit, max_step = 5000L, max_delta = 1e-04, jobs = 1L, ...)
 \arguments{
 \item{fit}{A fitted DIGRAM model.}
 
-\item{max_step}{Maximum number of fitting iterations for candidate models.}
+\item{max_step}{Single positive integer-like maximum number of fitting
+iterations for candidate models.}
 
-\item{max_delta}{Convergence threshold for candidate models.}
+\item{max_delta}{Single positive finite convergence threshold for candidate
+models.}
 
 \item{jobs}{Number of parallel jobs. Defaults to source-stable serial work.}
 
@@ -31,9 +33,15 @@ data <- data.frame(
   I2 = c(1, 0, 1, 0, 1, 0, 1, 0),
   site = c(0, 0, 1, 1, 0, 1, 0, 1)
 )
-analysis <- gRm(data, items = c("I1", "I2"), exogenous = "site", id = "ID")
+analysis <- gRm(
+  data,
+  items = c("I1", "I2"),
+  exogenous = "site",
+  id = "ID",
+  score_cuts = c(1L, 2L)
+)
 fit0 <- fit(gllrm(analysis))
 dif_tests <- dif(fit0)
-summary(dif_tests, which = "tests")
+summary(dif_tests)
 }
 }

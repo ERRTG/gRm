@@ -1,0 +1,6 @@
+#!/bin/sh
+
+# R's source install can leave compiled products in src/. Remove them so direct
+# `R CMD check gRm` runs see a source tree instead of stale local build output.
+cd "$(dirname "$0")" || exit 1
+rm -f src/*.o src/*.so src/*.dll src/*.dylib src/symbols.rds

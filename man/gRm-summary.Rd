@@ -3,38 +3,34 @@
 \name{gRm-summary}
 \alias{gRm-summary}
 \alias{summary.gRm_analysis}
-\alias{summary.gRm_item_analysis}
 \alias{summary.gRm_model}
-\alias{summary.gRm_gllrm_spec}
 \alias{summary.gRm_fit}
-\alias{summary.gRm_gllrm_fit}
 \alias{summary.gRm_screen}
-\alias{summary.gRm_score_effects}
-\alias{summary.gRm_item_parameters}
-\alias{summary.gRm_item_fit}
 \alias{summary.gRm_local_dependence}
 \alias{summary.gRm_dif}
 \alias{summary.gRm_global_homogeneity}
+\alias{summary.gRm_m2}
+\alias{summary.gRm_m3}
 \alias{print.summary.gRm}
 \title{Summary tables for gRm objects}
 \usage{
-\method{summary}{gRm_analysis}(object, which = "data", ...)
-\method{summary}{gRm_model}(object, which = c("model", "ld", "dif"), ...)
-\method{summary}{gRm_fit}(object, which = c("fit", "parameters", "terms"), ...)
-\method{summary}{gRm_screen}(object, which = c("tests", "selected", "all", "score_effects", "bh"), ...)
-\method{summary}{gRm_score_effects}(object, which = c("selected", "tests", "bh"), ...)
-\method{summary}{gRm_item_parameters}(object, which = c("tests", "coefficients", "items", "thresholds", "fit"), ...)
-\method{summary}{gRm_item_fit}(object, which = c("tests", "items", "bh"), ...)
-\method{summary}{gRm_local_dependence}(object, which = c("selected", "tests", "bh"), ...)
-\method{summary}{gRm_dif}(object, which = c("selected", "tests", "active", "bh"), ...)
-\method{summary}{gRm_global_homogeneity}(object, which = c("tests", "summary", "groups", "items"), ...)
+\method{summary}{gRm_analysis}(object, ...)
+\method{summary}{gRm_model}(object, ...)
+\method{summary}{gRm_fit}(object, which = NULL, ...)
+\method{summary}{gRm_screen}(object, ...)
+\method{summary}{gRm_local_dependence}(object, ...)
+\method{summary}{gRm_dif}(object, ...)
+\method{summary}{gRm_global_homogeneity}(object, which = NULL, ...)
+\method{summary}{gRm_m2}(object, ...)
+\method{summary}{gRm_m3}(object, ...)
 \method{print}{summary.gRm}(x, ...)
 }
 \arguments{
 \item{object}{An gRm analysis, model, fit, screen, or result object.}
 
-\item{which}{Named summary section to return. Available values depend on the
-object class and are shown in the usage block.}
+\item{which}{Optional named summary section to return for summary methods
+with multiple views. Available for \code{gRm_fit} and
+\code{gRm_global_homogeneity}; single-view summaries do not accept \code{which}.}
 
 \item{x}{A \code{summary.gRm} object returned by \code{summary()}.}
 
@@ -52,35 +48,87 @@ API.
 }
 \details{
 The public output layer is based on \code{summary()} rather than DIGRAM
-fixed-width text reports. Users request semantic sections with \code{which}; the
-returned object contains R data frames suitable for inspection, downstream
-analysis, or formatting by user code.
+fixed-width text reports. The returned object contains R data frames suitable
+for inspection, downstream analysis, or formatting by user code. Only
+summaries with multiple user-selectable views accept \code{which}.
+Printed \code{gRm_analysis} summaries start with a compact
+\verb{gRm: Graphical Log-Linear Rasch Model analysis} header showing the data
+argument label, row count, item and exogenous roles, their constructed
+project level counts, ID variable, and score groups without repeating the
+selected data table. It then prints a compact score-group distribution
+derived from the constructed project score data and analysis cutpoints, with
+\code{Score}, \code{Count}, \code{Percent}, and \code{Cumulative} columns. The returned summary
+object still contains the \code{"data"} and \code{"score_groups"} tables for
+programmatic access. \code{gRm_analysis} has one summary surface and does not
+accept \code{which}.
 
 Available sections are class-specific:
 \itemize{
-\item \code{gRm_analysis}: \code{"data"}.
-\item \code{gRm_model}: \code{"model"}, \code{"ld"}, \code{"dif"}.
-\item \code{gRm_fit}: \code{"fit"}, \code{"parameters"}, \code{"terms"}.
-\item \code{gRm_screen}: \code{"tests"}, \code{"selected"}, \code{"all"}, \code{"score_effects"}, \code{"bh"}.
-\item \code{gRm_score_effects}: \code{"selected"}, \code{"tests"}, \code{"bh"}.
-\item \code{gRm_item_parameters}: \code{"tests"}, \code{"coefficients"}, \code{"items"}, \code{"thresholds"}, \code{"fit"}.
-\item \code{gRm_item_fit}: \code{"tests"} returns compact inferential item-fit
-statistics for outfit, infit, and item-restscore gamma; \code{"items"}
-returns the extended per-item outfit/infit diagnostic summary when the
-item-fit object was created with \code{include_extended = TRUE}; \code{"bh"}
-returns Benjamini-Hochberg thresholds for the compact test family.
-\item \code{gRm_local_dependence}: \code{"selected"}, \code{"tests"}, \code{"bh"}.
-\item \code{gRm_dif}: \code{"selected"}, \code{"tests"}, \code{"active"}, \code{"bh"}.
-\item \code{gRm_global_homogeneity}: \code{"tests"}, \code{"summary"}, \code{"groups"}, \code{"items"}.
+\item \code{gRm_analysis}: \code{"data"}, \code{"score_groups"}.
+\item \code{gRm_model}: \code{"model"}. This prints and returns the complete model
+specification surface, including the model summary, LD terms, and DIF
+terms. Printed model summaries show LD and DIF terms as compact term
+lists; the returned summary object retains the full term tables.
+\item \code{gRm_fit}: \code{summary(fit)} prints fitted item parameters, thresholds, and
+fitted LD/DIF terms. \code{which = "parameters"} returns and prints only item
+parameter summaries; \code{which = "thresholds"} returns and prints only
+threshold rows. Fit status is shown by printing the fitted object.
+\item \code{gRm_screen}: \code{summary(screen_obj)} prints one SCREEN J test surface with
+final public decision rows for local-dependence tests, DIF tests, and
+score effects. These rows are source-backed but are not a complete DIGRAM
+oracle report rendering and not a dump of every intermediate SCREEN J
+source table. The printed \code{*} marker follows the source-backed SCREEN J
+decision path at the 5 percent decision level. Local-dependence and DIF
+candidate evidence uses the global Benjamini-Hochberg FDR 0.05 threshold;
+stricter global cutoffs for FDR 0.01 and 0.001 are retained in
+\code{attr(x, "bh")}. Score-effect rows follow the source score-effect
+screening routine, not the global LD/DIF BH table. Selected model terms
+are available as \verb{$selected}, global LD/DIF BH thresholds as
+\code{attr(x, "bh")}, and all selected model terms as \code{attr(x, "model_terms")}.
+The SCREEN J DIF table has separate
+\code{Chisq} / \verb{Pr(>Chisq)} and \code{Gamma} / \verb{Pr(>|Gamma|)} columns because the
+source algorithm chooses the statistic from the exogenous variable shape:
+gamma is used when the exogenous variable is binary by category count
+(\code{raw_max == 2}) or ordinal by source variable type (\code{vtype > 2}), and
+chi-square otherwise. The unused statistic-family cells print as blanks
+and remain \code{NA} in the returned table.
+\item \code{gRm_local_dependence}: \code{"tests"}. Printed summaries show the complete
+local-dependence diagnostic test table directly below the title, with
+item names, chi-square statistics, degrees of freedom, \code{format.pval()}-
+formatted p-values, WPG, yes/no convergence status, delta, and a final
+blank-headed \code{*} marker column for rows selected by the
+Benjamini-Hochberg threshold. The marker note below the table reports the
+FDR value and applied threshold. The returned summary object keeps
+selected rows as \verb{$selected} and the BH cutoff metadata as
+\code{attr(x, "bh")}.
+\item \code{gRm_dif}: \code{"tests"}. Printed summaries show the complete DIF
+candidate test table directly below the title, with item name, exogenous
+variable name, chi-square statistic, degrees of freedom,
+\code{format.pval()}-formatted p-value, gamma, yes/no convergence status,
+yes/no output-stability status, delta, and a final blank-headed \code{*}
+marker column for rows selected by the Benjamini-Hochberg threshold. The
+marker note below the table reports the FDR value and applied threshold.
+The returned summary object keeps selected rows as \verb{$selected}, included
+DIF rows as \verb{$included}, and the BH cutoff metadata as \code{attr(x, "bh")}.
+\item \code{gRm_global_homogeneity}: \code{summary(result)} prints the source-facing
+global homogeneity report: the global test table, fitted score-group
+table, item means by score group, and, when the fitted model has LD and/or
+DIF terms, uniform local-dependence and uniform DIF interaction sections.
+Section-specific calls may use \code{which = "test"},
+\code{which = "score_groups"}, \code{which = "item_means"},
+\code{which = "uniform_ld"}, or \code{which = "uniform_dif"}. The uniform sections
+show one row per fitted LD/DIF term with observed and expected gamma
+columns named by the data-dependent score-group labels, followed by
+chi-square, degrees of freedom, and p-value columns. Residual and marker
+source-status metadata are available as \code{attr(x, "source_status")}; item
+residual and marker cells are not printed because the recovered Pascal
+source does not source-back the exact runtime residual materialization.
+\item \code{gRm_m2} and \code{gRm_m3}: one summary surface. Printed summaries show the
+source-backed M2/M3 aggregate rows, item-trait interaction aggregate,
+invariance decomposition by exogenous variable, and prepared margin rows.
+They do not accept \code{which}; programmatic tables are available from the
+returned summary object and from \code{x$values}.
 }
-
-For \code{gRm_item_fit}, the distinction between \code{"tests"} and \code{"items"} is
-intentional. The \code{"tests"} section is the compact inferential output and is
-always available. The \code{"items"} section is the extended per-item diagnostic
-decomposition and is populated only when the item-fit object was created by
-\code{item_fit(..., include_extended = TRUE)}, which is the default. If
-\code{include_extended = FALSE}, the \code{"items"} section is an empty data frame
-rather than a fallback copy of the test table.
 }
 \examples{
 data <- data.frame(
@@ -89,13 +137,19 @@ data <- data.frame(
   I2 = c(1, 0, 1, 0, 1, 0, 1, 0),
   site = c(0, 0, 1, 1, 0, 1, 0, 1)
 )
-analysis <- gRm(data, items = c("I1", "I2"), exogenous = "site", id = "ID")
+analysis <- gRm(
+  data,
+  items = c("I1", "I2"),
+  exogenous = "site",
+  id = "ID",
+  score_cuts = c(1L, 2L)
+)
 model <- gllrm(analysis)
-summary(analysis, which = "data")
-summary(model, which = "model")
+summary(analysis)
+summary(model)
 }
 \seealso{
 \code{\link[=gRm]{gRm()}}, \code{\link[=gllrm]{gllrm()}}, \code{\link[=fit]{fit()}}, \code{\link[=screen]{screen()}},
-\code{\link[=score_effects]{score_effects()}}, \code{\link[=item_parameters]{item_parameters()}}, \code{\link[=item_fit]{item_fit()}},
-\code{\link[=local_dependence]{local_dependence()}}, \code{\link[=dif]{dif()}}, \code{\link[=global_homogeneity]{global_homogeneity()}}
+\code{\link[=score_effects]{score_effects()}}, \code{\link[=item_fit]{item_fit()}}, \code{\link[=local_dependence]{local_dependence()}}, \code{\link[=dif]{dif()}},
+\code{\link[=global_homogeneity]{global_homogeneity()}}
 }

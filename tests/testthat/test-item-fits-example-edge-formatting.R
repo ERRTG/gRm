@@ -1,6 +1,6 @@
 test_that("extended restscore table rows are built without per-cell overhead", {
   items <- data.frame(
-    label = "a",
+    label_code = "a",
     name = "ItemA",
     stringsAsFactors = FALSE
   )

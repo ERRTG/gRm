@@ -4,51 +4,66 @@
 \alias{item_fit}
 \title{Item fit diagnostics}
 \usage{
-item_fit(fit, include_extended = TRUE, ...)
+item_fit(fit, which = c("tests", "items"), include_extended = TRUE, ...)
 }
 \arguments{
 \item{fit}{A fitted gRm model.}
 
-\item{include_extended}{Whether to compute extended item-fit detail tables.
-When \code{FALSE}, \code{summary(result, which = "items")} returns an empty data
-frame because the per-item extended diagnostic summaries were not
-computed. The compact \code{summary(result, which = "tests")} table remains
-available.}
+\item{which}{Item fit table to return. \code{"tests"} returns the compact
+inferential item fit diagnostics and is the default. \code{"items"} returns the
+extended per-item outfit/infit diagnostic decomposition.}
+
+\item{include_extended}{Whether to compute extended item fit detail tables.
+When \code{FALSE}, \code{item_fit(fit, which = "items")} returns an empty data
+frame with the expected item-summary columns because the per-item extended
+diagnostic summaries were not computed. The compact \code{which = "tests"}
+table remains available.}
 
 \item{...}{Reserved for S3 dispatch compatibility; ignored.}
 }
 \value{
-A \code{gRm_item_fit} result object.
+A data-frame-like \code{gRm_item_fit} table. The unchanged
+\code{gRm_item_fits_values} backend object is available as
+\code{attr(result, "values")}; the Benjamini-Hochberg threshold table is
+available as \code{attr(result, "bh")}.
 }
 \description{
-Compute item-fit statistics for a fitted gRm model. Use
-\code{summary(result, which = "tests")} for compact outfit, infit, and
-item-restscore gamma tests. Use \code{summary(result, which = "items")} for the
-per-item outfit/infit diagnostic summary produced by the extended item-fit
+Run post-fit item diagnostics for a fitted gRm model. \code{item_fit()} is a
+diagnostic procedure, not an item-parameter summary accessor: it checks the
+fitted model against observed item behavior using outfit, infit, and
+item-restscore gamma diagnostics. Use \code{which = "tests"} for compact outfit,
+infit, and item-restscore gamma tests. Use \code{which = "items"} for the
+per-item outfit/infit diagnostic summary produced by the extended item fit
 calculation.
 }
 \details{
-The item-fit result has two different public summary layers. The
-\code{summary(result, which = "tests")} layer is always available and returns one
-row per item with the compact inferential statistics: outfit, infit,
-item-restscore gamma, standard errors, p-values, FDR labels, and direction.
-Its columns are \code{item_label}, \code{item_name}, \code{outfit}, \code{outfit_sd},
-\code{p_outfit}, \code{outfit_fdr}, \code{infit}, \code{infit_sd}, \code{p_infit}, \code{infit_fdr},
-\code{observed_gamma}, \code{expected_gamma}, \code{gamma_sd}, \code{p_gamma}, \code{gamma_fdr},
-and \code{direction}.
+The item fit result has two different public diagnostic tables. The
+\code{which = "tests"} table is always available and returns one row per item
+with the compact inferential statistics: outfit, infit, item-restscore
+gamma, standard errors, p-values, and gamma direction. Its public columns
+are \code{Item}, \code{Outfit}, \verb{Outfit SE}, \verb{Pr(>Outfit)}, \code{Infit}, \verb{Infit SE},
+\verb{Pr(>Infit)}, \verb{Observed gamma}, \verb{Expected gamma}, \verb{Gamma SE},
+\verb{Pr(>Gamma)}, and \verb{Gamma direction}. The source-facing backend table in
+\code{attr(result, "values")$items} keeps the original DIGRAM-shaped columns,
+including \code{item_label}, \code{item_name}, \code{outfit_fdr}, \code{infit_fdr}, and
+\code{gamma_fdr}.
 
-The \code{summary(result, which = "items")} layer is also one row per item, but it
-is not a second test table. It returns the extended outfit/infit
-decomposition: aggregate observed and expected outfit components, the
-resulting outfit value, and the observed, expected, variance, and ratio
-components for infit. Its columns are \code{item_label}, \code{item_name},
-\code{outfit_total_n}, \code{outfit_total_observed}, \code{outfit_total_expected},
-\code{outfit_total_value}, \code{infit_observed}, \code{infit_expected},
-\code{infit_variance}, and \code{infit_value}.
+The \code{which = "items"} table is also one row per item, but it is not a
+second test table or an item-parameter table. It returns the extended
+outfit/infit diagnostic decomposition: aggregate observed and expected
+outfit components, the resulting outfit value, and the observed, expected,
+variance, and ratio components for infit. Its public columns are \code{Item},
+\verb{Outfit N}, \verb{Outfit observed}, \verb{Outfit expected}, \verb{Outfit total},
+\verb{Infit observed}, \verb{Infit expected}, \verb{Infit variance}, and \verb{Infit ratio}.
+The source-facing backend table in
+\code{attr(result, "values")$extended$summaries} keeps the original DIGRAM-shaped
+columns, including \code{item_label}, \code{item_name}, \code{outfit_total_value}, and
+\code{infit_value}.
 
-\code{summary(result, which = "bh")} returns the Benjamini-Hochberg critical
-p-value limits used for the combined compact item-fit test family. Its
-columns are \code{threshold} and \code{p_value}.
+The Benjamini-Hochberg critical p-value limits used for the combined compact
+item fit test family are printed below the tests table and are also metadata
+rather than a separate printed view. Use \code{attr(result, "bh")} to inspect all
+available thresholds programmatically.
 
 The item-restscore gamma standard error follows the DIGRAM source
 convention. For each item, gRm builds observed and fitted item-by-restscore
@@ -60,12 +75,24 @@ recalculated as a separate sample-only or resampling standard error.
 
 The \code{"items"} layer depends on the extended calculation. With the default
 \code{include_extended = TRUE}, \code{item_fit()} computes that layer and
-\code{summary(result, which = "items")} is populated. With
-\code{include_extended = FALSE}, the extended calculation is skipped and
-\code{summary(result, which = "items")} returns an empty data frame. The compact
-\code{summary(result, which = "tests")} and \code{summary(result, which = "bh")}
-sections remain available.
+\code{item_fit(fit, which = "items")} is populated. With \code{include_extended = FALSE}, the extended calculation is skipped and \code{item_fit(fit, which = "items")} returns an empty data frame. The compact \code{which = "tests"} table
+and BH metadata remain available.
 }
+\section{Incomplete item fit records}{
+
+The original DIGRAM source has additional item fit and item-restscore gamma
+branches for incomplete response records when the runtime
+\code{NincompleteRecs} state has been populated. The current gRm implementation
+does not have a source-backed way to determine when that runtime list exists,
+so public \code{item_fit()} results do not synthesize incomplete item fit records
+from rows with missing item responses. Those rows are therefore outside the
+source-faithful item fit scope of this package version unless a future
+source/runtime trace establishes the corresponding DIGRAM state. Public
+item fit values expose \code{incomplete_records_used = FALSE} and
+\code{incomplete_records_status = "not_source_backed"} until the full source
+include-incomplete path is implemented.
+}
+
 \examples{
 \donttest{
 data <- data.frame(
@@ -73,9 +100,13 @@ data <- data.frame(
   I1 = c(0, 1, 0, 1, 0, 1, 1, 0),
   I2 = c(1, 0, 1, 0, 1, 0, 1, 0)
 )
-fit0 <- fit(gllrm(gRm(data, items = c("I1", "I2"), id = "ID")))
+fit0 <- fit(gllrm(gRm(
+  data,
+  items = c("I1", "I2"),
+  id = "ID",
+  score_cuts = c(1L, 2L)
+)))
 item_tests <- item_fit(fit0)
-summary(item_tests, which = "tests")
-summary(item_tests, which = "items")
+item_summaries <- item_fit(fit0, which = "items")
 }
 }
