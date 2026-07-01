@@ -4,6 +4,8 @@
 
 ### Changed
 
+- The `m2()` and `m3()` help pages now mark the diagnostics as experimental in
+  their titles and details text.
 - The package test helper now recognizes the standard `R CMD check`
   `00_pkg_src/gRm` source layout, so source-faithfulness tests can run from a
   built package tarball as well as from the development source tree.

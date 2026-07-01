@@ -2,7 +2,7 @@
 % Please edit documentation in R/api-m2-m3.R
 \name{m3}
 \alias{m3}
-\title{M3 fit diagnostic}
+\title{M3 fit diagnostic (experimental)}
 \usage{
 m3(fit, items = NULL, score_cuts = NULL, ...)
 }
@@ -31,6 +31,10 @@ A \code{gRm_m3} result object. Programmatic tables are available in
 Compute DIGRAM's source-backed M3 diagnostic for a fitted gRm model.
 }
 \details{
+This function is experimental. The deterministic source-backed computation
+is implemented, but the public API and returned table layout may change as
+M2/M3 validation coverage expands.
+
 \code{m3()} is a diagnostic for the current fitted model. It does not search for,
 select, add, or refit local-dependence or DIF terms.
 

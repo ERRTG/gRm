@@ -1,4 +1,4 @@
-#' M2 fit diagnostic
+#' M2 fit diagnostic (experimental)
 #'
 #' Compute DIGRAM's source-backed M2 diagnostic for a fitted gRm model.
 #'
@@ -17,6 +17,10 @@
 #' @return A `gRm_m2` result object. Programmatic tables are available in
 #'   `result$values`.
 #' @details
+#' This function is experimental. The deterministic source-backed computation
+#' is implemented, but the public API and returned table layout may change as
+#' M2/M3 validation coverage expands.
+#'
 #' `m2()` is a diagnostic for the current fitted model. It does not search for,
 #' select, add, or refit local-dependence or DIF terms.
 #'
@@ -63,7 +67,7 @@ m2 <- function(fit, items = NULL, score_cuts = NULL, ...) {
   new_m2_m3_result(fit, values, "gRm_m2", "m2", match.call())
 }
 
-#' M3 fit diagnostic
+#' M3 fit diagnostic (experimental)
 #'
 #' Compute DIGRAM's source-backed M3 diagnostic for a fitted gRm model.
 #'
@@ -71,6 +75,10 @@ m2 <- function(fit, items = NULL, score_cuts = NULL, ...) {
 #' @return A `gRm_m3` result object. Programmatic tables are available in
 #'   `result$values`.
 #' @details
+#' This function is experimental. The deterministic source-backed computation
+#' is implemented, but the public API and returned table layout may change as
+#' M2/M3 validation coverage expands.
+#'
 #' `m3()` is a diagnostic for the current fitted model. It does not search for,
 #' select, add, or refit local-dependence or DIF terms.
 #'
