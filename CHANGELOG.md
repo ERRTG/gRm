@@ -6,6 +6,10 @@
 
 - The `m2()` and `m3()` help pages now mark the diagnostics as experimental in
   their titles and details text.
+- The README workflow now reflects the current public API, including fitted
+  parameter summaries through `summary(fit)`, direct table output from
+  `item_fit()` and `score_effects()`, and experimental `m2()`/`m3()`
+  diagnostics.
 - The package test helper now recognizes the standard `R CMD check`
   `00_pkg_src/gRm` source layout, so source-faithfulness tests can run from a
   built package tarball as well as from the development source tree.

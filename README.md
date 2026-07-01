@@ -10,12 +10,28 @@ fit0 <- fit(model)
 
 fit0
 summary(fit0)
-summary(item_parameters(fit0))
-summary(item_fit(fit0), which = "tests")
-summary(local_dependence(fit0), which = "tests")
-summary(dif(fit0), which = "tests")
-summary(global_homogeneity(fit0), which = "tests")
-summary(score_effects(analysis), which = "tests")
+summary(fit0, which = "parameters")
+summary(fit0, which = "thresholds")
+
+item_fit(fit0)
+item_fit(fit0, which = "items")
+
+ld <- local_dependence(fit0)
+ld
+summary(ld)
+
+dif_tests <- dif(fit0)
+dif_tests
+summary(dif_tests)
+
+global <- global_homogeneity(fit0)
+global
+summary(global)
+
+score_effects(analysis)
+
+m2(fit0) # experimental
+m3(fit0) # experimental
 ```
 
 The installed package computes numeric results from data and model objects. It
@@ -29,15 +45,22 @@ validation against historical DIGRAM output lives under
 The exported functions are:
 
 - `gRm()` and `read_digram_project()` for data setup;
-- `gllrm()` and `fit()` for model specification and estimation;
+- `gllrm()`, `model_graph()`, `plot()`, `fit()`, `logLik()`, and `anova()`
+  for model specification, graph inspection, estimation, and likelihood
+  comparison;
 - `screen()` and `score_effects()` for screening and exogenous score-effect
   diagnostics;
-- `item_parameters()`, `item_fit()`, `local_dependence()`, `dif()`, and
-  `global_homogeneity()` for post-fit numeric results.
+- `item_fit()`, `local_dependence()`, `dif()`, `global_homogeneity()`, and
+  `ari()` for post-fit numeric results;
+- experimental `m2()` and `m3()` fit diagnostics.
 
-`summary()` is the public presentation surface. Use `which =` to select a
-named summary section, such as `"parameters"`, `"thresholds"`, `"tests"`, or
-`"bh"`, depending on the object.
+Fitted item parameters and thresholds are reported through `summary(fit)` and
+`summary(fit, which = "parameters" / "thresholds")`; there is no separate
+`item_parameters()` accessor. Some diagnostics, such as `item_fit()` and
+`score_effects()`, return their public tables directly. Use `summary()` for
+analysis, model, fit, and diagnostic result objects, and use `which =` only for
+documented multi-view outputs, such as fitted parameters, item-fit tables, and
+global-homogeneity sections.
 
 ## Source Faithfulness
 
