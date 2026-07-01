@@ -18,7 +18,7 @@ knitr::opts_chunk$set(comment = NA)
 
 Optionally install the R package
 ```{r, eval = FALSE}
-remotes::install_github("aejensen/digram", subdir = "gRm")
+remotes::install_github("ERRTG/gRm")
 ```
 
 Then we load the package.
