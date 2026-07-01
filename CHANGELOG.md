@@ -6,10 +6,6 @@
 
 - The `m2()` and `m3()` help pages now mark the diagnostics as experimental in
   their titles and details text.
-- The README workflow now reflects the current public API, including fitted
-  parameter summaries through `summary(fit)`, direct table output from
-  `item_fit()` and `score_effects()`, and experimental `m2()`/`m3()`
-  diagnostics.
 - The package test helper now recognizes the standard `R CMD check`
   `00_pkg_src/gRm` source layout, so source-faithfulness tests can run from a
   built package tarball as well as from the development source tree.
@@ -571,10 +567,9 @@
 - Generated native artifacts in `gRm/src/` and a Markdown implementation note
   under `gRm/R/` polluted source-package checks and production-copy workflows.
   The ignored native build products were removed from the working tree, the
-  implementation note was moved to repository docs so package-root `README.md`
-  remains available as the GitHub installation guide, build-ignore rules now
-  exclude generated native products from source bundles, and a focused API guard
-  now fails if Markdown files reappear in the R source directory.
+  implementation note was moved out of the package source tree, build-ignore
+  rules now exclude generated native products from source bundles, and a focused
+  API guard now fails if Markdown files reappear in the R source directory.
 - Repeated internal association-gamma helpers used separate implementations for
   local dependence, DIF, SCREEN J, marginal gamma, item fit gamma, and
   GLLRM standardized tables. These helpers are now routed through one
