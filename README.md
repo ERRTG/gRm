@@ -1,7 +1,17 @@
 # gRm
 
 `gRm` is a native R implementation of the GLLRM-oriented parts of DIGRAM.
-The public API is a compact statistical modeling workflow:
+The public API is a compact statistical modeling workflow.
+
+## Installation
+
+Install the latest release from GitHub with:
+
+```r
+remotes::install_github("ERRTG/gRm")
+```
+
+## Example
 
 ```r
 analysis <- gRm(data, items = c("I1", "I2", "I3"), exogenous = "site")
