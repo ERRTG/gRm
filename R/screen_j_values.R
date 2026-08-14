@@ -1321,6 +1321,23 @@ screen_j_problem_counts <- function(gamma, p, fdr05, i, j, temp_p = p) {
   c(positive = positive, negative = negative)
 }
 
+#' Select and finalize SCREEN J local-dependence evidence
+#'
+#' Reproduce the four-stage greedy selection in
+#' `SKbias7.stepwise_elimination`, then apply the separate command-level
+#' positive-local-dependence filter in `DIGRAM1f.pas`. The provisional result
+#' is retained for diagnostics, whereas `matrix` and `rows` contain only the
+#' terms that DIGRAM permits in the screen model.
+#'
+#' @param gamma Directed partial-gamma matrix.
+#' @param p Directed partial-gamma p-value matrix.
+#' @param weighted_gamma Symmetric weighted-partial-gamma matrix.
+#' @param fdr05 Global SCREEN J Benjamini-Hochberg boundary at FDR 0.05.
+#' @return A list containing final model `matrix` and `rows`, provisional
+#'   `stepwise_matrix` and `stepwise_rows`, and excluded `negative_matrix` and
+#'   `negative_rows`.
+#' @keywords internal
+#' @noRd
 screen_j_stepwise_local_dependence <- function(gamma, p, weighted_gamma, fdr05) {
   n_items <- nrow(gamma)
   temp_p <- p
@@ -1375,11 +1392,81 @@ screen_j_stepwise_local_dependence <- function(gamma, p, weighted_gamma, fdr05) 
   while (choose_pair("negative", list(count = 1L, direction = "negative"))) {}
 
   if (length(rows) == 0L) {
-    rows_df <- data.frame(row = integer(), col = integer(), pair = character(), value = numeric(), stage = character())
+    rows_df <- data.frame(
+      row = integer(),
+      col = integer(),
+      pair = character(),
+      value = numeric(),
+      stage = character(),
+      stringsAsFactors = FALSE
+    )
   } else {
     rows_df <- do.call(rbind, rows)
   }
-  list(matrix = selected, rows = rows_df)
+
+  screen_j_finalize_local_dependence(gamma, selected, rows_df)
+}
+
+#' Apply DIGRAM's final SCREEN J local-dependence model rule
+#'
+#' The greedy SCREEN J procedure reports both positive and negative evidence.
+#' Since DIGRAM version 3.37, a provisional pair becomes a screen-model term
+#' only when the sum of its two directed partial gammas is strictly positive.
+#'
+#' @param gamma Directed partial-gamma matrix.
+#' @param stepwise_matrix Symmetric logical matrix of provisional selections.
+#' @param stepwise_rows Ordered provisional-selection table.
+#' @return A local-dependence selection list with separate provisional, final,
+#'   and excluded-negative representations.
+#' @keywords internal
+#' @noRd
+screen_j_finalize_local_dependence <- function(gamma, stepwise_matrix, stepwise_rows) {
+  rows <- stepwise_rows
+  if (!is.data.frame(rows)) {
+    rows <- data.frame()
+  }
+
+  # Source trace: DIGRAM1f command 3, parameters I/J, removes a provisional
+  # LocalDependence[i,j] unless IJXgamma[i,j] + IJXgamma[j,i] > 0. This is an
+  # unweighted sum of the two directed partial gammas; it is not the WPG sign
+  # and it is not implied by the provisional stage label.
+  if (nrow(rows)) {
+    index_forward <- cbind(rows$row, rows$col)
+    index_reverse <- cbind(rows$col, rows$row)
+    rows$directed_gamma_sum <- gamma[index_forward] + gamma[index_reverse]
+    rows$included <- !is.na(rows$directed_gamma_sum) & rows$directed_gamma_sum > 0
+  } else {
+    rows$directed_gamma_sum <- numeric()
+    rows$included <- logical()
+  }
+
+  final_matrix <- matrix(
+    FALSE,
+    nrow = nrow(stepwise_matrix),
+    ncol = ncol(stepwise_matrix),
+    dimnames = dimnames(stepwise_matrix)
+  )
+  if (nrow(rows) && any(rows$included)) {
+    included_rows <- rows[rows$included, , drop = FALSE]
+    final_matrix[cbind(included_rows$row, included_rows$col)] <- TRUE
+    final_matrix[cbind(included_rows$col, included_rows$row)] <- TRUE
+  }
+
+  negative_matrix <- stepwise_matrix & !final_matrix
+  included_rows <- rows[rows$included, , drop = FALSE]
+  negative_rows <- rows[!rows$included, , drop = FALSE]
+  rownames(rows) <- NULL
+  rownames(included_rows) <- NULL
+  rownames(negative_rows) <- NULL
+
+  list(
+    matrix = final_matrix,
+    rows = included_rows,
+    stepwise_matrix = stepwise_matrix,
+    stepwise_rows = rows,
+    negative_matrix = negative_matrix,
+    negative_rows = negative_rows
+  )
 }
 
 screen_j_post_screen_dif <- function(item_matrix,

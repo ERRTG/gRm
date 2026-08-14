@@ -593,6 +593,10 @@ print.summary.gRm <- function(x, ...) {
     }
     print_summary_table_note(x$table_notes[[name]])
   }
+  if (inherits(x, "summary.gRm_screen")) {
+    cat("\nSelected model terms\n")
+    print_fit_term_table(x$selected)
+  }
   invisible(x)
 }
 
@@ -659,8 +663,13 @@ print_screen_tests_table <- function(table) {
   display <- table
   digits <- max(3L, getOption("digits") - 3L)
   dig_tst <- max(1L, min(5L, digits - 1L))
-  statistic_columns <- c("Chisq", "Gamma", "WPG")
-  p_value_columns <- c("Pr(>Chisq)", "Pr(>|Gamma|)", "Pr(>|WPG|)")
+  statistic_columns <- c(
+    "Chisq", "Gamma", "WPG", "Gamma 1->2", "Gamma 2->1", "Gamma sum"
+  )
+  p_value_columns <- c(
+    "Pr(>Chisq)", "Pr(>|Gamma|)",
+    "Pr(>|Gamma 1->2|)", "Pr(>|Gamma 2->1|)"
+  )
   for (column in statistic_columns) {
     if (column %in% names(display)) {
       missing <- is.na(display[[column]])
@@ -830,22 +839,38 @@ print_item_fit_tests_table <- function(table) {
   digits <- max(3L, getOption("digits") - 3L)
   dig_tst <- max(1L, min(5L, digits - 1L))
   statistic_columns <- c("Outfit", "Outfit SE", "Infit", "Infit SE")
-  p_value_columns <- c("Pr(>Outfit)", "Pr(>Infit)", "Pr(>Gamma)")
+  p_value_markers <- c(
+    `Pr(>Outfit)` = "Outfit FDR",
+    `Pr(>Infit)` = "Infit FDR",
+    `Pr(>Gamma)` = "Gamma FDR"
+  )
   gamma_columns <- c("Observed gamma", "Expected gamma", "Gamma SE")
   for (column in statistic_columns) {
     if (column %in% names(display)) {
       display[[column]] <- format(signif(display[[column]], dig_tst), digits = dig_tst)
     }
   }
-  for (column in p_value_columns) {
+  for (column in names(p_value_markers)) {
     if (column %in% names(display)) {
-      display[[column]] <- format.pval(
+      formatted <- format.pval(
         display[[column]],
         digits = dig_tst,
         eps = .Machine$double.eps
       )
+      marker_column <- unname(p_value_markers[[column]])
+      marker <- if (marker_column %in% names(display)) {
+        as.character(display[[marker_column]])
+      } else {
+        rep("", nrow(display))
+      }
+      marker[is.na(marker)] <- ""
+      # DIGRAM writes every FDR marker into a three-character suffix field
+      # (`*  `, `** `, `***`, or three blanks). Reserving that field keeps the
+      # numeric p-values aligned independently of their marker grade.
+      display[[column]] <- paste0(formatted, sprintf("%-3s", marker))
     }
   }
+  display[intersect(unname(p_value_markers), names(display))] <- NULL
   for (column in gamma_columns) {
     if (column %in% names(display)) {
       display[[column]] <- format(signif(display[[column]], digits), digits = digits)
@@ -1409,6 +1434,7 @@ public_screen_summary_tables <- function(object) {
 
 public_screen_local_dependence_tests <- function(values) {
   p <- values$partial$item_p %||% matrix(numeric(), nrow = 0L, ncol = 0L)
+  gamma <- values$partial$item_gamma %||% matrix(numeric(), nrow = 0L, ncol = 0L)
   wpg <- values$partial$weighted_gamma %||% matrix(numeric(), nrow = 0L, ncol = 0L)
   items <- values$items %||% data.frame()
   n_items <- nrow(items)
@@ -1416,25 +1442,48 @@ public_screen_local_dependence_tests <- function(values) {
     return(data.frame(
       `Item 1` = character(),
       `Item 2` = character(),
+      `Gamma 1->2` = numeric(),
+      `Pr(>|Gamma 1->2|)` = numeric(),
+      `Gamma 2->1` = numeric(),
+      `Pr(>|Gamma 2->1|)` = numeric(),
       WPG = numeric(),
-      `Pr(>|WPG|)` = numeric(),
+      `Gamma sum` = numeric(),
+      Decision = character(),
       ` ` = character(),
       check.names = FALSE
     ))
   }
-  selected <- values$model$local_dependence$matrix %||% matrix(FALSE, nrow = n_items, ncol = n_items)
+  selected <- values$model$local_dependence$matrix %||%
+    matrix(FALSE, nrow = n_items, ncol = n_items)
+  stepwise <- values$model$local_dependence$stepwise_matrix %||% selected
   rows <- which(upper.tri(matrix(FALSE, nrow = n_items, ncol = n_items)), arr.ind = TRUE)
+  reverse_rows <- cbind(rows[, "col"], rows[, "row"])
   item_names <- screen_item_names(items, n_items)
+  gamma_forward <- screen_matrix_value(gamma, rows)
+  gamma_reverse <- screen_matrix_value(gamma, reverse_rows)
+  included <- screen_matrix_value(selected, rows, default = FALSE) %in% TRUE
+  provisional <- screen_matrix_value(stepwise, rows, default = FALSE) %in% TRUE
   out <- data.frame(
     `Item 1` = item_names[rows[, "row"]],
     `Item 2` = item_names[rows[, "col"]],
+    `Gamma 1->2` = gamma_forward,
+    `Pr(>|Gamma 1->2|)` = screen_matrix_value(p, rows),
+    `Gamma 2->1` = gamma_reverse,
+    `Pr(>|Gamma 2->1|)` = screen_matrix_value(p, reverse_rows),
     WPG = screen_matrix_value(wpg, rows),
-    `Pr(>|WPG|)` = screen_matrix_value(p, rows),
-    ` ` = ifelse(screen_matrix_value(selected, rows, default = FALSE) %in% TRUE, "*", ""),
+    `Gamma sum` = gamma_forward + gamma_reverse,
+    Decision = ifelse(
+      included,
+      "included",
+      ifelse(provisional, "negative LD; not included", "")
+    ),
+    ` ` = ifelse(included, "*", ""),
     check.names = FALSE,
     stringsAsFactors = FALSE
   )
-  out[!is.na(out[["Pr(>|WPG|)"]]) & out[["Pr(>|WPG|)"]] > 1, "Pr(>|WPG|)"] <- NA_real_
+  for (column in c("Pr(>|Gamma 1->2|)", "Pr(>|Gamma 2->1|)")) {
+    out[!is.na(out[[column]]) & out[[column]] > 1, column] <- NA_real_
+  }
   out
 }
 
@@ -1886,12 +1935,15 @@ public_screen_bh_marker_note <- function(bh, digits = max(3L, getOption("digits"
   dig_tst <- max(1L, min(5L, digits - 1L))
   paste0(
     "*: selected by the SCREEN J source decision path at the 5% level. ",
-    "Local-dependence and DIF candidate evidence uses the global ",
+    "For local dependence, * means retained in the final screen model; ",
+    "provisional negative LD is named in the Decision column and excluded. ",
+    "Local-dependence and DIF candidate evidence use the global ",
     "Benjamini-Hochberg threshold for FDR = ",
     fdr,
     " (threshold = ",
     format.pval(threshold, digits = dig_tst, eps = .Machine$double.eps),
-    "); stricter global cutoffs are available in attr(x, \"bh\")."
+    "); score effects use their source screening routine, and stricter global ",
+    "cutoffs are available in attr(x, \"bh\")."
   )
 }
 

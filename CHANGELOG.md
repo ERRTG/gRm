@@ -1,9 +1,18 @@
 # gRm Changelog
 
-## gRm 0.06 - 2026-06-21
+## gRm 0.07 - 2026-08-12
 
 ### Changed
 
+- Restored DIGRAM's item-fit FDR flags in the public `item_fit()` test table.
+  `Outfit FDR`, `Infit FDR`, and `Gamma FDR` now show `*`, `**`, or `***`
+  beside the corresponding p-value for source grades at the 5%, 1%, and 0.1%
+  levels. Printed p-values reserve a fixed three-character marker suffix so
+  their numeric parts remain aligned. These flags come from three separate
+  across-item Benjamini-Hochberg procedures, as in DIGRAM; the combined
+  item-fit thresholds printed below the table remain separate summary
+  information. Oracle normalization now compares the three source flag grades
+  directly.
 - The `m2()` and `m3()` help pages now mark the diagnostics as experimental in
   their titles and details text.
 - The package test helper now recognizes the standard `R CMD check`
@@ -84,6 +93,16 @@
   views for `"selected"`, `"all"`, `"score_effects"`, and `"bh"` are no longer
   public summary views; selected model terms and BH thresholds remain available
   programmatically on the returned summary object.
+- Fixed SCREEN J local-dependence finalization to match DIGRAM version 3.37.
+  The four-stage greedy procedure still retains provisional positive and
+  negative LD evidence, but a provisional pair now enters the screen model
+  only when the sum of its two directed partial gammas is strictly positive.
+  Negative LD remains visible as `negative LD; not included` and is excluded
+  from `summary(screen)$selected`, `model_terms(screen)`, and the default
+  `gllrm(screen)` model. SCREEN summaries now print both directed gamma tests,
+  WPG, the directed-gamma sum, the final decision, and an explicit selected
+  model-term section. Oracle validation now compares provisional and final LD
+  membership for every item pair.
 - Removed the lone base-pipe use from internal table helpers so package checks
   do not infer an undeclared R (>= 4.1.0) dependency.
 - The `screen()` and summary documentation now explain why SCREEN J DIF summary

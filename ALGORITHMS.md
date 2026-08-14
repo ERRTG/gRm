@@ -267,6 +267,12 @@ Source trace:
 - `source/PAS_scd/SKbias7.pas::inexpensive_rosenberg`;
 - `source/PAS_scd/SKbias7.pas::inexpensive_itembias1`;
 - `source/PAS_scd/SKbias3.pas::XYZ_bias_ANALYSE`;
+- `source/PAS_skunits/SKbias7.pas::number_of_Tjur_problems`,
+  `Adjusted_number_of_Tjur_problems`, and `stepwise_elimination`;
+- `source/PAS_skunits/DIGRAM1f.pas`, command 3 `SCREEN`, parameters `I` and
+  `J`, for the final positive-local-dependence model filter;
+- `source/PAS_skunits/SKVars.pas`, version 3.37, for the rule that negative
+  local dependence is reported but not included in the screen model;
 - `SkStat.RCGAMMA`, `SkStat.RCCHI`, `PNORMAL`, `PFCHI`, and
   `BenjaminiHochberg`.
 
@@ -367,6 +373,210 @@ algorithm screen_j_values(project, exact = false, nsim = 1000, seed = 9)
     return the source Benjamini-Hochberg critical boundary alpha * i / m for
       the largest accepted index i
   end for
+end algorithm
+```
+
+The 5% Benjamini-Hochberg boundary is not itself the final local-dependence
+model rule. DIGRAM first classifies the two directed tests for every unordered
+item pair, combines their concordance counts into a weighted partial gamma,
+and applies a staged greedy procedure. The resulting rows are provisional
+SCREEN evidence. A separate command-level filter then determines which of
+those rows are eligible to become GLLRM terms.
+
+For an unordered pair \(\{i,j\}\), write \(\gamma_{ij}\) and \(p_{ij}\) for
+the partial gamma and p-value obtained when item \(i\) is the row item and item
+\(j\) is the other item. Let \(c_{.05}\) be the global 5% boundary returned by
+the preceding Benjamini-Hochberg calculation. The source treats a zero gamma
+as non-positive.
+
+```text
+algorithm screen_j_directed_evidence_counts(gamma, p, i, j, c_05)
+  positive <- 0
+  negative <- 0
+
+  for direction (a, b) in {(i, j), (j, i)}:
+    if p[a, b] <= c_05:
+      if gamma[a, b] > 0:
+        positive <- positive + 1
+      else:
+        negative <- negative + 1
+      end if
+    end if
+  end for
+
+  return (positive, negative)
+end algorithm
+```
+
+Thus `positive = 2` means that both directed tests cross the common 5% FDR
+boundary and both directed gammas are positive. `positive = 1` means exactly
+one directed test supplies significant positive evidence; it does not imply
+that the other direction is non-significant, because that direction may
+instead supply significant negative evidence. The analogous interpretation
+holds for `negative = 2` and `negative = 1`.
+
+The pairwise ordering statistic is DIGRAM's weighted partial gamma (WPG), not
+the unweighted mean of the two directed gammas. If `PMQ[a,b]` and `PPQ[a,b]`
+are the directed concordance-minus-discordance and comparable-pair totals
+accumulated by item screening, then
+
+\[
+  \operatorname{WPG}_{ij}
+  =
+  \frac{\operatorname{PMQ}_{ij}+\operatorname{PMQ}_{ji}}
+       {\operatorname{PPQ}_{ij}+\operatorname{PPQ}_{ji}}.
+\]
+
+The same symmetric value is stored at positions \((i,j)\) and \((j,i)\). A
+pair with zero combined `PPQ` has no usable WPG and cannot improve the
+zero-valued positive or negative search sentinel, so it is not chosen by the
+source stepwise procedure.
+
+```text
+algorithm screen_j_greedy_ld_evidence(gamma, p, PMQ, PPQ, c_05)
+  temp_p <- p
+  provisional_matrix <- symmetric all-false item-by-item matrix
+  provisional_rows <- empty ordered table
+
+  for each unordered pair {i,j}, i < j:
+    original_count[i,j] <-
+      screen_j_directed_evidence_counts(gamma, p, i, j, c_05)
+    if PPQ[i,j] + PPQ[j,i] > 0:
+      WPG[i,j] <- (PMQ[i,j] + PMQ[j,i]) /
+                  (PPQ[i,j] + PPQ[j,i])
+      WPG[j,i] <- WPG[i,j]
+    else:
+      WPG[i,j] and WPG[j,i] <- unavailable
+    end if
+  end for
+
+  stages <- [(positive, 2), (positive, 1),
+             (negative, 2), (negative, 1)]
+
+  for (sign, required_count) in stages, in this exact order:
+    repeat:
+      best_pair <- none
+      best_value <- 0
+
+      scan pairs {i,j} in increasing i and then increasing j:
+        adjusted_count <-
+          screen_j_directed_evidence_counts(gamma, temp_p, i, j, c_05)
+
+        eligible <-
+          original_count[i,j][sign] = required_count and
+          adjusted_count[sign] > 0 and
+          WPG[i,j] is available
+
+        if sign is positive and eligible and WPG[i,j] > best_value:
+          best_pair <- {i,j}
+          best_value <- WPG[i,j]
+        else if sign is negative and eligible and WPG[i,j] < best_value:
+          best_pair <- {i,j}
+          best_value <- WPG[i,j]
+        end if
+      end scan
+
+      if best_pair is none:
+        leave this stage
+      end if
+
+      let best_pair be {i0,j0}
+      provisional_matrix[i0,j0] <- true
+      provisional_matrix[j0,i0] <- true
+      append (i0, j0, WPG[i0,j0],
+              stage = sign concatenated with required_count)
+        to provisional_rows
+
+      # Source-faithful directed suppression. The original gamma and p-value
+      # matrices remain unchanged; only these two outgoing temporary rows are
+      # made ineligible for later choices.
+      temp_p[i0, every item] <- 2.0
+      temp_p[j0, every item] <- 2.0
+    end repeat
+  end for
+
+  return (provisional_matrix, provisional_rows, WPG)
+end algorithm
+```
+
+Comparisons with `best_value` are strict. Consequently, a positive stage only
+selects a pair with WPG greater than zero, a negative stage only selects a pair
+with WPG less than zero, and an exact WPG tie is retained for the first pair in
+source scan order. Suppression is directional because `temp_p` stores directed
+tests: after selecting \(\{i_0,j_0\}\), evidence directed *from* either selected
+item is disabled. A competing pair that shares one of those items can still be
+eligible if its remaining direction, from the unselected item, crosses the FDR
+boundary. This is the behavior of `stepwise_elimination`; replacing it with
+undirected whole-item deletion would be a different algorithm.
+
+The stage label describes why a row was chosen during the greedy evidence
+procedure. It is not the final model-inclusion decision. After item screening
+returns, the command-level code in `DIGRAM1f.pas` applies the following filter
+to every provisional pair.
+
+```text
+algorithm screen_j_final_ld_model_filter(provisional_rows, gamma)
+  included_rows <- empty ordered table
+  excluded_negative_rows <- empty ordered table
+
+  for row in provisional_rows:
+    i <- row.row
+    j <- row.col
+
+    if gamma[i,j] + gamma[j,i] > 0:
+      row.included <- true
+      append row to included_rows
+    else:
+      row.included <- false
+      append row to excluded_negative_rows
+    end if
+  end for
+
+  final_model_matrix <- symmetric matrix containing only included_rows
+  return (included_rows, excluded_negative_rows, final_model_matrix)
+end algorithm
+```
+
+This last test deliberately uses the unweighted sum of the two directed
+partial gammas, not the sign of WPG and not the stage label. DIGRAM reports the
+excluded rows as negative local dependence followed by "Not included in the
+model". The version 3.37 source history records the same invariant. Negative
+evidence must therefore remain available for diagnostics while being absent
+from the screen-derived GLLRM.
+
+At the public API boundary, SCREEN evidence and model terms are distinct data
+products. The following contract prevents a stage name from being mistaken for
+an exclusion status and prevents a reported negative pair from silently
+entering a fitted model.
+
+```text
+algorithm screen_j_public_summary_and_model_contract(screen_values)
+  diagnostics.local_dependence <- all tested unordered item pairs with their
+    directed partial results, WPG, directed-gamma sum, final inclusion marker,
+    and a decision that retains provisional negative evidence
+
+  evidence_rows <- every row chosen by screen_j_greedy_ld_evidence
+  require each evidence row retains its stage in
+    {positive2, positive1, negative2, negative1}
+  require each evidence row has an explicit included decision from
+    screen_j_final_ld_model_filter
+
+  summary(screen).local_dependence <- all pair diagnostics, including a
+    decision that distinguishes final included pairs from provisional
+    negative evidence
+
+  summary(screen).selected_ld <- evidence_rows where included is true
+  summary(screen).selected <- selected_ld together with final selected DIF rows
+  summary(screen).model_terms.ld <- selected_ld
+  summary(screen).model_terms.dif <- final selected DIF rows
+
+  model_terms(screen).ld <- summary(screen).model_terms.ld
+  model_terms(screen).dif <- summary(screen).model_terms.dif
+  gllrm(screen), when ld and dif are not explicitly overridden, uses exactly
+    model_terms(screen).ld and model_terms(screen).dif
+
+  require no row with included = false occurs in model_terms(screen).ld
+  require excluded negative evidence remains visible in the SCREEN summary
 end algorithm
 ```
 
@@ -1269,6 +1479,11 @@ algorithm compact_item_fits_bh(rows)
   outfit risk marks <- BenjaminiHochberg1(p_outfit for all items)
   gamma risk marks <- BenjaminiHochberg1(p_gamma for all items)
 
+  for each diagnostic-specific risk mark:
+    display 0 as "", 1 as "*", 2 as "**", and 3 as "***" in a
+    fixed three-character suffix field after the corresponding p-value
+  end for
+
   all_p <- concatenate p_infit, p_outfit, p_gamma in source order
   fdr_5_limit <- BenjaminiHochberg(all_p, alpha = 0.05)
   fdr_1_limit <- BenjaminiHochberg(all_p, alpha = 0.01)
@@ -1278,8 +1493,28 @@ algorithm compact_item_fits_bh(rows)
 end algorithm
 ```
 
-The current R package exposes compact item-fit values through `item_fit()` and
-`summary.gRm_item_fit`; it no longer assembles DIGRAM report text.
+The three marker vectors answer three different questions: which outfits are
+selected when outfits are adjusted across items, which infits are selected
+when infits are adjusted across items, and which item-restscore gamma tests are
+selected when gamma tests are adjusted across items. The combined limits below
+the table answer a fourth question involving the pooled collection of all
+three kinds of p-value. Consequently, a p-value can have a source marker even
+when it exceeds the displayed combined limit, or lack a marker even when it is
+below that limit.
+
+The `low` or `high` annotation is item-level rather than diagnostic-specific.
+It is shown when any one of the item's three risk marks is nonzero and records
+whether the observed item-restscore gamma is below or above its fitted value.
+It therefore can appear on a row whose outfit or infit marker is blank; the
+gamma test, or the other fit statistic, may be the diagnostic that selected the
+item.
+
+The current R package exposes compact item-fit values through `item_fit()`.
+The returned test table keeps p-values numeric and places the corresponding
+`Outfit FDR`, `Infit FDR`, and `Gamma FDR` marker columns immediately after
+them. The source risk grades and the separately pooled BH limits remain
+available in the backend attributes; the package does not assemble the full
+DIGRAM fixed-width report text.
 
 ## Extended ItemFits Report
 

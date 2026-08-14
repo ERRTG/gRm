@@ -53,16 +53,22 @@ score-effect intermediate screening iterations from the printed output.
 Those source-shaped values remain in \code{screen_obj$values} for validation,
 debugging, and source-faithfulness audits.
 
-Printed SCREEN J summaries use \code{*} to mark rows selected by the source-backed
-SCREEN J decision path at the 5 percent decision level. For local-dependence
-and DIF candidate evidence, the source path uses the global
-Benjamini-Hochberg FDR 0.05 threshold; stricter global cutoffs for FDR 0.01
-and 0.001 are retained in \code{attr(summary(screen_obj), "bh")}. Score-effect
-rows follow the source score-effect screening routine, not the global LD/DIF
-BH table. The marker is not recomputed from an arbitrary displayed p-value.
-The returned summary object keeps selected model terms as \verb{$selected},
-global LD/DIF BH thresholds as \code{attr(summary(screen_obj), "bh")}, and all
-selected model terms as \code{attr(summary(screen_obj), "model_terms")}.
+Printed SCREEN J summaries show both directed partial-gamma estimates and
+p-values for each unordered item pair, together with WPG, the sum of the two
+directed gammas, and the final decision. Local-dependence and DIF candidate
+evidence use the global Benjamini-Hochberg FDR 0.05 threshold; stricter
+global cutoffs for FDR 0.01 and 0.001 are retained in
+\code{attr(summary(screen_obj), "bh")}. The source then applies a greedy
+local-dependence evidence procedure. Its provisional negative-LD rows remain
+visible with decision \code{"negative LD; not included"}, but—following DIGRAM's
+version 3.37 rule—only a provisional pair whose two directed partial gammas
+have a strictly positive sum enters the screen model. Thus \code{*} marks a final
+included LD term rather than merely one directed p-value below the BH
+threshold. Score-effect rows follow the source score-effect screening
+routine, not the global LD/DIF BH table. The returned summary prints and
+retains the final model terms as \verb{$selected}, keeps global LD/DIF BH
+thresholds as \code{attr(summary(screen_obj), "bh")}, and retains all final model
+terms as \code{attr(summary(screen_obj), "model_terms")}.
 In the printed DIF table, \code{Chisq} / \verb{Pr(>Chisq)} and \code{Gamma} /
 \verb{Pr(>|Gamma|)} are separate statistic families. SCREEN J uses the gamma
 statistic when the exogenous variable is binary by category count
@@ -71,8 +77,8 @@ source-shaped background metadata. Otherwise it uses the chi-square
 statistic. Cells for the statistic family not used for a row are printed
 blank; the returned summary table keeps those cells as \code{NA}.
 
-Passing a screen object to \code{\link[=gllrm]{gllrm()}} creates a model from selected LD and DIF
-terms.
+Passing a screen object to \code{\link[=gllrm]{gllrm()}} creates a model from final selected LD
+and DIF terms; provisional negative LD is never passed to the model.
 
 The \code{inference} modes map to DIGRAM command-state conventions:
 \code{"asymptotic"} uses the asymptotic path, \code{"exact"} uses fixed Monte Carlo

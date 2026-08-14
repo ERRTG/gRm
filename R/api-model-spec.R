@@ -383,7 +383,10 @@ screen_ld_terms <- function(values) {
     item1 = items$name[rows$row],
     item2 = items$name[rows$col],
     source = "screen",
-    status = rows$stage %||% "selected",
+    # `rows` is the post-filter model table. The provisional SCREEN J stage
+    # remains in `values$model$local_dependence$stepwise_rows`; it is evidence
+    # metadata, not a model-term status.
+    status = "selected",
     stringsAsFactors = FALSE
   )
 }

@@ -68,12 +68,14 @@ rather than inventing an unsupported formula.
 
 \examples{
 \donttest{
-data <- data.frame(
-  ID = 1:8,
-  I1 = c(0, 1, 0, 1, 0, 1, 1, 0),
-  I2 = c(1, 0, 1, 0, 1, 0, 1, 0)
-)
-fit0 <- fit(gllrm(gRm(data, items = c("I1", "I2"), id = "ID", score_cuts = c(1L, 2L))))
+data <- expand.grid(I1 = 0:1, I2 = 0:1, I3 = 0:1, I4 = 0:1)
+data$ID <- seq_len(nrow(data))
+fit0 <- fit(gllrm(gRm(
+  data,
+  items = c("I1", "I2", "I3", "I4"),
+  id = "ID",
+  score_cuts = c(1L, 3L)
+)))
 gh <- global_homogeneity(fit0)
 summary(gh, which = "test")
 }

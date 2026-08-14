@@ -40,10 +40,19 @@ calculation.
 The item fit result has two different public diagnostic tables. The
 \code{which = "tests"} table is always available and returns one row per item
 with the compact inferential statistics: outfit, infit, item-restscore
-gamma, standard errors, p-values, and gamma direction. Its public columns
-are \code{Item}, \code{Outfit}, \verb{Outfit SE}, \verb{Pr(>Outfit)}, \code{Infit}, \verb{Infit SE},
-\verb{Pr(>Infit)}, \verb{Observed gamma}, \verb{Expected gamma}, \verb{Gamma SE},
-\verb{Pr(>Gamma)}, and \verb{Gamma direction}. The source-facing backend table in
+gamma, standard errors, p-values, diagnostic-specific FDR markers, and
+gamma direction. Its public columns are \code{Item}, \code{Outfit}, \verb{Outfit SE},
+\verb{Pr(>Outfit)}, \verb{Outfit FDR}, \code{Infit}, \verb{Infit SE}, \verb{Pr(>Infit)},
+\verb{Infit FDR}, \verb{Observed gamma}, \verb{Expected gamma}, \verb{Gamma SE},
+\verb{Pr(>Gamma)}, \verb{Gamma FDR}, and \verb{Gamma direction}. The marker columns use
+\code{""}, \code{"*"}, \code{"**"}, and \code{"***"} for no selection and selection at the
+5 percent, 1 percent, and 0.1 percent FDR levels, respectively. DIGRAM
+computes these markers separately across items for outfit, infit, and
+gamma; they are not obtained from the combined thresholds printed below
+the table. When the result is printed, each marker is appended in a fixed
+three-character field directly after its corresponding p-value, as in
+DIGRAM. This preserves numeric alignment while the returned p-value columns
+remain numeric. The source-facing backend table in
 \code{attr(result, "values")$items} keeps the original DIGRAM-shaped columns,
 including \code{item_label}, \code{item_name}, \code{outfit_fdr}, \code{infit_fdr}, and
 \code{gamma_fdr}.

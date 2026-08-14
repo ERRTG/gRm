@@ -184,10 +184,19 @@ score_effects_column <- function(tests, column, default) {
 #' The item fit result has two different public diagnostic tables. The
 #' `which = "tests"` table is always available and returns one row per item
 #' with the compact inferential statistics: outfit, infit, item-restscore
-#' gamma, standard errors, p-values, and gamma direction. Its public columns
-#' are `Item`, `Outfit`, `Outfit SE`, `Pr(>Outfit)`, `Infit`, `Infit SE`,
-#' `Pr(>Infit)`, `Observed gamma`, `Expected gamma`, `Gamma SE`,
-#' `Pr(>Gamma)`, and `Gamma direction`. The source-facing backend table in
+#' gamma, standard errors, p-values, diagnostic-specific FDR markers, and
+#' gamma direction. Its public columns are `Item`, `Outfit`, `Outfit SE`,
+#' `Pr(>Outfit)`, `Outfit FDR`, `Infit`, `Infit SE`, `Pr(>Infit)`,
+#' `Infit FDR`, `Observed gamma`, `Expected gamma`, `Gamma SE`,
+#' `Pr(>Gamma)`, `Gamma FDR`, and `Gamma direction`. The marker columns use
+#' `""`, `"*"`, `"**"`, and `"***"` for no selection and selection at the
+#' 5 percent, 1 percent, and 0.1 percent FDR levels, respectively. DIGRAM
+#' computes these markers separately across items for outfit, infit, and
+#' gamma; they are not obtained from the combined thresholds printed below
+#' the table. When the result is printed, each marker is appended in a fixed
+#' three-character field directly after its corresponding p-value, as in
+#' DIGRAM. This preserves numeric alignment while the returned p-value columns
+#' remain numeric. The source-facing backend table in
 #' `attr(result, "values")$items` keeps the original DIGRAM-shaped columns,
 #' including `item_label`, `item_name`, `outfit_fdr`, `infit_fdr`, and
 #' `gamma_fdr`.
@@ -285,7 +294,16 @@ item_fit_public_table <- function(values,
     items = item_fit_items_table(values)
   )
   note <- if (identical(which, "tests")) {
-    item_fit_bh_footer(bh)
+    paste(c(
+      paste0(
+        "Stars are based on separate Benjamini-Hochberg adjustments across ",
+        "items for outfit, infit, and gamma: * = selected at 5% FDR, ",
+        "** = selected at 1% FDR, *** = selected at 0.1% FDR. ",
+        "The thresholds below are based on all item-fit p-values pooled ",
+        "together and are reported separately."
+      ),
+      item_fit_bh_footer(bh)
+    ), collapse = " ")
   } else {
     character()
   }
@@ -319,17 +337,37 @@ item_fit_tests_table <- function(values) {
     Outfit = item_fit_public_column(table, "outfit", numeric(), n),
     `Outfit SE` = item_fit_public_column(table, "outfit_sd", numeric(), n),
     `Pr(>Outfit)` = item_fit_public_column(table, "p_outfit", numeric(), n),
+    `Outfit FDR` = item_fit_fdr_marker(
+      item_fit_public_column(table, "outfit_fdr", integer(), n)
+    ),
     Infit = item_fit_public_column(table, "infit", numeric(), n),
     `Infit SE` = item_fit_public_column(table, "infit_sd", numeric(), n),
     `Pr(>Infit)` = item_fit_public_column(table, "p_infit", numeric(), n),
+    `Infit FDR` = item_fit_fdr_marker(
+      item_fit_public_column(table, "infit_fdr", integer(), n)
+    ),
     `Observed gamma` = item_fit_public_column(table, "observed_gamma", numeric(), n),
     `Expected gamma` = item_fit_public_column(table, "expected_gamma", numeric(), n),
     `Gamma SE` = item_fit_public_column(table, "gamma_sd", numeric(), n),
     `Pr(>Gamma)` = item_fit_public_column(table, "p_gamma", numeric(), n),
+    `Gamma FDR` = item_fit_fdr_marker(
+      item_fit_public_column(table, "gamma_fdr", integer(), n)
+    ),
     `Gamma direction` = item_fit_public_column(table, "direction", character(), n),
     check.names = FALSE,
     stringsAsFactors = FALSE
   )
+}
+
+#' Convert DIGRAM item-fit FDR risk grades to display markers
+#'
+#' @param risk Integer vector using the source grades 0, 1, 2, and 3.
+#' @return A character vector containing `""`, `"*"`, `"**"`, or `"***"`.
+#' @keywords internal
+#' @noRd
+item_fit_fdr_marker <- function(risk) {
+  markers <- c("", "*", "**", "***")
+  unname(markers[match(as.integer(risk), 0:3)])
 }
 
 item_fit_items_table <- function(values) {
@@ -647,12 +685,14 @@ dif <- function(fit,
 #' @export
 #' @examples
 #' \donttest{
-#' data <- data.frame(
-#'   ID = 1:8,
-#'   I1 = c(0, 1, 0, 1, 0, 1, 1, 0),
-#'   I2 = c(1, 0, 1, 0, 1, 0, 1, 0)
-#' )
-#' fit0 <- fit(gllrm(gRm(data, items = c("I1", "I2"), id = "ID", score_cuts = c(1L, 2L))))
+#' data <- expand.grid(I1 = 0:1, I2 = 0:1, I3 = 0:1, I4 = 0:1)
+#' data$ID <- seq_len(nrow(data))
+#' fit0 <- fit(gllrm(gRm(
+#'   data,
+#'   items = c("I1", "I2", "I3", "I4"),
+#'   id = "ID",
+#'   score_cuts = c(1L, 3L)
+#' )))
 #' gh <- global_homogeneity(fit0)
 #' summary(gh, which = "test")
 #' }

@@ -85,13 +85,16 @@ test_that("item fit items summary is empty when extended item summaries are not 
     "Outfit",
     "Outfit SE",
     "Pr(>Outfit)",
+    "Outfit FDR",
     "Infit",
     "Infit SE",
     "Pr(>Infit)",
+    "Infit FDR",
     "Observed gamma",
     "Expected gamma",
     "Gamma SE",
     "Pr(>Gamma)",
+    "Gamma FDR",
     "Gamma direction"
   ))
   expect_true(is.data.frame(items))

@@ -1,6 +1,6 @@
 Package: gRm
 Title: Graphical Log-Linear Rasch Models in R
-Version: 0.06
+Version: 0.07
 Authors@R: c(
     person("DIGRAM", "Reimplementation", role = c("aut", "cre"), email = "noreply@example.com")
   )
@@ -21,6 +21,7 @@ Imports:
 Suggests:
     knitr,
     rmarkdown,
-    testthat (>= 3.0.0)
+    testthat (>= 3.0.0),
+    withr
 VignetteBuilder: knitr
 Config/testthat/edition: 3

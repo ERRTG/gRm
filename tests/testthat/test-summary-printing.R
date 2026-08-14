@@ -775,13 +775,16 @@ test_that("item fit tests and items expose distinct public tables and backend va
     "Outfit",
     "Outfit SE",
     "Pr(>Outfit)",
+    "Outfit FDR",
     "Infit",
     "Infit SE",
     "Pr(>Infit)",
+    "Infit FDR",
     "Observed gamma",
     "Expected gamma",
     "Gamma SE",
     "Pr(>Gamma)",
+    "Gamma FDR",
     "Gamma direction"
   ))
   expect_false(any(c(
@@ -794,6 +797,9 @@ test_that("item fit tests and items expose distinct public tables and backend va
   expect_true(is.numeric(tests$Outfit))
   expect_true(is.numeric(tests[["Pr(>Outfit)"]]))
   expect_true(is.numeric(tests[["Observed gamma"]]))
+  expect_true(all(tests[["Outfit FDR"]] %in% c("", "*", "**", "***")))
+  expect_true(all(tests[["Infit FDR"]] %in% c("", "*", "**", "***")))
+  expect_true(all(tests[["Gamma FDR"]] %in% c("", "*", "**", "***")))
 
   expect_equal(names(items), c(
     "Item",
@@ -841,9 +847,56 @@ test_that("item fit output prints the selected table directly", {
   expect_true(any(grepl("Benjamini-Hochberg thresholds: FDR 0\\.05 = .*FDR 0\\.01 =", tests_printed)))
   expect_false(any(grepl("item_label|item_name|outfit_fdr|infit_fdr|gamma_fdr|Selected", tests_printed)))
   expect_false(any(grepl("item_label|item_name|infit_value|outfit_total_value", items_printed)))
-  expect_false(any(grepl("\\*:", tests_printed)))
+  expect_true(any(grepl("Stars are based on separate Benjamini-Hochberg adjustments across items", tests_printed, fixed = TRUE)))
+  expect_true(any(grepl("* = selected at 5% FDR", tests_printed, fixed = TRUE)))
+  expect_true(any(grepl("*** = selected at 0.1% FDR", tests_printed, fixed = TRUE)))
+  expect_true(any(grepl("The thresholds below are based on all item-fit p-values pooled together", tests_printed, fixed = TRUE)))
   expect_false(any(grepl("Benjamini-Hochberg threshold", items_printed)))
   expect_false(any(grepl("gRm_item_fit result", tests_printed, fixed = TRUE)))
+})
+
+test_that("item fit exposes each source FDR grade beside its own p-value", {
+  values <- list(
+    items = data.frame(
+      item_name = paste0("I", 1:4),
+      outfit = rep(1, 4),
+      outfit_sd = rep(0.1, 4),
+      p_outfit = c(0.4, 0.04, 0.004, 0.0004),
+      outfit_fdr = 0:3,
+      infit = rep(1, 4),
+      infit_sd = rep(0.1, 4),
+      p_infit = c(0.04, 0.4, 0.0004, 0.004),
+      infit_fdr = c(1L, 0L, 3L, 2L),
+      observed_gamma = c(-0.2, 0.2, -0.2, 0.2),
+      expected_gamma = rep(0, 4),
+      gamma_sd = rep(0.1, 4),
+      p_gamma = c(0.0004, 0.004, 0.04, 0.4),
+      gamma_fdr = c(3L, 2L, 1L, 0L),
+      direction = c("low", "high", "low", "high"),
+      stringsAsFactors = FALSE
+    ),
+    bh_limits = c(fdr_5 = 0.004, fdr_1 = 0.0004)
+  )
+
+  table <- gRm:::item_fit_tests_table(values)
+
+  expect_equal(table[["Outfit FDR"]], c("", "*", "**", "***"))
+  expect_equal(table[["Infit FDR"]], c("*", "", "***", "**"))
+  expect_equal(table[["Gamma FDR"]], c("***", "**", "*", ""))
+  expect_equal(table$`Gamma direction`[[1L]], "low")
+  expect_equal(table$`Outfit FDR`[[1L]], "")
+
+  printed <- capture.output(gRm:::print_item_fit_tests_table(table))
+  expect_true(any(grepl("4e-04***", printed, fixed = TRUE)))
+  expect_false(any(grepl("Outfit FDR|Infit FDR|Gamma FDR", printed)))
+  item_lines <- printed[grepl("^\\s+I[1-4]\\s", printed)]
+  outfit_p_positions <- vapply(
+    item_lines,
+    function(line) unname(regexpr("4e-0[1-4]", line, perl = TRUE)[[1L]]),
+    integer(1L)
+  )
+  expect_length(item_lines, 4L)
+  expect_equal(length(unique(outfit_p_positions)), 1L)
 })
 
 test_that("screen summary and score-effect table print BH selection context", {

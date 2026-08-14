@@ -77,14 +77,20 @@ threshold rows. Fit status is shown by printing the fitted object.
 final public decision rows for local-dependence tests, DIF tests, and
 score effects. These rows are source-backed but are not a complete DIGRAM
 oracle report rendering and not a dump of every intermediate SCREEN J
-source table. The printed \code{*} marker follows the source-backed SCREEN J
-decision path at the 5 percent decision level. Local-dependence and DIF
-candidate evidence uses the global Benjamini-Hochberg FDR 0.05 threshold;
-stricter global cutoffs for FDR 0.01 and 0.001 are retained in
-\code{attr(x, "bh")}. Score-effect rows follow the source score-effect
-screening routine, not the global LD/DIF BH table. Selected model terms
-are available as \verb{$selected}, global LD/DIF BH thresholds as
-\code{attr(x, "bh")}, and all selected model terms as \code{attr(x, "model_terms")}.
+source table. The LD section shows both directed partial-gamma estimates
+and p-values, WPG, the directed-gamma sum, and the final model decision.
+Local-dependence and DIF candidate evidence use the global
+Benjamini-Hochberg FDR 0.05 threshold; stricter global cutoffs for FDR
+0.01 and 0.001 are retained in \code{attr(x, "bh")}. DIGRAM's subsequent
+greedy LD procedure may retain negative evidence provisionally, but the
+final screen model includes a provisional LD pair only when its two
+directed partial gammas have a strictly positive sum. Excluded negative LD
+remains visible in the \code{Decision} column and is never passed to
+\code{gllrm(screen_obj)}. Score-effect rows follow the source score-effect
+screening routine, not the global LD/DIF BH table. Final selected model
+terms are printed and available as \verb{$selected}, global LD/DIF BH
+thresholds as \code{attr(x, "bh")}, and all final model terms as
+\code{attr(x, "model_terms")}.
 The SCREEN J DIF table has separate
 \code{Chisq} / \verb{Pr(>Chisq)} and \code{Gamma} / \verb{Pr(>|Gamma|)} columns because the
 source algorithm chooses the statistic from the exogenous variable shape:
