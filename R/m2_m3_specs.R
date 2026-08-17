@@ -1,5 +1,13 @@
 # M2/M3 source-order margin specifications.
 
+#' Internal m2 m3 context items helper
+#'
+#' Supports the m2 m3 specs implementation while preserving its internal contract.
+#' Source trace: `source/PAS_skunits/skbias14.pas::Prepare_CM3tests`.
+#' @param context Prepared GLLRM computation context.
+#' @return The internal `m2_m3_context_items()` computation result.
+#' @keywords internal
+#' @noRd
 m2_m3_context_items <- function(context) {
   items <- context$project$items %||% context$items %||% context$bundle$model$items
   if (is.null(items)) {
@@ -8,6 +16,14 @@ m2_m3_context_items <- function(context) {
   items
 }
 
+#' Internal m2 m3 context backgrounds helper
+#'
+#' Supports the m2 m3 specs implementation while preserving its internal contract.
+#' Source trace: `source/PAS_skunits/skbias14.pas::Prepare_CM3tests`.
+#' @param context Prepared GLLRM computation context.
+#' @return The internal `m2_m3_context_backgrounds()` computation result.
+#' @keywords internal
+#' @noRd
 m2_m3_context_backgrounds <- function(context) {
   backgrounds <- context$project$backgrounds %||%
     context$backgrounds %||%
@@ -18,15 +34,41 @@ m2_m3_context_backgrounds <- function(context) {
   backgrounds
 }
 
+#' Internal m2 m3 variable labels helper
+#'
+#' Supports the m2 m3 specs implementation while preserving its internal contract.
+#' Source trace: `source/PAS_skunits/skbias14.pas::Prepare_CM3tests`.
+#' @param variables Internal `variables` value used by this helper.
+#' @return The internal `m2_m3_variable_labels()` computation result.
+#' @keywords internal
+#' @noRd
 m2_m3_variable_labels <- function(variables) {
   labels <- variables$label_code %||% variables$name
   as.character(labels)
 }
 
+#' Internal m2 m3 spec helper
+#'
+#' Supports the m2 m3 specs implementation while preserving its internal contract.
+#' Source trace: `source/PAS_skunits/skbias14.pas::Prepare_CM3tests`.
+#' @param kind Internal `kind` value used by this helper.
+#' @param ... Additional internal arguments passed through this helper.
+#' @return The internal `m2_m3_spec()` computation result.
+#' @keywords internal
+#' @noRd
 m2_m3_spec <- function(kind, ...) {
   c(list(kind = kind), list(...))
 }
 
+#' Internal m2 m3 selected items helper
+#'
+#' Supports the m2 m3 specs implementation while preserving its internal contract.
+#' Source trace: `source/PAS_skunits/skbias14.pas::Prepare_CM3tests`.
+#' @param context Prepared GLLRM computation context.
+#' @param items Item selection or item metadata.
+#' @return The internal `m2_m3_selected_items()` computation result.
+#' @keywords internal
+#' @noRd
 m2_m3_selected_items <- function(context, items = NULL) {
   # Source trace: source/PAS_skunits/skbias14.pas:5951-6115,
   # source/PAS_skunits/skbias14.pas::Prepare_CM3tests uses a UseItems-style
@@ -67,6 +109,16 @@ m2_m3_selected_items <- function(context, items = NULL) {
   sort(selected)
 }
 
+#' Internal m2 m3 prepare margins helper
+#'
+#' Supports the m2 m3 specs implementation while preserving its internal contract.
+#' Source trace: `source/PAS_skunits/skbias14.pas::Prepare_CM3tests`.
+#' @param context Prepared GLLRM computation context.
+#' @param selected_items Internal `selected_items` value used by this helper.
+#' @param include_three_way Whether to include three-way CM3 margins.
+#' @return The internal `m2_m3_prepare_margins()` computation result.
+#' @keywords internal
+#' @noRd
 m2_m3_prepare_margins <- function(context, selected_items, include_three_way) {
   # Source trace: source/PAS_skunits/skbias14.pas:5951-6115,
   # source/PAS_skunits/skbias14.pas::Prepare_CM3tests prepares all CM2 rows
@@ -173,6 +225,14 @@ m2_m3_prepare_margins <- function(context, selected_items, include_three_way) {
   specs
 }
 
+#' Internal m2 m3 included ld lookup helper
+#'
+#' Supports the m2 m3 specs implementation while preserving its internal contract.
+#' Source trace: `source/PAS_skunits/skbias14.pas::Prepare_CM3tests`.
+#' @param context Prepared GLLRM computation context.
+#' @return The internal `m2_m3_included_ld_lookup()` computation result.
+#' @keywords internal
+#' @noRd
 m2_m3_included_ld_lookup <- function(context) {
   # Source trace: source/PAS_skunits/skbias14.pas:5951-6115,
   # source/PAS_skunits/skbias14.pas::Prepare_CM3tests skips included IJ terms
@@ -191,6 +251,14 @@ m2_m3_included_ld_lookup <- function(context) {
   lookup
 }
 
+#' Internal m2 m3 included dif lookup helper
+#'
+#' Supports the m2 m3 specs implementation while preserving its internal contract.
+#' Source trace: `source/PAS_skunits/skbias14.pas::Prepare_CM3tests`.
+#' @param context Prepared GLLRM computation context.
+#' @return The internal `m2_m3_included_dif_lookup()` computation result.
+#' @keywords internal
+#' @noRd
 m2_m3_included_dif_lookup <- function(context) {
   # Source trace: source/PAS_skunits/skbias14.pas::Prepare_CM3tests
   # (6003-6020) checks ItemBias(.i2,i1.) while i1 is the candidate item and
@@ -218,6 +286,15 @@ m2_m3_included_dif_lookup <- function(context) {
   lookup
 }
 
+#' Internal m2 m3 margin label helper
+#'
+#' Supports the m2 m3 specs implementation while preserving its internal contract.
+#' Source trace: `source/PAS_skunits/skbias14.pas::Prepare_CM3tests`.
+#' @param context Prepared GLLRM computation context.
+#' @param spec GLLRM model specification.
+#' @return The internal `m2_m3_margin_label()` computation result.
+#' @keywords internal
+#' @noRd
 m2_m3_margin_label <- function(context, spec) {
   # Source trace: source/PAS_skunits/skbias14.pas:5951-6115,
   # source/PAS_skunits/skbias14.pas::Prepare_CM3tests reports DIGRAM labels
@@ -225,6 +302,15 @@ m2_m3_margin_label <- function(context, spec) {
   m2_m3_margin_string(context, spec, use_labels = TRUE)
 }
 
+#' Internal m2 m3 margin name helper
+#'
+#' Supports the m2 m3 specs implementation while preserving its internal contract.
+#' Source trace: `source/PAS_skunits/skbias14.pas::Prepare_CM3tests`.
+#' @param context Prepared GLLRM computation context.
+#' @param spec GLLRM model specification.
+#' @return The internal `m2_m3_margin_name()` computation result.
+#' @keywords internal
+#' @noRd
 m2_m3_margin_name <- function(context, spec) {
   # Source trace: source/PAS_skunits/skbias14.pas:5951-6115,
   # source/PAS_skunits/skbias14.pas::Prepare_CM3tests order is retained while
@@ -232,6 +318,15 @@ m2_m3_margin_name <- function(context, spec) {
   m2_m3_margin_string(context, spec, use_labels = FALSE)
 }
 
+#' Internal m2 m3 margin public variables helper
+#'
+#' Supports the m2 m3 specs implementation while preserving its internal contract.
+#' Source trace: `source/PAS_skunits/skbias14.pas::Prepare_CM3tests`.
+#' @param context Prepared GLLRM computation context.
+#' @param spec GLLRM model specification.
+#' @return The internal `m2_m3_margin_public_variables()` computation result.
+#' @keywords internal
+#' @noRd
 m2_m3_margin_public_variables <- function(context, spec) {
   # Source trace: source/PAS_skunits/skbias14.pas:5951-6115,
   # source/PAS_skunits/skbias14.pas::Prepare_CM3tests includes the source
@@ -239,10 +334,30 @@ m2_m3_margin_public_variables <- function(context, spec) {
   m2_m3_margin_variables(context, spec, use_labels = FALSE)
 }
 
+#' Internal m2 m3 margin string helper
+#'
+#' Supports the m2 m3 specs implementation while preserving its internal contract.
+#' Source trace: `source/PAS_skunits/skbias14.pas::Prepare_CM3tests`.
+#' @param context Prepared GLLRM computation context.
+#' @param spec GLLRM model specification.
+#' @param use_labels Internal `use_labels` value used by this helper.
+#' @return The internal `m2_m3_margin_string()` computation result.
+#' @keywords internal
+#' @noRd
 m2_m3_margin_string <- function(context, spec, use_labels) {
   paste(m2_m3_margin_variables(context, spec, use_labels = use_labels), collapse = ":")
 }
 
+#' Internal m2 m3 margin variables helper
+#'
+#' Supports the m2 m3 specs implementation while preserving its internal contract.
+#' Source trace: `source/PAS_skunits/skbias14.pas::Prepare_CM3tests`.
+#' @param context Prepared GLLRM computation context.
+#' @param spec GLLRM model specification.
+#' @param use_labels Internal `use_labels` value used by this helper.
+#' @return The internal `m2_m3_margin_variables()` computation result.
+#' @keywords internal
+#' @noRd
 m2_m3_margin_variables <- function(context, spec, use_labels) {
   items <- m2_m3_context_items(context)
   backgrounds <- m2_m3_context_backgrounds(context)

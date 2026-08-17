@@ -1,11 +1,12 @@
 gllrm_fit_data <- function() {
-  data.frame(
-    ID = seq_len(12L),
-    I1 = c(1L, 1L, 2L, 2L, 1L, 2L, 1L, 2L, 1L, 2L, 1L, 2L),
-    I2 = c(1L, 2L, 1L, 2L, 1L, 2L, 2L, 1L, 1L, 2L, 2L, 1L),
-    I3 = c(1L, 1L, 1L, 2L, 2L, 2L, 1L, 2L, 1L, 1L, 2L, 2L),
-    X1 = c(1L, 1L, 2L, 2L, 1L, 2L, 1L, 2L, 2L, 1L, 2L, 1L)
+  rows <- expand.grid(
+    I1 = 1:2,
+    I2 = 1:2,
+    I3 = 1:2,
+    X1 = 1:2,
+    KEEP.OUT.ATTRS = FALSE
   )
+  data.frame(ID = seq_len(nrow(rows)), rows)
 }
 
 non_syntactic_gllrm_fit_data <- function() {
@@ -288,6 +289,12 @@ test_that("GLLRM stores source negative log likelihood and logLik returns R sign
   expect_true(is.numeric(fitted$values$log_likelihood))
   expect_equal(as.numeric(logLik(fitted)), -fitted$values$log_likelihood)
   expect_equal(as.numeric(logLik(fitted)), -fitted$fit$log_likelihood)
+  printed <- capture.output(print(fitted))
+  expect_true(paste0(
+    "  Negative log likelihood (DIGRAM): ",
+    summary_scalar(fitted$values$log_likelihood)
+  ) %in% printed)
+  expect_false(any(grepl("^  Log likelihood: ", printed)))
 })
 
 test_that("GLLRM expected-margin cache keys use only included DIF backgrounds", {
@@ -400,14 +407,22 @@ test_that("LD reference adjustment scans source-style strict improvements", {
   expect_equal(adjustment$j_ref, 2L)
 })
 
-test_that("single LD general fit agrees with existing local-independence candidate fitter", {
+test_that("single LD diagnostic candidate uses the general GLLRM engine", {
   ia <- gRm(gllrm_fit_data(), items = c("I1", "I2", "I3"), exogenous = "X1", id = "ID")
-  bundle <- build_item_parameters_bundle(ia$project)
-  base_counts <- rasch_counts(bundle)
-  candidate <- fit_ld_candidate(bundle, base_counts, item1 = 1L, item2 = 2L, max_step = 200L, max_delta = 1e-6)
+  base <- fit(gllrm(ia), max_step = 200L, max_delta = 1e-6)
+  candidate <- fit_gllrm_candidate_ld(
+    base,
+    item1 = 1L,
+    item2 = 2L,
+    max_step = 200L,
+    max_delta = 1e-6
+  )
   general <- fit(gllrm(ia, ld = ~ I1:I2), max_step = 200L, max_delta = 1e-6)
 
-  expect_equal(general$fit$ld_parameters[[1L]], candidate$ld_gamma, tolerance = 1e-6)
+  expect_equal(general$fit$ld_parameters[[1L]], candidate$state$ld_parameters[[1L]], tolerance = 1e-12)
+  expect_equal(general$fit$n_step, candidate$n_step)
+  expect_equal(general$fit$report_delta, candidate$report_delta)
+  expect_equal(general$fit$stop_reason, candidate$stop_reason)
 })
 
 test_that("single-pass GLLRM update matches source double-pass update", {
@@ -603,14 +618,22 @@ test_that("GLLRM component-restscore tables keep source interior score loop", {
   expect_equal(tables$observed[1L, 2L], 1)
 })
 
-test_that("single DIF general fit agrees with existing missing-DIF candidate fitter", {
+test_that("single DIF diagnostic candidate uses the general GLLRM engine", {
   ia <- gRm(gllrm_fit_data(), items = c("I1", "I2", "I3"), exogenous = "X1", id = "ID")
-  bundle <- build_item_parameters_bundle(ia$project)
-  base_counts <- rasch_counts(bundle)
-  candidate <- fit_dif_candidate(bundle, base_counts, target_item = 3L, background_index = 1L, max_step = 200L, max_delta = 1e-6)
+  base <- fit(gllrm(ia), max_step = 200L, max_delta = 1e-6)
+  candidate <- fit_gllrm_candidate_dif(
+    base,
+    item = 3L,
+    background = 1L,
+    max_step = 200L,
+    max_delta = 1e-6
+  )
   general <- fit(gllrm(ia, dif = ~ I3:X1), max_step = 200L, max_delta = 1e-6)
 
-  expect_equal(general$fit$dif_parameters[[1L]], candidate$dif_gamma, tolerance = 1e-6)
+  expect_equal(general$fit$dif_parameters[[1L]], candidate$state$dif_parameters[[1L]], tolerance = 1e-12)
+  expect_equal(general$fit$n_step, candidate$n_step)
+  expect_equal(general$fit$report_delta, candidate$report_delta)
+  expect_equal(general$fit$stop_reason, candidate$stop_reason)
 })
 
 test_that("GLLRM item-parameter value tables are available from the fit object", {
@@ -647,7 +670,7 @@ test_that("GLLRM local-independence checks condition on the current model", {
     "attempted_converged", "attempted_stop_reason",
     "reported_checkpoint_step", "report_value_source"
   ) %in% names(values$tests)))
-  expect_true(all(values$tests$report_value_source %in% c("attempted_fit", "source_first_post_50_checkpoint")))
+  expect_true(all(values$tests$report_value_source == "attempted_fit"))
 
   gamma_context <- build_local_independence_gamma_context(fit$project)
   for (row in seq_len(nrow(values$tests))) {
@@ -657,12 +680,17 @@ test_that("GLLRM local-independence checks condition on the current model", {
     expect_equal(values$tests$wpg_gamma[[row]], expected)
   }
 
-  checkpoint_values <- local_independence_values(fit, max_step = 80L, max_delta = 0, jobs = 1L)
-  checkpoint_rows <- checkpoint_values$tests$report_value_source == "source_first_post_50_checkpoint"
-  expect_true(any(checkpoint_rows))
-  expect_true(all(!is.na(checkpoint_values$tests$attempted_n_step[checkpoint_rows])))
-  expect_true(all(!is.na(checkpoint_values$tests$attempted_stop_reason[checkpoint_rows])))
-  expect_true(all(checkpoint_values$tests$reported_checkpoint_step[checkpoint_rows] == 51L))
+  nonconverged_values <- local_independence_values(fit, max_step = 80L, max_delta = 0, jobs = 1L)
+  expect_true(all(nonconverged_values$tests$report_value_source == "attempted_fit"))
+  expect_true(all(is.na(nonconverged_values$tests$reported_checkpoint_step)))
+  expect_equal(
+    nonconverged_values$tests$delta,
+    nonconverged_values$tests$attempted_delta
+  )
+  expect_equal(
+    nonconverged_values$tests$stop_reason,
+    nonconverged_values$tests$attempted_stop_reason
+  )
 })
 
 test_that("GLLRM DIF checks use the current model", {

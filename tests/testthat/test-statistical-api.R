@@ -1,11 +1,13 @@
 stat_api_data <- function() {
-  data.frame(
-    ID = seq_len(12L),
-    I1 = c(1L, 1L, 2L, 2L, 3L, 3L, 1L, 2L, 3L, 1L, 2L, 3L),
-    I2 = c(1L, 2L, 1L, 3L, 2L, 3L, 3L, 1L, 2L, 2L, 3L, 1L),
-    I3 = c(2L, 1L, 3L, 1L, 2L, 3L, 2L, 1L, 3L, 3L, 2L, 1L),
-    site = c(1L, 1L, 1L, 2L, 2L, 2L, 1L, 1L, 2L, 2L, 1L, 2L)
+  data <- expand.grid(
+    I1 = 1:3,
+    I2 = 1:3,
+    I3 = 1:3,
+    site = 1:2,
+    KEEP.OUT.ATTRS = FALSE
   )
+  data$ID <- seq_len(nrow(data))
+  data[c("ID", "I1", "I2", "I3", "site")]
 }
 
 stat_api_analysis <- function() {

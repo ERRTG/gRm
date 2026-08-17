@@ -1,7 +1,12 @@
-# Source trace: source/PAS_skunits/skbias22.pas::LD_Gamma_calculation and
-# source/GLLRM_ESTIM.txt::CalculateBiasedGammaValues2 evaluate score
-# polynomials component-wise when local-dependence terms join items. The R code
-# first identifies those connected item components from the included LD graph.
+#' Source trace: source/PAS_skunits/skbias22.pas::LD_Gamma_calculation and
+#' source/GLLRM_ESTIM.txt::CalculateBiasedGammaValues2 evaluate score
+#' polynomials component-wise when local-dependence terms join items. The R code
+#' first identifies those connected item components from the included LD graph.
+#' Source trace: `source/PAS_skunits/skbias22.pas::Gamma_calculation`.
+#' @param context Prepared GLLRM computation context.
+#' @return The internal `gllrm_ld_components()` computation result.
+#' @keywords internal
+#' @noRd
 gllrm_ld_components <- function(context) {
   parent <- seq_len(context$n_items)
   find_root <- function(item) {
@@ -33,10 +38,15 @@ gllrm_ld_components <- function(context) {
   list(items = components, component_of = component_of)
 }
 
-# Source trace: source/GLLRM_ESTIM.txt::InitializeParameters and
-# source/PAS_skunits/skbias12b.pas::InitializeParameters initialize item score
-# gammas and the included IJ/IX parameters before the iterative updates. R stores
-# the same starting values in matrices/lists rather than Pascal arrays.
+#' Source trace: source/GLLRM_ESTIM.txt::InitializeParameters and
+#' source/PAS_skunits/skbias12b.pas::InitializeParameters initialize item score
+#' gammas and the included IJ/IX parameters before the iterative updates. R stores
+#' the same starting values in matrices/lists rather than Pascal arrays.
+#' Source trace: `source/PAS_skunits/skbias22.pas::Gamma_calculation`.
+#' @param context Prepared GLLRM computation context.
+#' @return The internal `initialize_gllrm_state()` computation result.
+#' @keywords internal
+#' @noRd
 initialize_gllrm_state <- function(context) {
   item_gamma <- initial_gllrm_item_gamma(context)
   ld_parameters <- lapply(context$ld_specs, function(spec) {
@@ -75,11 +85,22 @@ initialize_gllrm_state <- function(context) {
     update_items = item_gamma * 0 + 1,
     update_ld = lapply(ld_parameters, function(x) x * 0),
     update_dif = lapply(dif_parameters, function(x) x * 0),
-    delta = 0,
+    # Source trace: source/GLLRM_ESTIM.txt::Estimate_LL_parameters initializes
+    # Delta to Nvalid before the first Take_an_IPF_step copies it to
+    # previous_delta.
+    delta = as.numeric(context$counts$n_valid),
     report_delta = 0,
     n_step = 0L,
-    converged = FALSE,
+    converged = TRUE,
     stop_reason = NA_character_,
+    delta_history = numeric(),
+    previous_delta = NA_real_,
+    initial_delta = NA_real_,
+    min_delta = NA_real_,
+    min_delta_step = NA_integer_,
+    finish_count = 0L,
+    recurring_delta_values = FALSE,
+    convergence_before_final_acceptance = TRUE,
     attempted_n_step = NA_integer_,
     attempted_delta = NA_real_,
     attempted_converged = NA,
@@ -90,6 +111,14 @@ initialize_gllrm_state <- function(context) {
   )
 }
 
+#' Internal initial gllrm item gamma helper
+#'
+#' Supports the gllrm components implementation while preserving its internal contract.
+#' Source trace: `source/PAS_skunits/skbias22.pas::Gamma_calculation`.
+#' @param context Prepared GLLRM computation context.
+#' @return The internal `initial_gllrm_item_gamma()` computation result.
+#' @keywords internal
+#' @noRd
 initial_gllrm_item_gamma <- function(context) {
   # Source trace: source/GLLRM.txt::Estimate_GLLRM initializes item
   # parameters only for item scores observed in the GLLRM estimation range.
@@ -103,6 +132,14 @@ initial_gllrm_item_gamma <- function(context) {
   gamma
 }
 
+#' Internal gllrm dif map helper
+#'
+#' Supports the gllrm components implementation while preserving its internal contract.
+#' Source trace: `source/PAS_skunits/skbias22.pas::Gamma_calculation`.
+#' @param context Prepared GLLRM computation context.
+#' @return The internal `gllrm_dif_map()` computation result.
+#' @keywords internal
+#' @noRd
 gllrm_dif_map <- function(context) {
   out <- list()
   if (length(context$dif_specs) == 0L) {
@@ -115,6 +152,14 @@ gllrm_dif_map <- function(context) {
   out
 }
 
+#' Internal gllrm dif by item helper
+#'
+#' Supports the gllrm components implementation while preserving its internal contract.
+#' Source trace: `source/PAS_skunits/skbias22.pas::Gamma_calculation`.
+#' @param context Prepared GLLRM computation context.
+#' @return The internal `gllrm_dif_by_item()` computation result.
+#' @keywords internal
+#' @noRd
 gllrm_dif_by_item <- function(context) {
   out <- vector("list", context$n_items)
   for (item in seq_len(context$n_items)) {
@@ -136,14 +181,28 @@ gllrm_dif_by_item <- function(context) {
   out
 }
 
+#' Internal gllrm component key helper
+#'
+#' Supports the gllrm components implementation while preserving its internal contract.
+#' Source trace: `source/PAS_skunits/skbias22.pas::Gamma_calculation`.
+#' @param component_items Internal `component_items` value used by this helper.
+#' @return The internal `gllrm_component_key()` computation result.
+#' @keywords internal
+#' @noRd
 gllrm_component_key <- function(component_items) {
   paste(as.integer(component_items), collapse = ":")
 }
 
-# Source trace: source/PAS_skunits/skbias22.pas::LD_Gamma_calculation loops
-# over response configurations inside each LD-connected item component. This R
-# helper enumerates those configurations once so expected margins can reuse
-# them during each fit iteration.
+#' Source trace: source/PAS_skunits/skbias22.pas::LD_Gamma_calculation loops
+#' over response configurations inside each LD-connected item component. This R
+#' helper enumerates those configurations once so expected margins can reuse
+#' them during each fit iteration.
+#' Source trace: `source/PAS_skunits/skbias22.pas::Gamma_calculation`.
+#' @param context Prepared GLLRM computation context.
+#' @param component_items Internal `component_items` value used by this helper.
+#' @return The internal `gllrm_component_configurations()` computation result.
+#' @keywords internal
+#' @noRd
 gllrm_component_configurations <- function(context, component_items) {
   key <- gllrm_component_key(component_items)
   if (!is.null(context$component_configurations) &&
@@ -153,6 +212,15 @@ gllrm_component_configurations <- function(context, component_items) {
   gllrm_build_component_configurations(context, component_items)
 }
 
+#' Internal gllrm build component configurations helper
+#'
+#' Supports the gllrm components implementation while preserving its internal contract.
+#' Source trace: `source/PAS_skunits/skbias22.pas::Gamma_calculation`.
+#' @param context Prepared GLLRM computation context.
+#' @param component_items Internal `component_items` value used by this helper.
+#' @return The internal `gllrm_build_component_configurations()` computation result.
+#' @keywords internal
+#' @noRd
 gllrm_build_component_configurations <- function(context, component_items) {
   grids <- lapply(component_items, function(item) context$item_score_values[[item]])
   if (length(grids) == 1L) {
@@ -165,6 +233,18 @@ gllrm_build_component_configurations <- function(context, component_items) {
   out
 }
 
+#' Internal gllrm component config weight helper
+#'
+#' Supports the gllrm components implementation while preserving its internal contract.
+#' Source trace: `source/PAS_skunits/skbias22.pas::Gamma_calculation`.
+#' @param context Prepared GLLRM computation context.
+#' @param state Current fitted or iterative parameter state.
+#' @param component_items Internal `component_items` value used by this helper.
+#' @param item_values Internal `item_values` value used by this helper.
+#' @param background_values Internal `background_values` value used by this helper.
+#' @return The internal `gllrm_component_config_weight()` computation result.
+#' @keywords internal
+#' @noRd
 gllrm_component_config_weight <- function(context, state, component_items, item_values, background_values) {
   weight <- 1
   dif_map <- context$dif_map %||% gllrm_dif_map(context)
@@ -202,6 +282,19 @@ gllrm_component_config_weight <- function(context, state, component_items, item_
   weight
 }
 
+#' Internal gllrm component config weight fast helper
+#'
+#' Supports the gllrm components implementation while preserving its internal contract.
+#' Source trace: `source/PAS_skunits/skbias22.pas::Gamma_calculation`.
+#' @param context Prepared GLLRM computation context.
+#' @param state Current fitted or iterative parameter state.
+#' @param component_items Internal `component_items` value used by this helper.
+#' @param item_values Internal `item_values` value used by this helper.
+#' @param background_values Internal `background_values` value used by this helper.
+#' @param key Internal `key` value used by this helper.
+#' @return The internal `gllrm_component_config_weight_fast()` computation result.
+#' @keywords internal
+#' @noRd
 gllrm_component_config_weight_fast <- function(context,
                                                state,
                                                component_items,
@@ -236,6 +329,19 @@ gllrm_component_config_weight_fast <- function(context,
   weight
 }
 
+#' Internal gllrm component config weights fast helper
+#'
+#' Supports the gllrm components implementation while preserving its internal contract.
+#' Source trace: `source/PAS_skunits/skbias22.pas::Gamma_calculation`.
+#' @param context Prepared GLLRM computation context.
+#' @param state Current fitted or iterative parameter state.
+#' @param component_items Internal `component_items` value used by this helper.
+#' @param config_matrix Internal `config_matrix` value used by this helper.
+#' @param background_values Internal `background_values` value used by this helper.
+#' @param key Internal `key` value used by this helper.
+#' @return The internal `gllrm_component_config_weights_fast()` computation result.
+#' @keywords internal
+#' @noRd
 gllrm_component_config_weights_fast <- function(context,
                                                 state,
                                                 component_items,
@@ -271,11 +377,19 @@ gllrm_component_config_weights_fast <- function(context,
   weights
 }
 
-# Source trace: source/GLLRM_ESTIM.txt::CalculateBiasedGammaValues2 multiplies
-# item score parameters, included IJ parameters, and included IX parameters before
-# aggregating by total score. This helper computes that same unnormalized
-# component contribution for one LD-connected component and one background
-# combination.
+#' Source trace: source/GLLRM_ESTIM.txt::CalculateBiasedGammaValues2 multiplies
+#' item score parameters, included IJ parameters, and included IX parameters before
+#' aggregating by total score. This helper computes that same unnormalized
+#' component contribution for one LD-connected component and one background
+#' combination.
+#' Source trace: `source/PAS_skunits/skbias22.pas::Gamma_calculation`.
+#' @param context Prepared GLLRM computation context.
+#' @param state Current fitted or iterative parameter state.
+#' @param component_items Internal `component_items` value used by this helper.
+#' @param background_values Internal `background_values` value used by this helper.
+#' @return The internal `gllrm_component_gamma()` computation result.
+#' @keywords internal
+#' @noRd
 gllrm_component_gamma <- function(context, state, component_items, background_values) {
   gamma <- numeric(context$max_total_score + 1L)
   key <- gllrm_component_key(component_items)
@@ -305,10 +419,14 @@ gllrm_component_gamma <- function(context, state, component_items, background_va
   out
 }
 
-# Source trace: source/PAS_skunits/skbias22.pas::Gamma_calculation rescales
-# score polynomials for numerical stability without changing the fitted
-# probabilities. The R normalization is the same implementation-level
-# stabilization: only ratios are used downstream.
+#' Source trace: source/PAS_skunits/skbias22.pas::Gamma_calculation rescales
+#' score polynomials for numerical stability without changing the fitted
+#' probabilities. The R normalization is the same implementation-level
+#' stabilization: only ratios are used downstream.
+#' @param gamma Internal `gamma` value used by this helper.
+#' @return The internal `gllrm_normalize_component_gamma()` computation result.
+#' @keywords internal
+#' @noRd
 gllrm_normalize_component_gamma <- function(gamma) {
   scale <- max(gamma)
   if (scale <= 0) {

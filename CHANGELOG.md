@@ -1,5 +1,241 @@
 # gRm Changelog
 
+## gRm 1.0.0 - 2026-08-17
+
+- Certified the complete audit-remediation working tree against all 197 oracle
+  manifest rows across six projects. The durable run parsed 2,415,004 oracle
+  values, matched 2,413,314 exactly, reported zero required failures or numeric
+  mismatches, and passed all 11,353 optional strict-subset values. Its 1,690
+  explicit masks are limited to 1,684 unrecovered global-homogeneity residual
+  cells, five enumerated historical SCREEN precision-boundary cells, and one
+  informational iteration-cancellation token whose following result was
+  compared. The canonical validation log and coverage snapshot now point to
+  the complete revision/environment, raw-result, normalized-table, comparison,
+  timing, and report artifacts.
+- Corrected the public estimability guard after full-matrix preflight exposed that an empirical response-pattern rank test rejected valid sparse conditional fits and every historical GLLRM interaction fit. Pre-fit validation now follows Pascal's `ValidItem`/`calculate_Nparameters` support: complete item-category support plus at least one positive source reference-free cell for every declared IJ/IX term. Post-fit invalid-count, non-finite, and sentinel checks remain strict. Regression coverage now distinguishes a valid sparse constant-score fit from an interaction lacking source-supported free cells.
+- Corrected the repository validator so analysis-level `items_select`, `exo_select`, and `screen_j` rows no longer construct an unused Rasch fit before invoking their public analysis APIs. This preserves the public estimability guard for fitted-model workflows while allowing analyses outside fitted-model item-support requirements to reach their intended screening computations.
+- Documented and narrowly masked five historical BIRT_disinh exact/repeated spurious-DIF chi p-values whose checked-in runtime reports compare against an 8-byte observed statistic, while the recovered `RESARRAY` source and executable trajectory harness require the 4-byte stored threshold. The exception enumerates five semantic keys only; identical generated tables, RNG states, all other SCREEN values, and the source-faithful R/native precision path remain strict validation targets.
+- Replaced a rank-deficient likelihood-method example with complete three-item response-pattern support, so the documented Rasch-versus-LD comparison exercises the public estimability boundary and runs successfully during package checks.
+- Removed the last generated-Rd cross-references to intentionally undocumented internal bootstrap helpers while retaining their names as source-oriented code references.
+- Split the oversized SCREEN J, item-fit, summary/presentation, global-homogeneity, and M2/M3-bootstrap modules along source-routine and responsibility boundaries. Numerical kernels, iteration order, and public schemas are unchanged. The former 317-line SCREEN J entry point is decomposed into source-ordered item traversal and schema assembly helpers, and each M2/M3 replicate now has an isolated generate/refit/accept/analyze boundary, so orchestration, exact simulation, conditional diagnostics, and rendering are independently auditable.
+- Decomposed extended item-fit computation into one source-traced score-cell kernel and one item-summary reducer. The extraction preserves DIGRAM's mixed record weights, positive-residual moments, arithmetic order, dynamic category columns, and report-independent raw values while removing a monolithic diagnostic routine.
+- Isolated each adjacent-category local-restscore table and gamma calculation from its outer FDR orchestration. Boundary cells, observed-total rescaling, source traversal, gamma variance, and BH grouping remain unchanged, but each source statistic can now be audited and tested independently.
+- Split compact conditional item-fit calculation into complete-record and compressed incomplete-record accumulator phases followed by a small finalizer. This makes the source's distinct record populations and weighting formulas explicit without changing score/item order or outfit/infit arithmetic.
+- Extracted the per-item item-restscore gamma kernel from its vector orchestration. Deterministic extreme cells, complete-record score weights, incomplete-record reconstruction, table traversal, fitted-gamma variance, and source normal-tail conversion remain byte-for-byte ordered as before.
+- Decomposed source-bundle creation into a record encoder and an estimation/manifest classifier. Zero-based item recoding, one-based exogenous values, score-window ordering, and the distinct `Nincomplete`/`Nuseless` semantics are now explicit boundaries while the returned bundle schema remains unchanged.
+- Replaced the stale algorithm file list with the complete responsibility-classified active R/native inventory, documented the exact 14-export surface and current signatures, and removed the nonexistent `item_parameters()` workflow from current API claims.
+- Moved the retired graphical/non-J SCREEN pseudocode out of the active equivalence specification into an explicitly historical source-trace document, and marked its abandoned R/Rcpp and native-port statements as superseded rather than current capabilities.
+- Corrected the item-parameter algorithm contract to list the fields actually returned and printed, including DIGRAM's positive negative conditional log likelihood, and removed false AIC/BIC claims.
+- Reconciled public workflow pseudocode with the current method signatures: SCREEN and score-effects now include `critlevel`/`risk`, item fit includes `which` and strict `include_extended`, and every reserved dots boundary is shown as rejecting unsupported arguments.
+- Corrected the base-Rasch item-fit pseudocode to consume the supplied fit's stored bundle and fitted state, matching production behavior and avoiding a false project-only recomputation claim.
+- Updated the CM2/CM3 implementation map for the responsibility-split bootstrap generator, replicate runner, and summary modules.
+- Added formula-local source commentary beside the TAILNORM continued-fraction/series branches, PFCHI even/odd/large-df recurrences, the source BH boundary scan, and ARI's record traversal, unusual `(n-1)/n` variance multiplier, and fitted-variance z statistic.
+- Removed four unresolved roxygen links to intentionally non-installed internal topics so documentation regeneration completes without link-resolution warnings.
+- Added mechanically testable exported-signature and registered-S3 inventories to the algorithm specification, covering all 14 workflows and all current namespace registrations.
+- Replaced stale monolithic-file and pre-registration-refactor assertions with responsibility-aware SCREEN/global-homogeneity module checks and current native boundary assertions; the tests now verify centralized aliases and the retained Extended cancellation path without pinning obsolete implementation spelling.
+- Made the legacy source-comment regression checks function-responsibility aware: conditional table construction, score-effect screening, uniform-LD summaries, and uniform-DIF standardization are now checked in their split modules instead of requiring unrelated traces in former aggregate files.
+- Updated the manifest-counter regression to follow the new encoded/classified bundle boundary while continuing to pin the `Nincomplete` and `Nuseless` source semantics.
+- Repaired the SPADI vignette for the public estimability contract by removing its single isolated, conditionally unsupported `P1 = 0` category before automatic level inference. The vignette now fits the supported full SCREEN model successfully, then demonstrates a smaller one-LD/one-DIF model with its likelihood comparison and global-homogeneity summary.
+- Reused the vignette's fitted GLLRM for ARI, M2, and M3 instead of refitting the identical model three additional times, preserving all demonstrated results while materially reducing build/check time.
+- Added a reproducible inventory generator, a generated function inventory, and a numerical source-trace manifest. Every top-level helper now has adjacent roxygen with complete formals/return metadata, every internal helper is tagged `internal`, every classified numerical helper carries an exact local original-Pascal path/routine, and parser-based tests verify inventory completeness without depending on incidental data-frame row names, local anchors, algorithm sections, unit/oracle paths, and original/harness routine tokens. The generator also relocates manifest rows safely when responsibility-preserving file splits move a function.
+- Consolidated the native exact-SCREEN log-factorial calculation into one `GENTAB1`-traced helper and added local original-source/harness annotations beside the Delphi RNG, factorial approximation, expected cells, RCCHI order, hypergeometric probability, free-cell traversal, observed-SINGLE threshold, and exact p-value conversion.
+- Replaced placeholder package authorship with the repository maintainer identity, let standard R metadata derive consistent Author/Maintainer fields from `Authors@R`, added the public package repository and issue URLs, and excluded the contributor-only algorithm/changelog files from release tarballs.
+- Stopped the test helper from sourcing every package R file into the global environment. Unit tests now exercise the load-all or installed namespace directly, eliminating masking warnings and preventing tests from bypassing namespace behavior.
+- Repaired the remaining stale item-parameter harness citations to name the checked-in `BIRT_ITEM_PARAMETERS_REPORT.pas` file, and corrected gamma/exogenous helper comments to describe their actual encoded `project$raw_data` input rather than claiming direct legacy-file reads.
+- Removed three uncalled base global-homogeneity numerical helpers and one dead assignment (`global_homogeneity_score_item_n`, component-score gamma, and full-score gamma), leaving the source-backed expected-margin path as the single implementation.
+- Documented the complete M2/M3 bootstrap algorithm and source trace, removed stale “experimental” labels from the package README, added the standalone durable parity runner, and reconciled the oracle-coverage document so it no longer contradicts its active CM3 adapter section.
+- Added focused M2/M3 bootstrap unit coverage for strict public controls, opt-in defaults, private seeded reproducibility, fixed score strata, the source score-resampling no-op, active LD/DIF generation, historical extreme-score exogenous handling, refit acceptance, M2 result shape, printed summaries, and accepted-sample `simulated p <= observed p` calibration.
+- Added durable M2/M3 bootstrap trajectory validation that persists the raw Pascal and R results, raw diagnostic tables, rendered report, normalized trajectories, exact comparison, and run manifest; the three-item seed-47 oracle now pins all 24 response-configuration counts, score margins, and every RNG state/draw count before comparison.
+- Extended the source-shaped Pascal CM3 bootstrap oracle with per-replicate and final Park--Miller RNG states and draw counts, allowing validation to pin the complete seeded generator trajectory in addition to response-configuration counts.
+
+### Changed
+
+- Began the comprehensive audit remediation by adding a durable validation-run
+  artifact contract. Every direct run now creates a revision/environment
+  manifest before work starts and atomically saves raw R result objects,
+  extracted value tables, rendered output, per-row and combined normalized
+  values, the complete comparison, summary, timing, failure subset, and log.
+  Failed runs retain their last completed phase, and a forced first-comparison
+  failure test verifies that raw and normalized evidence survives. Validator
+  source files can now be added without being hidden by generated-output ignore
+  rules, while generated validation runs remain local to the development
+  repository. Aggregate-summary runs use the same contract: source summaries
+  and failure/timing sidecars are copied before aggregation with byte-size and
+  MD5 metadata, and malformed inputs leave a failed manifest plus their exact
+  inputs.
+- Corrected CM2/CM3 record eligibility to follow the Pascal diagnostic
+  routines instead of reusing the CML/GLLRM estimation row set. Complete
+  score-zero records now contribute to observed and expected margins;
+  score-group membership is applied only after record acceptance; and the
+  observed `Count_IJK` compatibility path retains item-complete records with
+  missing exogenous data while expected IJK and other margins reject them.
+  Named estimation, complete-item, complete-background, ordinary CM3, and IJK
+  row policies now make the asymmetry explicit. The Pascal reference harness
+  uses the same complete-record policies, reconstructs CM2 item-by-background
+  expectations from diagnostic score-by-background counts, and includes a
+  bounded `CM3_RECORD_ELIGIBILITY` oracle that emits every raw observed and
+  expected margin cell. Its edge fixture independently pins 7 estimation
+  records, 8 ordinary CM2/CM3 records, and 9 observed-IJK records. Focused R
+  tests and equivalent `ALGORITHMS.md` pseudocode cover both boundary cases.
+- Replaced the approximate GLLRM loop controller with the exact Pascal stop
+  state machine. It now initializes delta from `Nvalid`, seeds history -4..0
+  with 9999, preserves source update order and strict comparisons, implements
+  the recurring-delta and all `Iteration_stop` branches, and applies the final
+  strict `delta < 0.1` convergence acceptance while retaining the stop delta
+  separately from the final diagnostic discrepancy. A standalone Pascal
+  `GLLRM_STOP_STATE` trajectory oracle and synthetic R tests cover tolerance,
+  maximum step, 50/1000-step checkpoints, current/two-back equality,
+  recurrence, plateau, and post-stop acceptance. The final LD output gauge now
+  runs only under Pascal's `(IscoreRef <> 0) and (Nij > 0)` condition; removed
+  component-size and term-count heuristics. Nonconverged local-independence
+  candidates are no longer replaced by an invented step-51 refit: the single
+  common-estimator attempt is reported directly.
+- Unified missing-LD and missing-DIF candidate estimation through the same
+  GLLRM engine used by public model fits. Candidate models preserve the
+  current source-ordered term set plus exactly one IJ or IX term, start fresh
+  from positive observed-margin support, use the full Pascal stop state, and
+  return one stable set of parameter, likelihood, iteration, delta,
+  convergence, and stop-reason metadata. Removed the two unreachable bespoke
+  candidate IPF loops, their duplicate expected-margin and likelihood code,
+  the DIF formatted-output convergence heuristic, and base-fit warm starts.
+  Base Rasch likelihood evaluation now uses the canonical source score-gamma
+  routine. Candidate regression tests compare the common engine exactly with
+  direct full model fits, and the algorithm guide documents the single-engine
+  contract and the absence of a step-51 replacement. A durable focused
+  Pascal/R parity run now saves raw candidate estimator TSVs and R fit objects
+  before comparing every item, IJ/IX parameter, iteration count, report delta,
+  parameter count, convergence flag, and negative conditional likelihood. Its
+  first run also exposed and corrected a Pascal-harness parameter-count bug:
+  `SourceParameterCount` now follows `calculate_Nparameters` by counting only
+  declared `Nix`/DIF terms instead of every possible item-background margin.
+  The candidate benchmark now targets the current source-ordered candidate
+  enumerators and common-core fitters, comparing their presentation-free path
+  with a full public refit without introducing warm starts.
+- Replaced the public fit row-count guard with a source-based estimability
+  boundary. Public Rasch and GLLRM fits now require two or more supported
+  categories for every item, complete declared category support, at least one
+  positive source reference-free cell for every requested LD/DIF term, and a
+  positive source parameter count. It deliberately does not require affine
+  rank of only the response patterns observed in the sample, because that
+  empirical criterion rejects valid sparse conditional fits. The post-fit
+  boundary also rejects non-integer or negative parameter counts, non-finite
+  negative conditional likelihoods, sentinel thresholds, and non-finite item
+  parameters. Regression tests cover upper-boundary-only, one-category,
+  mixed-item, one-item, category-hole, and unsupported-interaction failures,
+  while retaining a valid sparse constant-total-score fit.
+- Added deterministic analysis and likelihood-sample identities. The canonical
+  analysis payload covers ordered encoded item/background values, explicit row
+  identity and order, missingness and source-validity state, category mappings,
+  selected roles, and score cuts; its schema-prefixed fingerprint is carried
+  unchanged by models, SCREEN objects, fits, and result objects. Fitting checks
+  that retained analysis inputs have not been mutated. `anova.gRm_fit()` now
+  requires identical fingerprints, canonical payloads, exact likelihood row
+  masks, and consistent mask/sample counts, and rejects non-nested consecutive
+  LD/DIF term sets. Tests distinguish changed values with the same schema,
+  row permutations, changed missingness, changed score cuts, altered masks,
+  and non-nested terms while accepting independent fits from a copied analysis.
+  The `logLik()` boundary now also rejects negative or non-integer parameter
+  counts.
+- Corrected fitted-model printing to label the stored positive source quantity
+  as `Negative log likelihood (DIGRAM)`. `logLik.gRm_fit()` remains the sole
+  conversion to R's standard signed log likelihood, and a regression test now
+  checks the documented opposite signs in both printed and programmatic output.
+- Standardized public Rasch, GLLRM, and diagnostic-candidate convergence
+  metadata as `gRm_convergence_state`. It records the source stopping/report
+  discrepancy separately from the final recomputed discrepancy, the strict
+  sufficient-count tolerance, iterations, final and pre-post-acceptance source
+  flags, stop reason, attempted-fit fields, report-value source, and whether
+  DIGRAM's post-stop `delta < 0.1` acceptance changed the result. The former
+  `delta` and `max_delta` names remain transition aliases. `fit()` documentation
+  now correctly describes `max_delta` as a sufficient-count discrepancy rather
+  than a parameter update.
+- Standardized unsupported-argument handling across public workflows and S3
+  methods. Reserved `...` arguments now fail before numerical work and name
+  every offending argument, covering fitting, diagnostics, ARI, model updates,
+  graph construction, likelihood, summaries, and printing; plotting retains
+  dots only where they are deliberately forwarded to graphics methods.
+  `item_fit(include_extended=)`, ARI `show_expected`, and graph-plot `rescale`
+  now share a strict one-element, non-missing logical validator, preventing
+  numeric/logical inconsistencies and low-level length or missing-value errors.
+- Completed the registered-method and contributor object-contract
+  documentation. Every registered S3 method now has an exact generated Rd
+  alias, the internal `model_terms()` dispatch contract has its own internal
+  topic, and the formerly inert object-shape comments now generate a rigorous
+  schema topic covering analysis identity, models, SCREEN, fits, convergence,
+  values, diagnostic results, summaries, and persisted validation artifacts.
+  A namespace-wide regression test requires exact aliases for all present and
+  future S3 registrations.
+- Made Pascal Extended compatibility an explicit native capability rather than
+  a platform-independent claim. Fit values now report the compiled
+  long-double mantissa, exponent range, storage size, x87 controls/logarithm
+  availability, and whether exact Pascal-Extended fixed-field parity is
+  supported. Signed zero now comes directly from the source-order arithmetic
+  and formatter; x87 regression fixtures cover positive, negative, exact-zero,
+  and both sides of three-decimal ICE rounding boundaries. Removed the two
+  uncalled native Rasch replay estimators and their R wrappers, leaving the
+  production formatter to consume the already fitted R gamma matrix. Native
+  routine registration now lives in a dedicated `src/init.c` boundary.
+- Hardened the native GLLRM expected-margin boundary by validating the complete
+  item/component/configuration/LD/DIF/background/score index graph once before
+  entering its unchecked arithmetic loops. It now rejects missing,
+  fractional, negative, and upper-bound indices; inconsistent score sums;
+  duplicate or missing component and parameter references; invalid category
+  values; mismatched parameter dimensions; and non-finite or negative numeric
+  cells with R errors instead of risking out-of-bounds access. Direct native
+  tests exercise each index family and a deterministic malformed-shape corpus.
+- Replaced the contradictory exact-SCREEN tie constants with an executable
+  trajectory contract. A standalone Pascal oracle now records every generated
+  tie-heavy table, Delphi-LCG draw and state, Pearson statistic, gamma,
+  exceedance decision, sequential status, and stop decision for fixed and
+  repeated runs; checked-in raw traces preserve that evidence. The R and native
+  paths now reproduce the source precision boundary exactly: simulated
+  statistics remain 8-byte Pascal `REAL`, while observed chi-square is compared
+  only after its assignment to the 4-byte `SINGLE` `RESARRAY` cell. The native
+  item-pair parity gate covers chi-square, df, gamma, PPQ/PMQ/S, exact and
+  asymptotic p-values, exceedance counts, simulation/draw counts, and final RNG
+  state across ordinary and tie-heavy fixed/repeated fixtures. A diagnostic
+  native trace endpoint permits table-by-table R/native/Pascal comparison, and
+  the optimized route remains disabled whenever the complete gate fails.
+  Removed the superseded duplicate prepared-slice parser, table generator,
+  chi-square kernel, and gamma-count kernel from the native unit so only the
+  parity-gated production implementation remains.
+- Made the ARI plot's blank outer background explicit after applying
+  `theme_minimal()`. This preserves the intended transparent report surface
+  across ggplot2 releases instead of testing an inherited theme-class detail
+  whose resolution changed in ggplot2 4.x.
+- Added the source-shaped CM2/CM3 parametric-bootstrap engine required by the
+  public M2/M3 diagnostics. It preserves observed score distributions within
+  complete exogenous strata, generates response patterns conditionally from
+  the current fitted GLLRM component graph (including active LD and DIF),
+  carries the historical extreme-score exogenous-value behavior, optionally
+  starts a fresh 500-step GLLRM refit for every sample, accepts only final
+  `delta < 0.1` samples, and counts simulated p-values in Pascal's `<=`
+  direction. A private Park--Miller stream makes seeded runs reproducible
+  without mutating R's global RNG after initialization, while structured raw
+  fit, aggregate, margin, score-stratum, RNG, and optional response-sample
+  records remain available before summary proportions are formed. Pascal's
+  empty score-distribution-resampling branch is exposed honestly as a no-op,
+  and source static bootstrap bounds are reported as capability metadata.
+  Models whose complete joint response space fits the package's audited
+  enumeration guard use the Pascal harness's exact item-order cumulative draw,
+  enabling seeded response-count parity; larger admissible models fall back to
+  the distribution-equivalent source component-score and within-component
+  pattern generator instead of imposing an exponential full-item limit.
+- Corrected the constrained Pascal CM3 bootstrap oracle's RNG trajectory to
+  the preserved `SKbias8` generation order: it now generates non-extreme score
+  blocks first, appends score-zero and maximum-score records afterwards, and
+  consumes no random draws for those deterministic extreme patterns. The prior
+  harness-only score-ascending/all-score draw sequence was distributionally
+  harmless but could not serve as an exact seeded trajectory oracle.
+- Promoted `m2()` and `m3()` from their deterministic-only experimental
+  boundary to a documented bootstrap-capable API. Strict public controls expose
+  the source sample-size default, optional reproducible seed, per-sample
+  re-estimation, 500-step refit limit, response retention, and the preserved
+  score-resampling no-op. Result metadata, compact printing, and summary tables
+  now report bootstrap feasibility, `nsim`, `nused`, acceptance threshold, and
+  calibrated aggregate, item-trait, invariance, and individual-margin p-values
+  without replacing their retained asymptotic values.
+
 ## gRm 0.07 - 2026-08-12
 
 ### Changed

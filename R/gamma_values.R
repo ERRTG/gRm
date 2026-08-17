@@ -1,23 +1,27 @@
-# Derive DIGRAM marginal gamma report values
-#
-# Computes the Goodman-Kruskal marginal association-gamma matrix printed by
-# DIGRAM's `GAMMA` command. The source path is
-# `DGRexe.execute_marginal_gamma`, which builds one two-variable marginal
-# hypothesis for every ordinal pair and stores `results[1,5]`. That value is
-# produced by `SkStat.RCGAMMA`; the same quadrant-count formula is mirrored in
-# `SourceRaschCore.SourceRCGammaStats`.
-#
-# Production R computes from `DIGRAM.var` and `DIGRAM.dat`; Pascal and the
-# supplied DIGRAM report are test oracles only.
-#
-# @param project A parsed DIGRAM project from [read_digram_project()].
-# @return A `gRm_gamma_values` object.
-# @examples
-# \dontrun{
-# project <- read_digram_project("path/to/DIGRAM")
-# values <- gamma_values(project)
-# values$gamma[1:3, 1:3]
-# }
+#' Derive DIGRAM marginal gamma report values
+#'
+#' Computes the Goodman-Kruskal marginal association-gamma matrix printed by
+#' DIGRAM's `GAMMA` command. The source path is
+#' `DGRexe.execute_marginal_gamma`, which builds one two-variable marginal
+#' hypothesis for every ordinal pair and stores `results[1,5]`. That value is
+#' produced by `SkStat.RCGAMMA`; the same quadrant-count formula is mirrored in
+#' `SourceRaschCore.SourceRCGammaStats`.
+#'
+#' Production R computes from the encoded `project$raw_data` matrix created by
+#' either public constructor; Pascal and supplied DIGRAM reports are validation
+#' oracles only.
+#'
+#' Source trace: `source/PAS_scd/SkStat.pas::RCGAMMA`.
+#' @param project A parsed DIGRAM project from [read_digram_project()].
+#' @return A `gRm_gamma_values` object.
+#' @examples
+#' \dontrun{
+#' project <- read_digram_project("path/to/DIGRAM")
+#' values <- gamma_values(project)
+#' values$gamma[1:3, 1:3]
+#' }
+#' @keywords internal
+#' @noRd
 gamma_values <- function(project) {
   variables <- project$variables
   ordinal <- variables$raw_max > 1L & variables$vtype == 3L
@@ -73,13 +77,16 @@ gamma_values <- function(project) {
   )
 }
 
-# Build a pairwise complete ordinal table for marginal gamma
-#
-# @param row_values Integer source-coded values for the row variable.
-# @param col_values Integer source-coded values for the column variable.
-# @param row_dim Number of ordinal row categories.
-# @param col_dim Number of ordinal column categories.
-# @return Integer matrix of pairwise complete counts.
+#' Build a pairwise complete ordinal table for marginal gamma
+#'
+#' Source trace: `source/PAS_scd/SkStat.pas::RCGAMMA`.
+#' @param row_values Integer source-coded values for the row variable.
+#' @param col_values Integer source-coded values for the column variable.
+#' @param row_dim Number of ordinal row categories.
+#' @param col_dim Number of ordinal column categories.
+#' @return Integer matrix of pairwise complete counts.
+#' @keywords internal
+#' @noRd
 gRm_pairwise_gamma_table <- function(row_values, col_values, row_dim, col_dim) {
   valid <- row_values >= 1L & row_values <= row_dim & col_values >= 1L & col_values <= col_dim
   tab <- matrix(0L, nrow = row_dim, ncol = col_dim)
@@ -89,10 +96,13 @@ gRm_pairwise_gamma_table <- function(row_values, col_values, row_dim, col_dim) {
   tab
 }
 
-# Goodman-Kruskal gamma statistics using DIGRAM's RC gamma formula
-#
-# @param tab A two-way ordinal count table.
-# @return List with `gamma`, `ppq`, and `pmq`.
+#' Goodman-Kruskal gamma statistics using DIGRAM's RC gamma formula
+#'
+#' Source trace: `source/PAS_scd/SkStat.pas::RCGAMMA`.
+#' @param tab A two-way ordinal count table.
+#' @return List with `gamma`, `ppq`, and `pmq`.
+#' @keywords internal
+#' @noRd
 gRm_goodman_kruskal_gamma <- function(tab) {
   source_rc_gamma_counts(tab)
 }

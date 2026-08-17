@@ -1,9 +1,16 @@
+#' Internal summary table helper
+#'
+#' Supports the api summary implementation while preserving its internal contract.
+#' @param x Object or value to process.
+#' @return The internal `summary_table()` computation result.
+#' @keywords internal
+#' @noRd
 summary_table <- function(x) {
   UseMethod("summary_table")
 }
-
 #' @export
 print.gRm_analysis <- function(x, ...) {
+  reject_public_dots(...)
   data_name <- x$data_name %||% x$name %||% "<unnamed>"
   id <- x$id %||% "none"
   cat("gRm: Graphical Log-Linear Rasch Model analysis\n\n")
@@ -20,18 +27,25 @@ print.gRm_analysis <- function(x, ...) {
 
 #' @export
 print.gRm_model <- function(x, ...) {
+  reject_public_dots(...)
   print(summary(x))
   invisible(x)
 }
 
 #' @export
 print.gRm_fit <- function(x, ...) {
+  reject_public_dots(...)
   values <- x$values %||% list()
   cat(public_model_label(x$spec, "fit"), "\n\n", sep = "")
   cat("  Converged: ", summary_scalar(x$convergence$converged %||% NA), "\n", sep = "")
   cat("  Iterations: ", summary_scalar(x$convergence$iterations %||% values$n_step %||% NA_integer_), "\n", sep = "")
-  cat("  Delta: ", summary_scalar(x$convergence$delta %||% values$delta %||% NA_real_), "\n", sep = "")
-  cat("  Log likelihood: ", summary_scalar(values$log_likelihood %||% NA_real_), "\n", sep = "")
+  cat("  Delta: ", summary_scalar(x$convergence$report_delta %||% x$convergence$delta %||% NA_real_), "\n", sep = "")
+  cat(
+    "  Negative log likelihood (DIGRAM): ",
+    summary_scalar(values$negative_log_likelihood %||% values$log_likelihood %||% NA_real_),
+    "\n",
+    sep = ""
+  )
   if (!is.null(values$n_parameters)) {
     cat("  Parameters: ", summary_scalar(values$n_parameters), "\n", sep = "")
   }
@@ -42,6 +56,7 @@ print.gRm_fit <- function(x, ...) {
 
 #' @export
 print.gRm_direct_table <- function(x, ...) {
+  reject_public_dots(...)
   display <- x
   class(display) <- "data.frame"
   title <- attr(x, "title", exact = TRUE)
@@ -62,6 +77,7 @@ print.gRm_direct_table <- function(x, ...) {
 }
 #' @export
 print.gRm_local_dependence <- function(x, ...) {
+  reject_public_dots(...)
   print_diagnostic_status(
     x,
     title = "gRm: Local dependence tests",
@@ -70,6 +86,7 @@ print.gRm_local_dependence <- function(x, ...) {
 }
 #' @export
 print.gRm_dif <- function(x, ...) {
+  reject_public_dots(...)
   print_diagnostic_status(
     x,
     title = "gRm: DIF tests",
@@ -84,6 +101,7 @@ print.gRm_dif <- function(x, ...) {
 }
 #' @export
 print.gRm_global_homogeneity <- function(x, ...) {
+  reject_public_dots(...)
   summary <- x$values$summary %||% list()
   groups <- x$values$score_groups %||% data.frame()
   uniform_ld_n <- global_homogeneity_table_nrow(x$values$uniform_ld %||% data.frame())
@@ -110,6 +128,17 @@ print.gRm_global_homogeneity <- function(x, ...) {
   invisible(x)
 }
 
+#' Internal print diagnostic status helper
+#'
+#' Supports the api summary implementation while preserving its internal contract.
+#' @param x Object or value to process.
+#' @param title Internal `title` value used by this helper.
+#' @param candidate_label Internal `candidate_label` value used by this helper.
+#' @param before_selection Internal `before_selection` value used by this helper.
+#' @param after_convergence Internal `after_convergence` value used by this helper.
+#' @return The input object, invisibly, or a graphics result.
+#' @keywords internal
+#' @noRd
 print_diagnostic_status <- function(x,
                                     title,
                                     candidate_label,
@@ -133,6 +162,13 @@ print_diagnostic_status <- function(x,
   invisible(x)
 }
 
+#' Internal diagnostic tests helper
+#'
+#' Supports the api summary implementation while preserving its internal contract.
+#' @param x Object or value to process.
+#' @return The internal `diagnostic_tests()` computation result.
+#' @keywords internal
+#' @noRd
 diagnostic_tests <- function(x) {
   tests <- x$values$tests %||% data.frame()
   if (is.data.frame(tests)) {
@@ -142,6 +178,13 @@ diagnostic_tests <- function(x) {
   }
 }
 
+#' Internal diagnostic included tests helper
+#'
+#' Supports the api summary implementation while preserving its internal contract.
+#' @param x Object or value to process.
+#' @return The internal `diagnostic_included_tests()` computation result.
+#' @keywords internal
+#' @noRd
 diagnostic_included_tests <- function(x) {
   included <- x$values$included_tests %||% data.frame()
   if (is.data.frame(included)) {
@@ -151,6 +194,14 @@ diagnostic_included_tests <- function(x) {
   }
 }
 
+#' Internal diagnostic true count helper
+#'
+#' Supports the api summary implementation while preserving its internal contract.
+#' @param tests Diagnostic test rows.
+#' @param column Internal `column` value used by this helper.
+#' @return The internal `diagnostic_true_count()` computation result.
+#' @keywords internal
+#' @noRd
 diagnostic_true_count <- function(tests, column) {
   if (!is.data.frame(tests) || !column %in% names(tests)) {
     return(0L)
@@ -158,6 +209,14 @@ diagnostic_true_count <- function(tests, column) {
   sum(!is.na(tests[[column]]) & tests[[column]])
 }
 
+#' Internal diagnostic false count helper
+#'
+#' Supports the api summary implementation while preserving its internal contract.
+#' @param tests Diagnostic test rows.
+#' @param column Internal `column` value used by this helper.
+#' @return The internal `diagnostic_false_count()` computation result.
+#' @keywords internal
+#' @noRd
 diagnostic_false_count <- function(tests, column) {
   if (!is.data.frame(tests) || !column %in% names(tests)) {
     return(0L)
@@ -165,6 +224,13 @@ diagnostic_false_count <- function(tests, column) {
   sum(!is.na(tests[[column]]) & !tests[[column]])
 }
 
+#' Internal diagnostic threshold label helper
+#'
+#' Supports the api summary implementation while preserving its internal contract.
+#' @param threshold Internal `threshold` value used by this helper.
+#' @return The internal `diagnostic_threshold_label()` computation result.
+#' @keywords internal
+#' @noRd
 diagnostic_threshold_label <- function(threshold) {
   threshold <- threshold %||% NA_real_
   threshold <- threshold[[1L]]
@@ -176,6 +242,13 @@ diagnostic_threshold_label <- function(threshold) {
   format.pval(threshold, digits = dig_tst, eps = .Machine$double.eps)
 }
 
+#' Internal print gRm result helper
+#'
+#' Supports the api summary implementation while preserving its internal contract.
+#' @param x Object or value to process.
+#' @return The input object, invisibly, or a graphics result.
+#' @keywords internal
+#' @noRd
 print_gRm_result <- function(x) {
   cat("<", class(x)[[1L]], ">\n", sep = "")
   cat("  items: ", paste(x$analysis$items, collapse = ", "), "\n", sep = "")
@@ -185,6 +258,26 @@ print_gRm_result <- function(x) {
   invisible(x)
 }
 
+#' Internal make gRm summary helper
+#'
+#' Supports the api summary implementation while preserving its internal contract.
+#' @param object Object dispatched to this helper.
+#' @param title Internal `title` value used by this helper.
+#' @param which Internal `which` value used by this helper.
+#' @param allowed Internal `allowed` value used by this helper.
+#' @param tables Internal `tables` value used by this helper.
+#' @param bh_tests Internal `bh_tests` value used by this helper.
+#' @param header Internal `header` value used by this helper.
+#' @param print_tables Internal `print_tables` value used by this helper.
+#' @param table_names Internal `table_names` value used by this helper.
+#' @param table_notes Internal `table_notes` value used by this helper.
+#' @param extra_tables Internal `extra_tables` value used by this helper.
+#' @param summary_attributes Internal `summary_attributes` value used by this helper.
+#' @param print_table_names Internal `print_table_names` value used by this helper.
+#' @param remark_tables Internal `remark_tables` value used by this helper.
+#' @return A newly assembled internal object or table.
+#' @keywords internal
+#' @noRd
 make_gRm_summary <- function(object,
                              title,
                              which,
@@ -252,6 +345,7 @@ summary.gRm_model <- function(object, ...) {
 
 #' @export
 summary.gRm_fit <- function(object, which = NULL, ...) {
+  reject_public_dots(...)
   param <- item_parameter_result_tables(object$values)
   tables <- list(
     parameters = param$item_statistics %||% data.frame(),
@@ -371,6 +465,7 @@ summary.gRm_dif <- function(object, ...) {
 
 #' @export
 summary.gRm_global_homogeneity <- function(object, which = NULL, ...) {
+  reject_public_dots(...)
   source_status <- global_homogeneity_source_status(object$values$items %||% data.frame())
   values <- object$values %||% list()
   default_which <- global_homogeneity_default_summary_sections(values)
@@ -423,6 +518,13 @@ summary.gRm_global_homogeneity <- function(object, which = NULL, ...) {
   )
 }
 
+#' Internal global homogeneity source status helper
+#'
+#' Supports the api summary implementation while preserving its internal contract.
+#' @param items Item selection or item metadata.
+#' @return The internal `global_homogeneity_source_status()` computation result.
+#' @keywords internal
+#' @noRd
 global_homogeneity_source_status <- function(items) {
   residual <- runtime_source_backed_summary(items, "residual_runtime_source_backed")
   marker <- runtime_source_backed_summary(items, "marker_runtime_source_backed")
@@ -435,6 +537,14 @@ global_homogeneity_source_status <- function(items) {
   )
 }
 
+#' Internal runtime source backed summary helper
+#'
+#' Supports the api summary implementation while preserving its internal contract.
+#' @param items Item selection or item metadata.
+#' @param column Internal `column` value used by this helper.
+#' @return The internal `runtime_source_backed_summary()` computation result.
+#' @keywords internal
+#' @noRd
 runtime_source_backed_summary <- function(items, column) {
   if (!is.data.frame(items) || !column %in% names(items) || length(items[[column]]) == 0L) {
     return(list(source_backed = NA, status = "not_available"))
@@ -452,6 +562,25 @@ runtime_source_backed_summary <- function(items, column) {
   list(source_backed = FALSE, status = "not_source_backed")
 }
 
+#' Internal new gRm summary helper
+#'
+#' Supports the api summary implementation while preserving its internal contract.
+#' @param object Object dispatched to this helper.
+#' @param title Internal `title` value used by this helper.
+#' @param which Internal `which` value used by this helper.
+#' @param tables Internal `tables` value used by this helper.
+#' @param bh_tests Internal `bh_tests` value used by this helper.
+#' @param header Internal `header` value used by this helper.
+#' @param print_tables Internal `print_tables` value used by this helper.
+#' @param table_names Internal `table_names` value used by this helper.
+#' @param table_notes Internal `table_notes` value used by this helper.
+#' @param extra_tables Internal `extra_tables` value used by this helper.
+#' @param summary_attributes Internal `summary_attributes` value used by this helper.
+#' @param print_table_names Internal `print_table_names` value used by this helper.
+#' @param remark_tables Internal `remark_tables` value used by this helper.
+#' @return A newly assembled internal object or table.
+#' @keywords internal
+#' @noRd
 new_gRm_summary <- function(object,
                             title,
                             which,
@@ -484,1552 +613,5 @@ new_gRm_summary <- function(object,
   for (name in names(summary_attributes)) {
     attr(out, name) <- summary_attributes[[name]]
   }
-  out
-}
-
-#' @export
-print.summary.gRm <- function(x, ...) {
-  cat(x$title, "\n", sep = "")
-  if (length(x$header)) {
-    cat(paste(x$header, collapse = "\n"), "\n", sep = "")
-  }
-  if (isTRUE(x$bh_tests) && "tests" %in% names(x$tables)) {
-    cat("Benjamini-Hochberg\n")
-  }
-  if (is.data.frame(x$remarks) && nrow(x$remarks)) {
-    cat("\nRemarks\n")
-    for (row in seq_len(nrow(x$remarks))) {
-      cat("  ", x$remarks$message[[row]], "\n", sep = "")
-    }
-  }
-  if (inherits(x, "summary.gRm_analysis") && "score_groups" %in% names(x$tables)) {
-    print_analysis_score_group_distribution(x$tables$score_groups)
-  }
-  if (!isTRUE(x$print_tables)) {
-    return(invisible(x))
-  }
-  for (name in names(x$tables)) {
-    table <- x$tables[[name]]
-    if (inherits(x, "summary.gRm_model")) {
-      if (identical(name, "model")) {
-        cat("\nModel\n")
-        print_model_summary_table(table)
-        next
-      }
-      if (identical(name, "ld")) {
-        print_model_term_table("Local dependence terms", table, "ld")
-        next
-      }
-      if (identical(name, "dif")) {
-        print_model_term_table("DIF terms", table, "dif")
-        next
-      }
-    }
-    if (inherits(x, "summary.gRm_fit")) {
-      if (identical(name, "parameters")) {
-        cat("\nItem parameters\n")
-        print_fit_parameter_table(table)
-        next
-      }
-      if (identical(name, "thresholds")) {
-        cat("\nThresholds\n")
-        print_fit_threshold_table(table)
-        next
-      }
-      if (identical(name, "terms")) {
-        cat("\nModel terms\n")
-        print_fit_term_table(table)
-        next
-      }
-    }
-    if (inherits(x, "summary.gRm_screen")) {
-      if (identical(name, "local_dependence")) {
-        cat("\nLocal dependence\n")
-      } else if (identical(name, "dif")) {
-        cat("\nDIF\n")
-      } else if (identical(name, "score_effects")) {
-        cat("\nScore effects\n")
-      } else if (isTRUE(x$print_table_names)) {
-        cat("\n", name, "\n", sep = "")
-      } else {
-        cat("\n")
-      }
-      print_screen_tests_table(table)
-      print_summary_table_note(x$table_notes[[name]])
-      next
-    }
-    if (isTRUE(x$print_table_names)) {
-      cat("\n", name, "\n", sep = "")
-    } else {
-      cat("\n")
-    }
-    if (inherits(x, "summary.gRm_local_dependence") && identical(name, "tests")) {
-      print_diagnostic_tests_table(table, gamma_columns = "WPG")
-    } else if (inherits(x, "summary.gRm_dif") && identical(name, "tests")) {
-      print_diagnostic_tests_table(table, gamma_columns = "Gamma")
-    } else if (inherits(x, "summary.gRm_m2") || inherits(x, "summary.gRm_m3")) {
-      print_diagnostic_tests_table(table)
-    } else if (inherits(x, "summary.gRm_global_homogeneity")) {
-      if (identical(name, "test")) {
-        cat("Global test\n")
-        print_global_homogeneity_test_table(table)
-      } else if (identical(name, "score_groups")) {
-        cat("Score groups\n")
-        print_global_homogeneity_score_group_table(table)
-      } else if (identical(name, "item_means")) {
-        cat("Item means\n")
-        print_global_homogeneity_item_means_table(table)
-      } else if (identical(name, "uniform_ld")) {
-        cat("Uniform local dependence\n")
-        print_global_homogeneity_uniform_table(table)
-      } else if (identical(name, "uniform_dif")) {
-        cat("Uniform DIF\n")
-        print_global_homogeneity_uniform_table(table)
-      } else {
-        print_summary_table(table)
-      }
-    } else {
-      print_summary_table(table)
-    }
-    print_summary_table_note(x$table_notes[[name]])
-  }
-  if (inherits(x, "summary.gRm_screen")) {
-    cat("\nSelected model terms\n")
-    print_fit_term_table(x$selected)
-  }
-  invisible(x)
-}
-
-print_summary_table_note <- function(note) {
-  if (!length(note) || all(is.na(note)) || !nzchar(note[[1L]])) {
-    return(invisible(NULL))
-  }
-  cat("---\n")
-  cat(note[[1L]], "\n", sep = "")
-  invisible(NULL)
-}
-
-print_summary_table <- function(table) {
-  if (is.data.frame(table) && nrow(table)) {
-    print(public_format_table(table), row.names = FALSE)
-  } else {
-    cat("  <none>\n")
-  }
-  invisible(NULL)
-}
-
-print_diagnostic_tests_table <- function(table, gamma_columns = character()) {
-  if (!is.data.frame(table) || !nrow(table)) {
-    cat("  <none>\n")
-    return(invisible(NULL))
-  }
-  display <- table
-  digits <- max(3L, getOption("digits") - 3L)
-  dig_tst <- max(1L, min(5L, digits - 1L))
-  if ("Chisq" %in% names(display)) {
-    display$Chisq <- format(signif(display$Chisq, dig_tst), digits = dig_tst)
-  }
-  if ("Pr(>Chisq)" %in% names(display)) {
-    display[["Pr(>Chisq)"]] <- format.pval(
-      display[["Pr(>Chisq)"]],
-      digits = dig_tst,
-      eps = .Machine$double.eps
-    )
-  }
-  for (column in gamma_columns) {
-    if (column %in% names(display)) {
-      display[[column]] <- format(signif(display[[column]], digits), digits = digits)
-    }
-  }
-  if ("delta" %in% names(display)) {
-    display$delta <- format(signif(display$delta, digits), digits = digits)
-  }
-  print(
-    display,
-    row.names = FALSE,
-    quote = FALSE,
-    right = TRUE,
-    na.print = "NA",
-    max = diagnostic_print_max(display)
-  )
-  invisible(NULL)
-}
-
-print_screen_tests_table <- function(table) {
-  if (!is.data.frame(table) || !nrow(table)) {
-    cat("  <none>\n")
-    return(invisible(NULL))
-  }
-  display <- table
-  digits <- max(3L, getOption("digits") - 3L)
-  dig_tst <- max(1L, min(5L, digits - 1L))
-  statistic_columns <- c(
-    "Chisq", "Gamma", "WPG", "Gamma 1->2", "Gamma 2->1", "Gamma sum"
-  )
-  p_value_columns <- c(
-    "Pr(>Chisq)", "Pr(>|Gamma|)",
-    "Pr(>|Gamma 1->2|)", "Pr(>|Gamma 2->1|)"
-  )
-  for (column in statistic_columns) {
-    if (column %in% names(display)) {
-      missing <- is.na(display[[column]])
-      display[[column]] <- format(signif(display[[column]], dig_tst), digits = dig_tst)
-      display[[column]][missing] <- ""
-    }
-  }
-  for (column in p_value_columns) {
-    if (column %in% names(display)) {
-      missing <- is.na(display[[column]])
-      display[[column]] <- format.pval(
-        display[[column]],
-        digits = dig_tst,
-        eps = .Machine$double.eps
-      )
-      display[[column]][missing] <- ""
-    }
-  }
-  if ("Df" %in% names(display)) {
-    missing <- is.na(display$Df)
-    display$Df <- as.character(display$Df)
-    display$Df[missing] <- ""
-  }
-  print(
-    display,
-    row.names = FALSE,
-    quote = FALSE,
-    right = TRUE,
-    na.print = "",
-    max = diagnostic_print_max(display)
-  )
-  invisible(NULL)
-}
-
-print_global_homogeneity_test_table <- function(table) {
-  if (!is.data.frame(table) || !nrow(table)) {
-    cat("  <none>\n")
-    return(invisible(NULL))
-  }
-  display <- table
-  digits <- max(3L, getOption("digits") - 3L)
-  dig_tst <- max(1L, min(5L, digits - 1L))
-  statistic_columns <- c("LogLik full", "LogLik groups", "CLR")
-  for (column in statistic_columns) {
-    if (column %in% names(display)) {
-      display[[column]] <- format(signif(display[[column]], dig_tst), digits = dig_tst)
-    }
-  }
-  if ("Pr(>CLR)" %in% names(display)) {
-    display[["Pr(>CLR)"]] <- format.pval(
-      display[["Pr(>CLR)"]],
-      digits = dig_tst,
-      eps = .Machine$double.eps
-    )
-  }
-  print(
-    display,
-    row.names = FALSE,
-    quote = FALSE,
-    right = TRUE,
-    na.print = "NA"
-  )
-  invisible(NULL)
-}
-
-print_global_homogeneity_score_group_table <- function(table) {
-  if (!is.data.frame(table) || !nrow(table)) {
-    cat("  <none>\n")
-    return(invisible(NULL))
-  }
-  display <- table
-  digits <- max(3L, getOption("digits") - 3L)
-  dig_tst <- max(1L, min(5L, digits - 1L))
-  if ("LogLik" %in% names(display)) {
-    display$LogLik <- format(signif(display$LogLik, dig_tst), digits = dig_tst)
-  }
-  if ("delta" %in% names(display)) {
-    display$delta <- format(signif(display$delta, digits), digits = digits)
-  }
-  print(
-    display,
-    row.names = FALSE,
-    quote = FALSE,
-    right = TRUE,
-    na.print = "NA"
-  )
-  invisible(NULL)
-}
-
-print_global_homogeneity_item_means_table <- function(table) {
-  if (!is.data.frame(table) || !nrow(table)) {
-    cat("  <none>\n")
-    return(invisible(NULL))
-  }
-  display <- table
-  digits <- max(3L, getOption("digits") - 3L)
-  dig_tst <- max(1L, min(5L, digits - 1L))
-  statistic_columns <- c("Observed mean", "Expected mean")
-  for (column in statistic_columns) {
-    if (column %in% names(display)) {
-      display[[column]] <- format(signif(display[[column]], dig_tst), digits = dig_tst)
-    }
-  }
-  print(
-    display,
-    row.names = FALSE,
-    quote = FALSE,
-    right = TRUE,
-    na.print = "NA"
-  )
-  invisible(NULL)
-}
-
-print_score_effects_tests_table <- function(table) {
-  if (!is.data.frame(table) || !nrow(table)) {
-    cat("  <none>\n")
-    return(invisible(NULL))
-  }
-  display <- table
-  digits <- max(3L, getOption("digits") - 3L)
-  dig_tst <- max(1L, min(5L, digits - 1L))
-  statistic_columns <- c("Chisq", "Gamma")
-  p_value_columns <- c(
-    "Pr(>Chisq)",
-    "Pr(Gamma+)",
-    "Pr(|Gamma|)",
-    "Exact Pr(>Chisq)",
-    "Exact Pr(Gamma+)",
-    "Exact Pr(|Gamma|)"
-  )
-  for (column in statistic_columns) {
-    if (column %in% names(display)) {
-      display[[column]] <- format(signif(display[[column]], dig_tst), digits = dig_tst)
-    }
-  }
-  for (column in p_value_columns) {
-    if (column %in% names(display)) {
-      display[[column]] <- format.pval(
-        display[[column]],
-        digits = dig_tst,
-        eps = .Machine$double.eps
-      )
-    }
-  }
-  print(
-    display,
-    row.names = FALSE,
-    quote = FALSE,
-    right = TRUE,
-    na.print = "NA",
-    max = diagnostic_print_max(display)
-  )
-  invisible(NULL)
-}
-
-print_global_homogeneity_uniform_table <- function(table) {
-  gamma_columns <- grep("^(Obs|Exp) gamma ", names(table), value = TRUE)
-  print_diagnostic_tests_table(table, gamma_columns = gamma_columns)
-}
-
-print_item_fit_tests_table <- function(table) {
-  if (!is.data.frame(table) || !nrow(table)) {
-    cat("  <none>\n")
-    return(invisible(NULL))
-  }
-  display <- table
-  digits <- max(3L, getOption("digits") - 3L)
-  dig_tst <- max(1L, min(5L, digits - 1L))
-  statistic_columns <- c("Outfit", "Outfit SE", "Infit", "Infit SE")
-  p_value_markers <- c(
-    `Pr(>Outfit)` = "Outfit FDR",
-    `Pr(>Infit)` = "Infit FDR",
-    `Pr(>Gamma)` = "Gamma FDR"
-  )
-  gamma_columns <- c("Observed gamma", "Expected gamma", "Gamma SE")
-  for (column in statistic_columns) {
-    if (column %in% names(display)) {
-      display[[column]] <- format(signif(display[[column]], dig_tst), digits = dig_tst)
-    }
-  }
-  for (column in names(p_value_markers)) {
-    if (column %in% names(display)) {
-      formatted <- format.pval(
-        display[[column]],
-        digits = dig_tst,
-        eps = .Machine$double.eps
-      )
-      marker_column <- unname(p_value_markers[[column]])
-      marker <- if (marker_column %in% names(display)) {
-        as.character(display[[marker_column]])
-      } else {
-        rep("", nrow(display))
-      }
-      marker[is.na(marker)] <- ""
-      # DIGRAM writes every FDR marker into a three-character suffix field
-      # (`*  `, `** `, `***`, or three blanks). Reserving that field keeps the
-      # numeric p-values aligned independently of their marker grade.
-      display[[column]] <- paste0(formatted, sprintf("%-3s", marker))
-    }
-  }
-  display[intersect(unname(p_value_markers), names(display))] <- NULL
-  for (column in gamma_columns) {
-    if (column %in% names(display)) {
-      display[[column]] <- format(signif(display[[column]], digits), digits = digits)
-    }
-  }
-  print(
-    display,
-    row.names = FALSE,
-    quote = FALSE,
-    right = TRUE,
-    na.print = "NA",
-    max = diagnostic_print_max(display)
-  )
-  invisible(NULL)
-}
-
-print_item_fit_items_table <- function(table) {
-  if (!is.data.frame(table) || !nrow(table)) {
-    cat("  <none>\n")
-    return(invisible(NULL))
-  }
-  display <- table
-  digits <- max(3L, getOption("digits") - 3L)
-  dig_tst <- max(1L, min(5L, digits - 1L))
-  statistic_columns <- c(
-    "Outfit observed",
-    "Outfit expected",
-    "Outfit total",
-    "Infit observed",
-    "Infit expected",
-    "Infit variance",
-    "Infit ratio"
-  )
-  for (column in statistic_columns) {
-    if (column %in% names(display)) {
-      display[[column]] <- format(signif(display[[column]], dig_tst), digits = dig_tst)
-    }
-  }
-  print(
-    display,
-    row.names = FALSE,
-    quote = FALSE,
-    right = TRUE,
-    na.print = "NA",
-    max = diagnostic_print_max(display)
-  )
-  invisible(NULL)
-}
-
-diagnostic_print_max <- function(table) {
-  cells <- as.double(nrow(table)) * as.double(ncol(table)) + 1
-  as.integer(min(cells, .Machine$integer.max))
-}
-
-print_model_summary_table <- function(table) {
-  if (!is.data.frame(table) || !nrow(table)) {
-    cat("  <none>\n")
-    return(invisible(NULL))
-  }
-  row <- table[1L, , drop = FALSE]
-  cat("  Model type: ", public_model_type_label(row$model_type[[1L]]), "\n", sep = "")
-  cat("  Items: ", row$n_items[[1L]], "\n", sep = "")
-  cat("  Exogenous variables: ", row$n_exogenous[[1L]], "\n", sep = "")
-  cat("  Local dependence terms: ", row$n_ld[[1L]], "\n", sep = "")
-  cat("  DIF terms: ", row$n_dif[[1L]], "\n", sep = "")
-  invisible(NULL)
-}
-
-print_fit_summary_table <- function(table) {
-  if (!is.data.frame(table) || !nrow(table)) {
-    cat("  <none>\n")
-    return(invisible(NULL))
-  }
-  row <- table[1L, , drop = FALSE]
-  cat("  Model type: ", public_model_type_label(row$model_type[[1L]]), "\n", sep = "")
-  cat("  Converged: ", summary_scalar(row$converged[[1L]]), "\n", sep = "")
-  cat("  Iterations: ", summary_scalar(row$iterations[[1L]]), "\n", sep = "")
-  cat("  Delta: ", summary_scalar(row$delta[[1L]]), "\n", sep = "")
-  cat("  Log likelihood: ", summary_scalar(row$log_likelihood[[1L]]), "\n", sep = "")
-  cat("  Parameters: ", summary_scalar(row$n_parameters[[1L]]), "\n", sep = "")
-  cat("  Likelihood rows: ", summary_scalar(row$likelihood_n[[1L]]), "\n", sep = "")
-  invisible(NULL)
-}
-
-summary_scalar <- function(x) {
-  if (length(x) == 0L || is.na(x)) {
-    return("NA")
-  }
-  if (is.logical(x)) {
-    return(if (isTRUE(x)) "yes" else "no")
-  }
-  if (is.numeric(x)) {
-    return(as.character(signif(x, 6L)))
-  }
-  as.character(x)
-}
-
-summary_p_value <- function(x) {
-  if (length(x) == 0L || is.na(x)) {
-    return("NA")
-  }
-  digits <- max(3L, getOption("digits") - 3L)
-  dig_tst <- max(1L, min(5L, digits - 1L))
-  format.pval(x, digits = dig_tst, eps = .Machine$double.eps)
-}
-
-print_fit_parameter_table <- function(table) {
-  if (!is.data.frame(table) || !nrow(table)) {
-    cat("  <none>\n")
-    return(invisible(NULL))
-  }
-  display <- public_format_table(table)
-  names(display) <- fit_parameter_display_names(names(display))
-  print(display, row.names = FALSE)
-  invisible(NULL)
-}
-
-print_fit_threshold_table <- function(table) {
-  if (!is.data.frame(table) || !nrow(table)) {
-    cat("  <none>\n")
-    return(invisible(NULL))
-  }
-  display <- table
-  if ("score" %in% names(display)) {
-    display$step <- paste(display$score - 1L, display$score, sep = " -> ")
-    preferred <- c("item", "step", "score", "threshold")
-    display <- display[c(intersect(preferred, names(display)), setdiff(names(display), preferred))]
-  }
-  display <- public_format_table(display)
-  names(display) <- fit_threshold_display_names(names(display))
-  print(display, row.names = FALSE)
-  invisible(NULL)
-}
-
-fit_threshold_display_names <- function(names) {
-  replacements <- c(
-    item = "Item",
-    step = "Step",
-    score = "Score",
-    threshold = "Threshold"
-  )
-  out <- replacements[names]
-  missing <- is.na(out)
-  out[missing] <- names[missing]
-  unname(out)
-}
-
-fit_parameter_display_names <- function(names) {
-  replacements <- c(
-    item = "Item",
-    location = "Location",
-    midpoint = "Midpoint",
-    target = "Target score",
-    info_at_target = "Info at target",
-    info_per_step = "Info per step"
-  )
-  out <- replacements[names]
-  missing <- is.na(out)
-  out[missing] <- names[missing]
-  unname(out)
-}
-
-print_model_term_table <- function(title, table, type) {
-  cat("\n", title, "\n", sep = "")
-  if (!is.data.frame(table) || !nrow(table)) {
-    cat("  None\n")
-    return(invisible(NULL))
-  }
-  for (row in seq_len(nrow(table))) {
-    term <- if (identical(type, "ld")) {
-      paste(table$item1[[row]], table$item2[[row]], sep = " -- ")
-    } else {
-      paste(table$item[[row]], table$exogenous[[row]], sep = " by ")
-    }
-    annotation <- model_term_annotation(table[row, , drop = FALSE])
-    cat("  ", term, annotation, "\n", sep = "")
-  }
-  invisible(NULL)
-}
-
-print_fit_term_table <- function(table) {
-  ld <- term_rows(table, "ld")
-  dif <- term_rows(table, "dif")
-  print_model_term_table("Local dependence terms", ld, "ld")
-  print_model_term_table("DIF terms", dif, "dif")
-  invisible(NULL)
-}
-
-term_rows <- function(table, type) {
-  if (!is.data.frame(table) || !nrow(table) || !"type" %in% names(table)) {
-    return(data.frame())
-  }
-  out <- table[table$type %in% type, , drop = FALSE]
-  rownames(out) <- NULL
-  out
-}
-
-model_term_annotation <- function(row) {
-  source <- row$source[[1L]] %||% NA_character_
-  status <- row$status[[1L]] %||% NA_character_
-  if (identical(source, "user") && identical(status, "specified")) {
-    return("")
-  }
-  details <- c()
-  if (!is.na(status) && nzchar(status)) {
-    details <- c(details, status)
-  }
-  if (!is.na(source) && nzchar(source)) {
-    details <- c(details, paste("by", source))
-  }
-  if (!length(details)) {
-    return("")
-  }
-  paste0(" (", paste(details, collapse = " "), ")")
-}
-
-summary_convergence_remarks <- function(tables) {
-  rows <- list()
-  for (name in names(tables)) {
-    table <- tables[[name]]
-    if (!is.data.frame(table) || !"converged" %in% names(table) || !nrow(table)) {
-      next
-    }
-    nonconverged <- !is.na(table$converged) & !table$converged
-    n_nonconverged <- sum(nonconverged)
-    if (n_nonconverged == 0L) {
-      next
-    }
-    reason_text <- ""
-    if ("stop_reason" %in% names(table)) {
-      reasons <- table$stop_reason[nonconverged & !is.na(table$stop_reason)]
-      if (length(reasons)) {
-        counts <- base::table(reasons)
-        reason_text <- paste0(
-          "; stop reasons: ",
-          paste(paste0(names(counts), "=", as.integer(counts)), collapse = ", ")
-        )
-      }
-    }
-    rows[[length(rows) + 1L]] <- data.frame(
-      table = name,
-      n_nonconverged = as.integer(n_nonconverged),
-      message = paste0(
-        "Non-converged candidate fits: ",
-        n_nonconverged,
-        " candidate fit",
-        if (n_nonconverged == 1L) "" else "s",
-        " did not converge",
-        " (",
-        name,
-        reason_text,
-        "; see rows where converged == FALSE)."
-      ),
-      stringsAsFactors = FALSE
-    )
-  }
-  if (!length(rows)) {
-    return(data.frame(
-      table = character(),
-      n_nonconverged = integer(),
-      message = character(),
-      stringsAsFactors = FALSE
-    ))
-  }
-  do.call(rbind, rows)
-}
-
-validate_summary_which <- function(which, allowed) {
-  if (missing(which) || is.null(which)) {
-    return(allowed)
-  }
-  if (!is.character(which) || anyNA(which) || !length(which)) {
-    stop("`which` must name one or more summary sections.", call. = FALSE)
-  }
-  unknown <- setdiff(which, allowed)
-  if (length(unknown)) {
-    stop(
-      "Unknown `which` summary section",
-      if (length(unknown) > 1L) "s" else "",
-      ": ",
-      paste(unknown, collapse = ", "),
-      ". Available sections: ",
-      paste(allowed, collapse = ", "),
-      ".",
-      call. = FALSE
-    )
-  }
-  unique(which)
-}
-
-reject_summary_which <- function(...) {
-  dots <- list(...)
-  if ("which" %in% names(dots)) {
-    stop("This summary has one public view and does not accept `which`.", call. = FALSE)
-  }
-  invisible(NULL)
-}
-
-analysis_summary_table <- function(object) {
-  data.frame(
-    n_rows = nrow(object$project$raw_data),
-    n_items = length(object$items),
-    n_exogenous = length(object$exogenous),
-    items = paste(object$items, collapse = ", "),
-    exogenous = paste(object$exogenous, collapse = ", "),
-    score_groups = paste(object$score_groups %||% integer(), collapse = ", "),
-    stringsAsFactors = FALSE
-  )
-}
-
-analysis_summary_header <- function(object) {
-  data_name <- object$data_name %||% object$name %||% "<unnamed>"
-  items <- object$items %||% character()
-  exogenous <- object$exogenous %||% character()
-  item_levels <- analysis_summary_level_counts(object$project$items)
-  exogenous_levels <- analysis_summary_level_counts(object$project$backgrounds)
-  id <- object$id %||% "none"
-  score_groups <- analysis_summary_score_group_label(object)
-  c(
-    "",
-    "Data",
-    paste0("  Source: ", data_name),
-    paste0("  Rows: ", nrow(object$project$raw_data)),
-    paste0("  ID: ", id),
-    "",
-    "Variables",
-    paste0("  Items: ", length(items), " (", summary_header_names(items), ")"),
-    paste0("  Item levels: ", summary_header_names(item_levels, empty = "none")),
-    paste0(
-      "  Exogenous: ",
-      length(exogenous),
-      " (",
-      summary_header_names(exogenous, empty = "none"),
-      ")"
-    ),
-    paste0("  Exogenous levels: ", summary_header_names(exogenous_levels, empty = "none")),
-    "",
-    "Score groups",
-    paste0("  Groups: ", score_groups)
-  )
-}
-
-analysis_summary_score_group_label <- function(object) {
-  distribution <- tryCatch(
-    analysis_score_group_distribution(object),
-    error = function(e) data.frame()
-  )
-  if (is.data.frame(distribution) && nrow(distribution)) {
-    groups <- distribution[distribution$score != "Total", , drop = FALSE]
-    if (nrow(groups)) {
-      return(paste0(nrow(groups), " (", paste(groups$score, collapse = ", "), ")"))
-    }
-  }
-  summary_header_names(object$score_groups %||% integer(), empty = "none")
-}
-
-analysis_score_group_distribution <- function(object) {
-  values <- items_select_values(object$project)
-  score_summary <- values$score_summary
-  score_distribution <- values$score_distribution
-  cuts <- as.integer(object$score_groups %||% integer())
-  if (!length(cuts)) {
-    return(data.frame())
-  }
-
-  n_complete <- as.integer(score_summary$n)
-  rows <- list()
-  from_score <- 0L
-  cumulative_cases <- 0L
-  for (group_index in seq_along(cuts)) {
-    to_score <- cuts[[group_index]]
-    if (group_index == length(cuts)) {
-      to_score <- min(to_score, score_summary$observed_max)
-    }
-    if (from_score <= to_score) {
-      in_group <- score_distribution$score >= from_score & score_distribution$score <= to_score
-      cases <- as.integer(sum(score_distribution$count[in_group]))
-      cumulative_cases <- cumulative_cases + cases
-      rows[[length(rows) + 1L]] <- data.frame(
-        score = score_range_label(from_score, to_score),
-        count = cases,
-        percent = 100 * cases / n_complete,
-        cumulative = 100 * cumulative_cases / n_complete,
-        stringsAsFactors = FALSE
-      )
-    }
-    from_score <- cuts[[group_index]] + 1L
-  }
-
-  rows[[length(rows) + 1L]] <- data.frame(
-    score = "Total",
-    count = n_complete,
-    percent = 100,
-    cumulative = 100,
-    stringsAsFactors = FALSE
-  )
-  out <- do.call(rbind, rows)
-  attr(out, "observed_min") <- as.integer(score_summary$observed_min)
-  attr(out, "observed_max") <- as.integer(score_summary$observed_max)
-  attr(out, "missing_item_score_rows") <- as.integer(score_summary$missing)
-  out
-}
-
-score_range_label <- function(from_score, to_score) {
-  if (identical(as.integer(from_score), as.integer(to_score))) {
-    return(as.character(as.integer(from_score)))
-  }
-  paste0(as.integer(from_score), "-", as.integer(to_score))
-}
-
-print_analysis_score_group_distribution <- function(table) {
-  if (!is.data.frame(table) || !nrow(table)) {
-    return(invisible(NULL))
-  }
-  observed_min <- attr(table, "observed_min", exact = TRUE)
-  observed_max <- attr(table, "observed_max", exact = TRUE)
-  missing <- attr(table, "missing_item_score_rows", exact = TRUE)
-
-  cat("\nScore group distribution\n")
-  cat("Observed score range: ", observed_min, "-", observed_max, "\n", sep = "")
-  cat("Score-group cases: ", sum(table$count[table$score != "Total"]), "\n", sep = "")
-  cat("Missing item-score rows: ", missing, "\n\n", sep = "")
-
-  display <- table
-  display$percent <- sprintf("%.1f", display$percent)
-  display$cumulative <- sprintf("%.1f", display$cumulative)
-  names(display) <- c("Score", "Count", "Percent", "Cumulative")
-  print(display, row.names = FALSE)
-  invisible(NULL)
-}
-
-analysis_summary_level_counts <- function(variables) {
-  if (!is.data.frame(variables) || !nrow(variables)) {
-    return(character())
-  }
-  paste0(variables$name, "=", variables$raw_max)
-}
-
-summary_header_names <- function(x, empty = "none") {
-  if (!length(x)) {
-    return(empty)
-  }
-  paste(as.character(x), collapse = ", ")
-}
-
-model_summary_table <- function(object) {
-  data.frame(
-    model_type = public_model_type(object),
-    n_items = length(object$analysis$items),
-    n_exogenous = length(object$analysis$exogenous),
-    n_ld = nrow(object$ld %||% data.frame()),
-    n_dif = nrow(object$dif %||% data.frame()),
-    stringsAsFactors = FALSE
-  )
-}
-
-fit_summary_table <- function(object) {
-  values <- object$values %||% list()
-  data.frame(
-    model_type = public_model_type(object$spec),
-    log_likelihood = values$log_likelihood %||% NA_real_,
-    n_parameters = values$n_parameters %||% NA_integer_,
-    likelihood_n = values$likelihood_n %||% NA_integer_,
-    converged = object$convergence$converged %||% NA,
-    iterations = object$convergence$iterations %||% values$n_step %||% NA_integer_,
-    delta = object$convergence$delta %||% values$delta %||% NA_real_,
-    stringsAsFactors = FALSE
-  )
-}
-
-public_model_type <- function(object) {
-  object$model_type %||% if (
-    nrow(object$ld %||% data.frame()) > 0L ||
-      nrow(object$dif %||% data.frame()) > 0L
-  ) {
-    "gllrm"
-  } else {
-    "rasch"
-  }
-}
-
-public_model_label <- function(object, noun) {
-  paste("gRm:", public_model_type_label(public_model_type(object)), noun)
-}
-
-public_model_type_label <- function(model_type) {
-  if (identical(model_type, "rasch")) {
-    "Rasch model"
-  } else {
-    "Graphical Log-Linear Rasch Model"
-  }
-}
-
-public_screen_terms <- function(object) {
-  if (!is.null(object$terms)) {
-    return(object$terms)
-  }
-  model_terms(object)
-}
-
-screen_summary_header <- function(object, tables) {
-  exact_state <- object$exact_state %||% list()
-  bh <- object$values$bh %||% list()
-  header <- c(
-    "",
-    "Screening",
-    paste0("  Inference: ", object$inference %||% "asymptotic")
-  )
-  if (isTRUE(exact_state$exact)) {
-    header <- c(
-      header,
-      paste0("  Simulations: ", summary_scalar(object$nsim %||% exact_state$nsim %||% NA_integer_))
-    )
-    if (isTRUE(exact_state$sequential)) {
-      header <- c(
-        header,
-        paste0("  Sequential limit: ", summary_scalar(exact_state$seq_limit %||% NA_integer_))
-      )
-    }
-    header <- c(
-      header,
-      paste0("  Seed: ", summary_scalar(object$seed %||% exact_state$seed %||% NA_integer_))
-    )
-  }
-  c(
-    header,
-    paste0("  Tested relations: ", summary_scalar(bh$n_tests %||% NA_integer_)),
-    paste0("  Tested local-dependence pairs: ", nrow(tables$local_dependence)),
-    paste0("  Tested DIF relations: ", nrow(tables$dif)),
-    paste0("  Tested score effects: ", nrow(tables$score_effects))
-  )
-}
-
-public_screen_bh_table <- function(object) {
-  bh <- object$values$bh %||% list()
-  data.frame(
-    fdr = c("0.05", "0.01", "0.001"),
-    p_value = c(bh$fdr_05 %||% NA_real_, bh$fdr_01 %||% NA_real_, bh$fdr_001 %||% NA_real_),
-    n_tests = bh$n_tests %||% NA_integer_,
-    stringsAsFactors = FALSE
-  )
-}
-
-public_screen_summary_tables <- function(object) {
-  values <- object$values %||% list()
-  terms <- public_screen_terms(object)
-  model_terms <- rbind_fill(terms$ld, terms$dif)
-  selected_ld <- public_selected_rows(terms$ld)
-  selected_dif <- public_selected_rows(terms$dif)
-  list(
-    local_dependence = public_screen_local_dependence_tests(values),
-    dif = public_screen_dif_tests(values),
-    score_effects = public_screen_score_effect_tests(values),
-    selected = rbind_fill(selected_ld, selected_dif),
-    selected_ld = selected_ld,
-    selected_dif = selected_dif,
-    model_terms = model_terms,
-    bh = public_screen_bh_table(object)
-  )
-}
-
-public_screen_local_dependence_tests <- function(values) {
-  p <- values$partial$item_p %||% matrix(numeric(), nrow = 0L, ncol = 0L)
-  gamma <- values$partial$item_gamma %||% matrix(numeric(), nrow = 0L, ncol = 0L)
-  wpg <- values$partial$weighted_gamma %||% matrix(numeric(), nrow = 0L, ncol = 0L)
-  items <- values$items %||% data.frame()
-  n_items <- nrow(items)
-  if (!is.matrix(p) || n_items < 2L) {
-    return(data.frame(
-      `Item 1` = character(),
-      `Item 2` = character(),
-      `Gamma 1->2` = numeric(),
-      `Pr(>|Gamma 1->2|)` = numeric(),
-      `Gamma 2->1` = numeric(),
-      `Pr(>|Gamma 2->1|)` = numeric(),
-      WPG = numeric(),
-      `Gamma sum` = numeric(),
-      Decision = character(),
-      ` ` = character(),
-      check.names = FALSE
-    ))
-  }
-  selected <- values$model$local_dependence$matrix %||%
-    matrix(FALSE, nrow = n_items, ncol = n_items)
-  stepwise <- values$model$local_dependence$stepwise_matrix %||% selected
-  rows <- which(upper.tri(matrix(FALSE, nrow = n_items, ncol = n_items)), arr.ind = TRUE)
-  reverse_rows <- cbind(rows[, "col"], rows[, "row"])
-  item_names <- screen_item_names(items, n_items)
-  gamma_forward <- screen_matrix_value(gamma, rows)
-  gamma_reverse <- screen_matrix_value(gamma, reverse_rows)
-  included <- screen_matrix_value(selected, rows, default = FALSE) %in% TRUE
-  provisional <- screen_matrix_value(stepwise, rows, default = FALSE) %in% TRUE
-  out <- data.frame(
-    `Item 1` = item_names[rows[, "row"]],
-    `Item 2` = item_names[rows[, "col"]],
-    `Gamma 1->2` = gamma_forward,
-    `Pr(>|Gamma 1->2|)` = screen_matrix_value(p, rows),
-    `Gamma 2->1` = gamma_reverse,
-    `Pr(>|Gamma 2->1|)` = screen_matrix_value(p, reverse_rows),
-    WPG = screen_matrix_value(wpg, rows),
-    `Gamma sum` = gamma_forward + gamma_reverse,
-    Decision = ifelse(
-      included,
-      "included",
-      ifelse(provisional, "negative LD; not included", "")
-    ),
-    ` ` = ifelse(included, "*", ""),
-    check.names = FALSE,
-    stringsAsFactors = FALSE
-  )
-  for (column in c("Pr(>|Gamma 1->2|)", "Pr(>|Gamma 2->1|)")) {
-    out[!is.na(out[[column]]) & out[[column]] > 1, column] <- NA_real_
-  }
-  out
-}
-
-public_screen_dif_tests <- function(values) {
-  p <- values$partial$exo_p %||% matrix(numeric(), nrow = 0L, ncol = 0L)
-  stat <- values$partial$exo_stat %||% matrix(numeric(), nrow = 0L, ncol = 0L)
-  kinds <- values$partial$exo_kind %||% character()
-  items <- values$items %||% data.frame()
-  backgrounds <- values$backgrounds %||% data.frame()
-  n_items <- nrow(items)
-  n_exo <- nrow(backgrounds)
-  if (!is.matrix(p) || n_items == 0L || n_exo == 0L) {
-    return(data.frame(
-      Item = character(),
-      Exogenous = character(),
-      Chisq = numeric(),
-      Df = integer(),
-      `Pr(>Chisq)` = numeric(),
-      Gamma = numeric(),
-      `Pr(>|Gamma|)` = numeric(),
-      ` ` = character(),
-      check.names = FALSE
-    ))
-  }
-  rows <- expand.grid(item = seq_len(n_items), exogenous = seq_len(n_exo))
-  item_names <- screen_item_names(items, n_items)
-  exo_names <- screen_item_names(backgrounds, n_exo)
-  selected <- values$model$item_bias %||% matrix(FALSE, nrow = n_items, ncol = n_exo)
-  kind <- rep_len(as.character(kinds), n_exo)
-  row_kind <- kind[rows$exogenous]
-  use_gamma <- row_kind == "Gamma"
-  row_index <- cbind(rows$item, rows$exogenous)
-  statistic <- stat[row_index]
-  p_value <- p[row_index]
-  data.frame(
-    Item = item_names[rows$item],
-    Exogenous = exo_names[rows$exogenous],
-    Chisq = ifelse(use_gamma, NA_real_, statistic),
-    Df = NA_integer_,
-    `Pr(>Chisq)` = ifelse(use_gamma, NA_real_, p_value),
-    Gamma = ifelse(use_gamma, statistic, NA_real_),
-    `Pr(>|Gamma|)` = ifelse(use_gamma, p_value, NA_real_),
-    ` ` = ifelse(screen_matrix_value(selected, row_index, default = FALSE) %in% TRUE, "*", ""),
-    check.names = FALSE,
-    stringsAsFactors = FALSE
-  )
-}
-
-public_screen_score_effect_tests <- function(values) {
-  rows <- values$model$score_effects$rows %||% data.frame()
-  if (!is.data.frame(rows) || !nrow(rows)) {
-    return(data.frame(
-      Exogenous = character(),
-      Chisq = numeric(),
-      Df = integer(),
-      `Pr(>Chisq)` = numeric(),
-      Gamma = numeric(),
-      `Pr(>|Gamma|)` = numeric(),
-      ` ` = character(),
-      check.names = FALSE
-    ))
-  }
-  out <- data.frame(
-    Exogenous = diagnostic_column(rows, "name", NA_character_),
-    Chisq = diagnostic_column(rows, "chi_square", NA_real_),
-    Df = diagnostic_column(rows, "df", NA_integer_),
-    `Pr(>Chisq)` = diagnostic_column(rows, "p_chi", NA_real_),
-    Gamma = diagnostic_column(rows, "gamma", NA_real_),
-    `Pr(>|Gamma|)` = diagnostic_column(rows, "p_gamma", NA_real_),
-    ` ` = ifelse(diagnostic_column(rows, "selected", FALSE) %in% TRUE, "*", ""),
-    check.names = FALSE,
-    stringsAsFactors = FALSE
-  )
-  exact_nsim <- diagnostic_column(rows, "exact_nsim", NA_integer_)
-  if (any(!is.na(exact_nsim) & exact_nsim > 0L)) {
-    out$Simulations <- exact_nsim
-  }
-  out
-}
-
-screen_item_names <- function(table, n) {
-  names <- if (is.data.frame(table) && "name" %in% names(table)) {
-    as.character(table$name)
-  } else {
-    character()
-  }
-  if (length(names) < n) {
-    names <- c(names, as.character(seq.int(length(names) + 1L, n)))
-  }
-  names
-}
-
-screen_matrix_value <- function(matrix, index, default = NA_real_) {
-  if (!is.matrix(matrix) || !nrow(index)) {
-    return(rep(default, nrow(index)))
-  }
-  valid <- index[, 1L] >= 1L & index[, 1L] <= nrow(matrix) &
-    index[, 2L] >= 1L & index[, 2L] <= ncol(matrix)
-  out <- rep(default, nrow(index))
-  out[valid] <- matrix[index[valid, , drop = FALSE]]
-  out
-}
-
-public_local_dependence_tests <- function(tests, bh_critical_p = NA_real_) {
-  if (!is.data.frame(tests)) {
-    tests <- data.frame()
-  }
-  converged <- diagnostic_column(tests, "converged", NA)
-  p_value <- diagnostic_column(tests, "p_value", NA_real_)
-  threshold <- bh_critical_p %||% NA_real_
-  threshold <- threshold[[1L]]
-  data.frame(
-    `Item 1` = diagnostic_column(tests, "item1_name", NA_character_),
-    `Item 2` = diagnostic_column(tests, "item2_name", NA_character_),
-    Chisq = diagnostic_column(tests, "chi_square", NA_real_),
-    Df = diagnostic_column(tests, "degrees_of_freedom", NA_integer_),
-    `Pr(>Chisq)` = p_value,
-    WPG = diagnostic_column(tests, "wpg_gamma", NA_real_),
-    Converged = yes_no_display(converged),
-    delta = diagnostic_column(tests, "delta", NA_real_),
-    ` ` = ifelse(!is.na(p_value) & !is.na(threshold) & p_value <= threshold, "*", ""),
-    check.names = FALSE,
-    stringsAsFactors = FALSE
-  )
-}
-
-public_dif_tests <- function(tests, bh_critical_p = NA_real_) {
-  if (!is.data.frame(tests)) {
-    tests <- data.frame()
-  }
-  converged <- diagnostic_column(tests, "converged", NA)
-  stable <- diagnostic_column(tests, "output_stable", FALSE)
-  p_value <- diagnostic_column(tests, "p_value", NA_real_)
-  threshold <- bh_critical_p %||% NA_real_
-  threshold <- threshold[[1L]]
-  data.frame(
-    Item = diagnostic_column(tests, "item_name", NA_character_),
-    Exogenous = diagnostic_column(tests, "background_name", NA_character_),
-    Chisq = diagnostic_column(tests, "chi_square", NA_real_),
-    Df = diagnostic_column(tests, "degrees_of_freedom", NA_integer_),
-    `Pr(>Chisq)` = p_value,
-    Gamma = diagnostic_column(tests, "gamma", NA_real_),
-    Converged = yes_no_display(converged),
-    Stable = yes_no_display(stable),
-    delta = diagnostic_column(tests, "delta", NA_real_),
-    ` ` = ifelse(!is.na(p_value) & !is.na(threshold) & p_value <= threshold, "*", ""),
-    check.names = FALSE,
-    stringsAsFactors = FALSE
-  )
-}
-
-public_global_homogeneity_test <- function(summary) {
-  summary <- list_to_one_row(summary %||% list())
-  data.frame(
-    `Score groups` = diagnostic_column(summary, "n_groups", NA_integer_),
-    Parameters = diagnostic_column(summary, "n_parameters", NA_integer_),
-    `LogLik full` = diagnostic_column(summary, "full_log_likelihood", NA_real_),
-    `LogLik groups` = diagnostic_column(summary, "subgroup_log_likelihood_sum", NA_real_),
-    CLR = diagnostic_column(summary, "clr", NA_real_),
-    Df = diagnostic_column(summary, "df", NA_integer_),
-    `Pr(>CLR)` = diagnostic_column(summary, "p_value", NA_real_),
-    check.names = FALSE
-  )
-}
-
-public_global_homogeneity_score_groups <- function(groups) {
-  if (!is.data.frame(groups)) {
-    groups <- data.frame()
-  }
-  data.frame(
-    `Score group` = global_homogeneity_score_group_labels(groups),
-    Cases = diagnostic_column(groups, "n", NA_integer_),
-    LogLik = diagnostic_column(groups, "log_likelihood", NA_real_),
-    Converged = yes_no_display(diagnostic_column(groups, "converged", NA)),
-    delta = diagnostic_column(groups, "delta", NA_real_),
-    check.names = FALSE,
-    stringsAsFactors = FALSE
-  )
-}
-
-public_global_homogeneity_item_means <- function(items, groups) {
-  if (!is.data.frame(items)) {
-    items <- data.frame()
-  }
-  data.frame(
-    `Score group` = global_homogeneity_item_score_group_labels(items, groups),
-    Item = diagnostic_column(items, "item_name", NA_character_),
-    Cases = diagnostic_column(items, "n", NA_integer_),
-    `Observed mean` = diagnostic_column(items, "observed_mean", NA_real_),
-    `Expected mean` = diagnostic_column(items, "expected_mean", NA_real_),
-    check.names = FALSE,
-    stringsAsFactors = FALSE
-  )
-}
-
-public_global_homogeneity_uniform_ld <- function(table, values) {
-  if (!is.data.frame(table) || !nrow(table)) {
-    return(data.frame())
-  }
-  out <- data.frame(
-    `Item 1` = global_homogeneity_label_names(
-      diagnostic_column(table, "item1_label", NA_character_),
-      global_homogeneity_context_variables(values, "items")
-    ),
-    `Item 2` = global_homogeneity_label_names(
-      diagnostic_column(table, "item2_label", NA_character_),
-      global_homogeneity_context_variables(values, "items")
-    ),
-    check.names = FALSE,
-    stringsAsFactors = FALSE
-  )
-  out <- cbind(
-    out,
-    global_homogeneity_uniform_gamma_columns(table, values),
-    data.frame(
-      Chisq = diagnostic_column(table, "chi_square", NA_real_),
-      Df = diagnostic_column(table, "df", NA_integer_),
-      `Pr(>Chisq)` = diagnostic_column(table, "p_value", NA_real_),
-      check.names = FALSE
-    )
-  )
-  rownames(out) <- NULL
-  out
-}
-
-public_global_homogeneity_uniform_dif <- function(table, values) {
-  if (!is.data.frame(table) || !nrow(table)) {
-    return(data.frame())
-  }
-  out <- data.frame(
-    Item = global_homogeneity_label_names(
-      diagnostic_column(table, "item_label", NA_character_),
-      global_homogeneity_context_variables(values, "items")
-    ),
-    Exogenous = global_homogeneity_label_names(
-      diagnostic_column(table, "background_label", NA_character_),
-      global_homogeneity_context_variables(values, "backgrounds")
-    ),
-    check.names = FALSE,
-    stringsAsFactors = FALSE
-  )
-  out <- cbind(
-    out,
-    global_homogeneity_uniform_gamma_columns(table, values),
-    data.frame(
-      Chisq = diagnostic_column(table, "chi_square", NA_real_),
-      Df = diagnostic_column(table, "df", NA_integer_),
-      `Pr(>Chisq)` = diagnostic_column(table, "p_value", NA_real_),
-      check.names = FALSE
-    )
-  )
-  rownames(out) <- NULL
-  out
-}
-
-global_homogeneity_default_summary_sections <- function(values) {
-  sections <- c("test", "score_groups", "item_means")
-  if (global_homogeneity_table_nrow(values$uniform_ld %||% data.frame()) > 0L) {
-    sections <- c(sections, "uniform_ld")
-  }
-  if (global_homogeneity_table_nrow(values$uniform_dif %||% data.frame()) > 0L) {
-    sections <- c(sections, "uniform_dif")
-  }
-  sections
-}
-
-global_homogeneity_table_nrow <- function(table) {
-  if (is.data.frame(table)) {
-    nrow(table)
-  } else {
-    0L
-  }
-}
-
-global_homogeneity_uniform_gamma_columns <- function(table, values) {
-  labels <- global_homogeneity_uniform_score_group_labels(table, values$score_groups %||% data.frame())
-  n_groups <- length(labels)
-  if (n_groups == 0L) {
-    return(data.frame(row.names = seq_len(nrow(table))))
-  }
-  observed <- global_homogeneity_uniform_gamma_matrix(table, "observed_gamma", n_groups)
-  expected <- global_homogeneity_uniform_gamma_matrix(table, "expected_gamma", n_groups)
-  columns <- vector("list", 2L * n_groups)
-  column_names <- character(2L * n_groups)
-  for (group_index in seq_len(n_groups)) {
-    observed_column <- (group_index - 1L) * 2L + 1L
-    expected_column <- observed_column + 1L
-    columns[[observed_column]] <- observed[, group_index]
-    columns[[expected_column]] <- expected[, group_index]
-    column_names[[observed_column]] <- paste("Obs gamma", labels[[group_index]])
-    column_names[[expected_column]] <- paste("Exp gamma", labels[[group_index]])
-  }
-  out <- as.data.frame(columns, stringsAsFactors = FALSE, check.names = FALSE)
-  names(out) <- column_names
-  out
-}
-
-global_homogeneity_uniform_score_group_labels <- function(table, groups) {
-  labels <- global_homogeneity_score_group_labels(groups)
-  n_groups <- max(
-    length(labels),
-    global_homogeneity_uniform_n_groups(table),
-    0L
-  )
-  if (n_groups == 0L) {
-    return(character())
-  }
-  if (length(labels) < n_groups) {
-    labels <- c(labels, as.character(seq.int(length(labels) + 1L, n_groups)))
-  }
-  labels[seq_len(n_groups)]
-}
-
-global_homogeneity_uniform_n_groups <- function(table) {
-  if (!is.data.frame(table) || !nrow(table)) {
-    return(0L)
-  }
-  lengths <- integer()
-  for (column in c("observed_gamma", "expected_gamma")) {
-    if (column %in% names(table)) {
-      lengths <- c(lengths, vapply(table[[column]], length, integer(1L)))
-    }
-  }
-  if (length(lengths)) {
-    max(lengths, na.rm = TRUE)
-  } else {
-    0L
-  }
-}
-
-global_homogeneity_uniform_gamma_matrix <- function(table, column, n_groups) {
-  out <- matrix(NA_real_, nrow = nrow(table), ncol = n_groups)
-  if (!column %in% names(table) || n_groups == 0L) {
-    return(out)
-  }
-  for (row_index in seq_len(nrow(table))) {
-    values <- as.numeric(table[[column]][[row_index]])
-    n <- min(length(values), n_groups)
-    if (n > 0L) {
-      out[row_index, seq_len(n)] <- values[seq_len(n)]
-    }
-  }
-  out
-}
-
-global_homogeneity_context_variables <- function(values, kind = c("items", "backgrounds")) {
-  kind <- match.arg(kind)
-  context <- values$fit$context %||% list()
-  variables <- context[[kind]] %||% NULL
-  if (is.data.frame(variables)) {
-    return(variables)
-  }
-  model <- values$bundle$model %||% list()
-  variables <- model[[kind]] %||% NULL
-  if (is.data.frame(variables)) {
-    return(variables)
-  }
-  data.frame()
-}
-
-global_homogeneity_label_names <- function(labels, variables) {
-  labels <- as.character(labels)
-  if (!is.data.frame(variables) || !all(c("label_code", "name") %in% names(variables))) {
-    return(labels)
-  }
-  index <- match(labels, as.character(variables$label_code))
-  out <- as.character(variables$name[index])
-  missing <- is.na(out)
-  out[missing] <- labels[missing]
-  out
-}
-
-global_homogeneity_score_group_labels <- function(groups) {
-  if (!is.data.frame(groups) || !nrow(groups)) {
-    return(character())
-  }
-  if (all(c("from_score", "to_score") %in% names(groups))) {
-    return(mapply(score_range_label, groups$from_score, groups$to_score, USE.NAMES = FALSE))
-  }
-  if ("label" %in% names(groups)) {
-    return(gsub("[[:space:]]+-[[:space:]]+", "-", groups$label))
-  }
-  as.character(diagnostic_column(groups, "group", NA_integer_))
-}
-
-global_homogeneity_item_score_group_labels <- function(items, groups) {
-  if (!is.data.frame(items) || !nrow(items)) {
-    return(character())
-  }
-  item_groups <- diagnostic_column(items, "group", NA_integer_)
-  if (!is.data.frame(groups) || !nrow(groups) || !"group" %in% names(groups)) {
-    return(as.character(item_groups))
-  }
-  group_labels <- global_homogeneity_score_group_labels(groups)
-  names(group_labels) <- as.character(groups$group)
-  out <- unname(group_labels[as.character(item_groups)])
-  missing <- is.na(out)
-  out[missing] <- as.character(item_groups[missing])
-  out
-}
-
-diagnostic_column <- function(tests, column, default) {
-  if (column %in% names(tests)) {
-    return(tests[[column]])
-  }
-  rep(default, nrow(tests))
-}
-
-yes_no_display <- function(x) {
-  ifelse(
-    is.na(x),
-    NA_character_,
-    ifelse(x, "yes", "no")
-  )
-}
-
-public_bh_marker_note <- function(bh, digits = max(3L, getOption("digits") - 3L)) {
-  if (!is.data.frame(bh) || !nrow(bh)) {
-    return(character())
-  }
-  fdr <- bh$fdr[[1L]]
-  threshold <- bh$p_value[[1L]]
-  if (is.na(fdr) || is.na(threshold)) {
-    return(character())
-  }
-  dig_tst <- max(1L, min(5L, digits - 1L))
-  paste0(
-    "*: p <= Benjamini-Hochberg threshold for FDR = ",
-    fdr,
-    " (threshold = ",
-    format.pval(threshold, digits = dig_tst, eps = .Machine$double.eps),
-    ")"
-  )
-}
-
-public_screen_bh_marker_note <- function(bh, digits = max(3L, getOption("digits") - 3L)) {
-  if (!is.data.frame(bh) || !nrow(bh)) {
-    return(character())
-  }
-  fdr05 <- which(as.character(bh$fdr) == "0.05")
-  if (!length(fdr05)) {
-    fdr05 <- 1L
-  }
-  fdr <- bh$fdr[[fdr05[[1L]]]]
-  threshold <- bh$p_value[[fdr05[[1L]]]]
-  if (is.na(fdr) || is.na(threshold)) {
-    return(character())
-  }
-  dig_tst <- max(1L, min(5L, digits - 1L))
-  paste0(
-    "*: selected by the SCREEN J source decision path at the 5% level. ",
-    "For local dependence, * means retained in the final screen model; ",
-    "provisional negative LD is named in the Decision column and excluded. ",
-    "Local-dependence and DIF candidate evidence use the global ",
-    "Benjamini-Hochberg threshold for FDR = ",
-    fdr,
-    " (threshold = ",
-    format.pval(threshold, digits = dig_tst, eps = .Machine$double.eps),
-    "); score effects use their source screening routine, and stricter global ",
-    "cutoffs are available in attr(x, \"bh\")."
-  )
-}
-
-public_value_tables <- function(values) {
-  if (inherits(values, "gRm_item_parameters_values") || inherits(values, "gRm_gllrm_values")) {
-    return(item_parameter_result_tables(values))
-  }
-
-  if (inherits(values, "gRm_item_fits_values")) {
-    extended <- values$extended %||% list()
-    return(list(
-      statistics = normalize_summary_table(values$items %||% data.frame()),
-      compact = normalize_summary_table(values$side_file %||% data.frame()),
-      bh_thresholds = result_named_numeric_table(values$bh_limits %||% numeric(), "threshold", "p_value"),
-      score_n = normalize_summary_table(extended$score_n %||% data.frame()),
-      score_level_fit = normalize_summary_table(extended$scores %||% data.frame()),
-      item_fit_summaries = normalize_summary_table(extended$summaries %||% data.frame())
-    ))
-  }
-
-  if (inherits(values, "gRm_local_independence_values")) {
-    return(list(
-      tests = normalize_summary_table(values$tests %||% data.frame()),
-      selected = normalize_summary_table(public_selected_by_bh(values$tests, values$bh_critical_p)),
-      bh_thresholds = data.frame(
-        result = "missing_ld",
-        fdr = "0.05",
-        p_value = values$bh_critical_p %||% NA_real_,
-        stringsAsFactors = FALSE
-      )
-    ))
-  }
-
-  if (inherits(values, "gRm_dif_tests_values")) {
-    tables <- list(
-      tests = normalize_summary_table(values$tests %||% data.frame()),
-      selected = normalize_summary_table(public_selected_by_bh(values$tests, values$bh_critical_p)),
-      bh_thresholds = data.frame(
-        result = "missing_dif",
-        fdr = "0.05",
-        p_value = values$bh_critical_p %||% NA_real_,
-        stringsAsFactors = FALSE
-      )
-    )
-    if (!is.null(values$included_tests)) {
-      tables$included_tests <- normalize_summary_table(values$included_tests)
-    }
-    return(tables)
-  }
-
-  if (inherits(values, "gRm_exo_select_values")) {
-    return(list(
-      score_effect_tests = normalize_summary_table(values$screen %||% data.frame()),
-      score_effect_selected = normalize_summary_table(values$selected %||% data.frame()),
-      bh_thresholds = list_to_one_row(values$bh %||% list())
-    ))
-  }
-
-  list()
-}
-
-public_selected_by_bh <- function(tests, threshold) {
-  if (!is.data.frame(tests) || !"p_value" %in% names(tests) || is.na(threshold)) {
-    return(data.frame())
-  }
-  out <- tests[tests$p_value <= threshold, , drop = FALSE]
-  rownames(out) <- NULL
-  out
-}
-
-public_selected_rows <- function(rows) {
-  if (!is.data.frame(rows) || !nrow(rows)) {
-    return(data.frame())
-  }
-  if ("selected" %in% names(rows)) {
-    rows <- rows[rows$selected %in% TRUE, , drop = FALSE]
-  } else if ("status" %in% names(rows)) {
-    rows <- rows[rows$status %in% "selected", , drop = FALSE]
-  }
-  rownames(rows) <- NULL
-  rows
-}
-
-public_format_table <- function(table) {
-  out <- table
-  numeric_cols <- vapply(out, is.numeric, logical(1L))
-  out[numeric_cols] <- lapply(out[numeric_cols], function(x) signif(x, 6L))
   out
 }

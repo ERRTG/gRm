@@ -6,6 +6,15 @@
 # gamma statistics used by the output layer. This R file converts the fitted
 # state into structured numeric R tables rather than DIGRAM text reports.
 
+#' Internal gllrm values helper
+#'
+#' Supports the gllrm values implementation while preserving its internal contract.
+#' Source trace: `source/PAS_skunits/skbias22.pas::GLLRM_output`.
+#' @param gllrm_fit Internal `gllrm_fit` value used by this helper.
+#' @param spec GLLRM model specification.
+#' @return The internal `gllrm_values()` computation result.
+#' @keywords internal
+#' @noRd
 gllrm_values <- function(gllrm_fit, spec) {
   context <- gllrm_fit$context
   state <- gllrm_fit$state
@@ -24,10 +33,15 @@ gllrm_values <- function(gllrm_fit, spec) {
   item_values
 }
 
-# Source trace: source/PAS_skunits/skbias22.pas::GLLRM_output emits item score
-# parameter blocks after the current GLLRM has been moved to the source
-# reporting gauge. The R table keeps those values numeric and labels them by
-# item and score category.
+#' Source trace: source/PAS_skunits/skbias22.pas::GLLRM_output emits item score
+#' parameter blocks after the current GLLRM has been moved to the source
+#' reporting gauge. The R table keeps those values numeric and labels them by
+#' item and score category.
+#' @param context Prepared GLLRM computation context.
+#' @param state Current fitted or iterative parameter state.
+#' @return The internal `gllrm_item_values()` computation result.
+#' @keywords internal
+#' @noRd
 gllrm_item_values <- function(context, state) {
   items <- context$items
   max_category_count <- ncol(state$item_gamma)
@@ -118,6 +132,14 @@ gllrm_item_values <- function(context, state) {
   )
 }
 
+#' Internal gllrm detail tables helper
+#'
+#' Supports the gllrm values implementation while preserving its internal contract.
+#' Source trace: `source/PAS_skunits/skbias22.pas::GLLRM_output`.
+#' @param values Values to validate or transform.
+#' @return The internal `gllrm_detail_tables()` computation result.
+#' @keywords internal
+#' @noRd
 gllrm_detail_tables <- function(values) {
   context <- values$gllrm_context
   list(
@@ -132,9 +154,14 @@ gllrm_detail_tables <- function(values) {
   )
 }
 
-# Source trace: source/PAS_skunits/skbias22.pas::GLLRM_output emits included IJ
-# local-dependence parameters as model terms. The R output keeps one numeric row
-# per fitted LD cell.
+#' Source trace: source/PAS_skunits/skbias22.pas::GLLRM_output emits included IJ
+#' local-dependence parameters as model terms. The R output keeps one numeric row
+#' per fitted LD cell.
+#' @param context Prepared GLLRM computation context.
+#' @param parameters Internal `parameters` value used by this helper.
+#' @return The internal `gllrm_ld_parameter_table()` computation result.
+#' @keywords internal
+#' @noRd
 gllrm_ld_parameter_table <- function(context, parameters) {
   rows <- list()
   for (ld_index in seq_along(parameters)) {
@@ -157,9 +184,14 @@ gllrm_ld_parameter_table <- function(context, parameters) {
   if (length(rows)) do.call(rbind, rows) else data.frame()
 }
 
-# Source trace: source/PAS_skunits/skbias22.pas::GLLRM_output emits included IX
-# DIF parameters against the source reference category. The R output keeps one
-# numeric row per fitted DIF cell.
+#' Source trace: source/PAS_skunits/skbias22.pas::GLLRM_output emits included IX
+#' DIF parameters against the source reference category. The R output keeps one
+#' numeric row per fitted DIF cell.
+#' @param context Prepared GLLRM computation context.
+#' @param parameters Internal `parameters` value used by this helper.
+#' @return The internal `gllrm_dif_parameter_table()` computation result.
+#' @keywords internal
+#' @noRd
 gllrm_dif_parameter_table <- function(context, parameters) {
   rows <- list()
   for (dif_index in seq_along(parameters)) {
@@ -182,6 +214,16 @@ gllrm_dif_parameter_table <- function(context, parameters) {
   if (length(rows)) do.call(rbind, rows) else data.frame()
 }
 
+#' Internal gllrm item margin table helper
+#'
+#' Supports the gllrm values implementation while preserving its internal contract.
+#' Source trace: `source/PAS_skunits/skbias22.pas::GLLRM_output`.
+#' @param context Prepared GLLRM computation context.
+#' @param mat Internal `mat` value used by this helper.
+#' @param value_name Internal `value_name` value used by this helper.
+#' @return The internal `gllrm_item_margin_table()` computation result.
+#' @keywords internal
+#' @noRd
 gllrm_item_margin_table <- function(context, mat, value_name) {
   rows <- list()
   for (item in seq_len(context$n_items)) {
@@ -199,6 +241,16 @@ gllrm_item_margin_table <- function(context, mat, value_name) {
   out
 }
 
+#' Internal gllrm ld margin table helper
+#'
+#' Supports the gllrm values implementation while preserving its internal contract.
+#' Source trace: `source/PAS_skunits/skbias22.pas::GLLRM_output`.
+#' @param context Prepared GLLRM computation context.
+#' @param margins Internal `margins` value used by this helper.
+#' @param value_name Internal `value_name` value used by this helper.
+#' @return The internal `gllrm_ld_margin_table()` computation result.
+#' @keywords internal
+#' @noRd
 gllrm_ld_margin_table <- function(context, margins, value_name) {
   rows <- list()
   for (ld_index in seq_along(margins)) {
@@ -223,6 +275,16 @@ gllrm_ld_margin_table <- function(context, margins, value_name) {
   out
 }
 
+#' Internal gllrm dif margin table helper
+#'
+#' Supports the gllrm values implementation while preserving its internal contract.
+#' Source trace: `source/PAS_skunits/skbias22.pas::GLLRM_output`.
+#' @param context Prepared GLLRM computation context.
+#' @param margins Internal `margins` value used by this helper.
+#' @param value_name Internal `value_name` value used by this helper.
+#' @return The internal `gllrm_dif_margin_table()` computation result.
+#' @keywords internal
+#' @noRd
 gllrm_dif_margin_table <- function(context, margins, value_name) {
   rows <- list()
   for (dif_index in seq_along(margins)) {
@@ -247,10 +309,28 @@ gllrm_dif_margin_table <- function(context, margins, value_name) {
   out
 }
 
+#' Internal source gamma from table helper
+#'
+#' Supports the gllrm values implementation while preserving its internal contract.
+#' Source trace: `source/PAS_skunits/skbias22.pas::GLLRM_output`.
+#' @param table Numeric contingency or result table.
+#' @return The internal `source_gamma_from_table()` computation result.
+#' @keywords internal
+#' @noRd
 source_gamma_from_table <- function(table) {
   source_rc_gamma_stats(table, include_cells = FALSE)$gamma
 }
 
+#' Internal standardize parameter table source helper
+#'
+#' Supports the gllrm values implementation while preserving its internal contract.
+#' Source trace: `source/PAS_skunits/skbias22.pas::GLLRM_output`.
+#' @param table Numeric contingency or result table.
+#' @param row_margins Internal `row_margins` value used by this helper.
+#' @param col_margins Internal `col_margins` value used by this helper.
+#' @return The internal `standardize_parameter_table_source()` computation result.
+#' @keywords internal
+#' @noRd
 standardize_parameter_table_source <- function(table, row_margins, col_margins) {
   # Source trace: source/PAS_skunits/skbias12b.pas calls
   # source/PAS_skunits/skfit2.pas::Standardize_tab4 before reporting included
@@ -265,6 +345,14 @@ standardize_parameter_table_source <- function(table, row_margins, col_margins) 
   )
 }
 
+#' Internal source odds ratio from gamma helper
+#'
+#' Supports the gllrm values implementation while preserving its internal contract.
+#' Source trace: `source/PAS_skunits/skbias22.pas::GLLRM_output`.
+#' @param gamma Internal `gamma` value used by this helper.
+#' @return The internal `source_odds_ratio_from_gamma()` computation result.
+#' @keywords internal
+#' @noRd
 source_odds_ratio_from_gamma <- function(gamma) {
   if (gamma == 1) {
     999.99
@@ -273,6 +361,15 @@ source_odds_ratio_from_gamma <- function(gamma) {
   }
 }
 
+#' Internal gllrm ld parameter values helper
+#'
+#' Supports the gllrm values implementation while preserving its internal contract.
+#' Source trace: `source/PAS_skunits/skbias22.pas::GLLRM_output`.
+#' @param context Prepared GLLRM computation context.
+#' @param state Current fitted or iterative parameter state.
+#' @return The internal `gllrm_ld_parameter_values()` computation result.
+#' @keywords internal
+#' @noRd
 gllrm_ld_parameter_values <- function(context, state) {
   lapply(seq_along(context$ld_specs), function(ld_index) {
     spec <- context$ld_specs[[ld_index]]
@@ -292,6 +389,15 @@ gllrm_ld_parameter_values <- function(context, state) {
   })
 }
 
+#' Internal gllrm dif parameter values helper
+#'
+#' Supports the gllrm values implementation while preserving its internal contract.
+#' Source trace: `source/PAS_skunits/skbias22.pas::GLLRM_output`.
+#' @param context Prepared GLLRM computation context.
+#' @param state Current fitted or iterative parameter state.
+#' @return The internal `gllrm_dif_parameter_values()` computation result.
+#' @keywords internal
+#' @noRd
 gllrm_dif_parameter_values <- function(context, state) {
   lapply(seq_along(context$dif_specs), function(dif_index) {
     spec <- context$dif_specs[[dif_index]]
@@ -311,6 +417,14 @@ gllrm_dif_parameter_values <- function(context, state) {
   })
 }
 
+#' Internal calculate gllrm n parameters helper
+#'
+#' Supports the gllrm values implementation while preserving its internal contract.
+#' Source trace: `source/PAS_skunits/skbias22.pas::GLLRM_output`.
+#' @param context Prepared GLLRM computation context.
+#' @return The internal `calculate_gllrm_n_parameters()` computation result.
+#' @keywords internal
+#' @noRd
 calculate_gllrm_n_parameters <- function(context) {
   base <- calculate_source_n_parameters(context$counts$item_counts)
   ld_df <- sum(vapply(context$observed_ld, source_observed_margin_n_parameters, integer(1L)))
@@ -320,6 +434,14 @@ calculate_gllrm_n_parameters <- function(context) {
   base + ld_df + dif_df
 }
 
+#' Internal source observed margin n parameters helper
+#'
+#' Supports the gllrm values implementation while preserving its internal contract.
+#' Source trace: `source/PAS_skunits/skbias22.pas::GLLRM_output`.
+#' @param observed Internal `observed` value used by this helper.
+#' @return The internal `source_observed_margin_n_parameters()` computation result.
+#' @keywords internal
+#' @noRd
 source_observed_margin_n_parameters <- function(observed) {
   row_nonzero <- rowSums(observed > 0)
   col_nonzero <- colSums(observed > 0)

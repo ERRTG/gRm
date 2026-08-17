@@ -1,16 +1,16 @@
 Package: gRm
 Title: Graphical Log-Linear Rasch Models in R
-Version: 0.07
+Version: 1.0.0
 Authors@R: c(
-    person("DIGRAM", "Reimplementation", role = c("aut", "cre"), email = "noreply@example.com")
+    person("Andreas", "Jensen", role = c("aut", "cre"), email = "aeje@sund.ku.dk")
   )
-Author: DIGRAM Reimplementation
-Maintainer: DIGRAM Reimplementation <noreply@example.com>
 Description: Provides source-faithful R implementations of selected DIGRAM
     computations for graphical log-linear Rasch models. The package supports
     model construction, fitting, screening, and diagnostic summaries through a
     compact R API.
 License: MIT + file LICENSE
+URL: https://github.com/ERRTG/gRm
+BugReports: https://github.com/ERRTG/gRm/issues
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.3

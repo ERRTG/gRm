@@ -53,13 +53,29 @@ gllrm <- function(project,
   )
 }
 
-# Extract LD, DIF, and score-effect terms.
+#' Extract canonical model terms for internal dispatch
+#'
+#' This internal generic gives package orchestration one stable representation
+#' of LD, DIF, and score-effect terms across specifications, fits, and SCREEN J
+#' results. Methods return source-ordered term tables; callers must not infer
+#' model membership from provisional SCREEN rows outside this contract.
+#'
+#' @param object A `gRm_model`, `gRm_fit`, or `gRm_screen` object.
+#' @param ... Reserved for S3 dispatch compatibility and must be empty.
+#' @return A list with canonical `ld`, `dif`, and `score_effects` data frames
+#'   plus a `source_trace` character vector.
+#' @usage model_terms(object, ...)
+#' @name gRm-model-terms
+#' @aliases model_terms model_terms.gRm_model model_terms.gRm_fit
+#'   model_terms.gRm_screen
+#' @keywords internal
 model_terms <- function(object, ...) {
   UseMethod("model_terms")
 }
 
 #' @export
 model_terms.gRm_model <- function(object, ...) {
+  reject_public_dots(...)
   list(
     ld = object$ld,
     dif = object$dif,
@@ -70,11 +86,13 @@ model_terms.gRm_model <- function(object, ...) {
 
 #' @export
 model_terms.gRm_fit <- function(object, ...) {
+  reject_public_dots(...)
   model_terms(object$model %||% object$spec)
 }
 
 #' @export
 model_terms.gRm_screen <- function(object, ...) {
+  reject_public_dots(...)
   values <- object$values
   list(
     ld = screen_ld_terms(values),
@@ -84,6 +102,13 @@ model_terms.gRm_screen <- function(object, ...) {
   )
 }
 
+#' Internal as gRm analysis helper
+#'
+#' Supports the api model spec implementation while preserving its internal contract.
+#' @param x Object or value to process.
+#' @return The normalized or validated internal value.
+#' @keywords internal
+#' @noRd
 as_gRm_analysis <- function(x) {
   if (inherits(x, "gRm_analysis")) {
     return(x)
@@ -111,6 +136,17 @@ as_gRm_analysis <- function(x) {
   stop("Expected a gRm analysis, GLLRM object, or DIGRAM project.", call. = FALSE)
 }
 
+#' Internal new gRm model helper
+#'
+#' Supports the api model spec implementation while preserving its internal contract.
+#' @param analysis Prepared gRm analysis.
+#' @param ld Internal `ld` value used by this helper.
+#' @param dif Internal `dif` value used by this helper.
+#' @param screen Internal `screen` value used by this helper.
+#' @param call Captured R call.
+#' @return A newly assembled internal object or table.
+#' @keywords internal
+#' @noRd
 new_gRm_model <- function(analysis, ld, dif, screen = NULL, call) {
   terms <- source_order_model_terms(analysis, ld, dif)
   ld <- terms$ld
@@ -119,6 +155,8 @@ new_gRm_model <- function(analysis, ld, dif, screen = NULL, call) {
   out <- list(
     analysis = analysis,
     project = analysis$project,
+    analysis_fingerprint = analysis$analysis_fingerprint,
+    likelihood_sample = analysis$likelihood_sample,
     ld = ld,
     dif = dif,
     terms = list(ld = ld, dif = dif),
@@ -134,6 +172,16 @@ new_gRm_model <- function(analysis, ld, dif, screen = NULL, call) {
   out
 }
 
+#' Internal new gRm model from canonical terms helper
+#'
+#' Supports the api model spec implementation while preserving its internal contract.
+#' @param model gRm model specification.
+#' @param ld Internal `ld` value used by this helper.
+#' @param dif Internal `dif` value used by this helper.
+#' @param call Captured R call.
+#' @return A newly assembled internal object or table.
+#' @keywords internal
+#' @noRd
 new_gRm_model_from_canonical_terms <- function(model, ld, dif, call = NULL) {
   if (!inherits(model, "gRm_model")) {
     stop("Expected a gRm_model object.", call. = FALSE)
@@ -153,6 +201,16 @@ new_gRm_model_from_canonical_terms <- function(model, ld, dif, call = NULL) {
   )
 }
 
+#' Internal gllrm from screen helper
+#'
+#' Supports the api model spec implementation while preserving its internal contract.
+#' @param screen Internal `screen` value used by this helper.
+#' @param ld Internal `ld` value used by this helper.
+#' @param dif Internal `dif` value used by this helper.
+#' @param call Captured R call.
+#' @return The internal `gllrm_from_screen()` computation result.
+#' @keywords internal
+#' @noRd
 gllrm_from_screen <- function(screen, ld = NULL, dif = NULL, call) {
   selected <- selected_screen_terms(screen)
   ld_terms <- if (is.null(ld)) selected$ld else parse_ld_formula(ld, screen$analysis, source = "user")
@@ -166,6 +224,13 @@ gllrm_from_screen <- function(screen, ld = NULL, dif = NULL, call) {
   )
 }
 
+#' Internal selected screen terms helper
+#'
+#' Supports the api model spec implementation while preserving its internal contract.
+#' @param screen Internal `screen` value used by this helper.
+#' @return The internal `selected_screen_terms()` computation result.
+#' @keywords internal
+#' @noRd
 selected_screen_terms <- function(screen) {
   terms <- model_terms(screen)
   terms$ld$source <- rep("screen", nrow(terms$ld))
@@ -182,7 +247,7 @@ selected_screen_terms <- function(screen) {
 #'   current LD terms. Use `~ 0` to remove all LD terms.
 #' @param dif Replacement DIF formula. Use `NULL` to keep the current DIF
 #'   terms. Use `~ 0` to remove all DIF terms.
-#' @param ... Reserved for S3 dispatch compatibility; ignored.
+#' @param ... Reserved for S3 dispatch compatibility and must be empty.
 #' @return An updated `gRm_model` object. The returned model is not fitted;
 #'   pass it to [fit()] to estimate parameters.
 #' @details
@@ -213,12 +278,22 @@ selected_screen_terms <- function(screen) {
 #' @seealso [gllrm()], [fit()]
 #' @export
 update.gRm_model <- function(object, ld = NULL, dif = NULL, ...) {
+  reject_public_dots(...)
   ld_terms <- if (is.null(ld)) object$ld else parse_ld_formula(ld, object$analysis, source = "user")
   dif_terms <- if (is.null(dif)) object$dif else parse_dif_formula(dif, object$analysis, source = "user")
   screen <- if (any(c(ld_terms$source, dif_terms$source) %in% "screen")) object$screen else NULL
   new_gRm_model(object$analysis, ld_terms, dif_terms, screen = screen, call = match.call())
 }
 
+#' Internal parse ld formula helper
+#'
+#' Supports the api model spec implementation while preserving its internal contract.
+#' @param formula Internal `formula` value used by this helper.
+#' @param analysis Prepared gRm analysis.
+#' @param source Internal `source` value used by this helper.
+#' @return The normalized or validated internal value.
+#' @keywords internal
+#' @noRd
 parse_ld_formula <- function(formula, analysis, source = "user") {
   parse_gRm_interaction_formula(
     formula = formula,
@@ -229,6 +304,15 @@ parse_ld_formula <- function(formula, analysis, source = "user") {
   )
 }
 
+#' Internal parse dif formula helper
+#'
+#' Supports the api model spec implementation while preserving its internal contract.
+#' @param formula Internal `formula` value used by this helper.
+#' @param analysis Prepared gRm analysis.
+#' @param source Internal `source` value used by this helper.
+#' @return The normalized or validated internal value.
+#' @keywords internal
+#' @noRd
 parse_dif_formula <- function(formula, analysis, source = "user") {
   parse_gRm_interaction_formula(
     formula = formula,
@@ -239,6 +323,17 @@ parse_dif_formula <- function(formula, analysis, source = "user") {
   )
 }
 
+#' Internal parse gRm interaction formula helper
+#'
+#' Supports the api model spec implementation while preserving its internal contract.
+#' @param formula Internal `formula` value used by this helper.
+#' @param items Item selection or item metadata.
+#' @param exogenous Internal `exogenous` value used by this helper.
+#' @param type Internal `type` value used by this helper.
+#' @param source Internal `source` value used by this helper.
+#' @return The normalized or validated internal value.
+#' @keywords internal
+#' @noRd
 parse_gRm_interaction_formula <- function(formula, items, exogenous, type, source = "user") {
   if (is.null(formula)) {
     return(if (identical(type, "ld")) empty_ld_terms() else empty_dif_terms())
@@ -272,6 +367,13 @@ parse_gRm_interaction_formula <- function(formula, items, exogenous, type, sourc
   out
 }
 
+#' Internal parse gRm formula terms helper
+#'
+#' Supports the api model spec implementation while preserving its internal contract.
+#' @param expr Internal `expr` value used by this helper.
+#' @return The normalized or validated internal value.
+#' @keywords internal
+#' @noRd
 parse_gRm_formula_terms <- function(expr) {
   if (is.numeric(expr) && length(expr) == 1L && expr %in% c(0, 1)) {
     return(list())
@@ -299,6 +401,13 @@ parse_gRm_formula_terms <- function(expr) {
   stop("DIGRAM model formulas allow only `:` interaction terms joined by `+`.", call. = FALSE)
 }
 
+#' Internal parse gRm formula variable helper
+#'
+#' Supports the api model spec implementation while preserving its internal contract.
+#' @param expr Internal `expr` value used by this helper.
+#' @return The normalized or validated internal value.
+#' @keywords internal
+#' @noRd
 parse_gRm_formula_variable <- function(expr) {
   if (is.name(expr)) {
     return(as.character(expr))
@@ -306,6 +415,16 @@ parse_gRm_formula_variable <- function(expr) {
   stop("DIGRAM model formulas allow only `:` interaction terms joined by `+`.", call. = FALSE)
 }
 
+#' Internal canonical ld term helper
+#'
+#' Supports the api model spec implementation while preserving its internal contract.
+#' @param vars Internal `vars` value used by this helper.
+#' @param items Item selection or item metadata.
+#' @param label Internal `label` value used by this helper.
+#' @param source Internal `source` value used by this helper.
+#' @return The internal `canonical_ld_term()` computation result.
+#' @keywords internal
+#' @noRd
 canonical_ld_term <- function(vars, items, label, source = "user") {
   if (!all(vars %in% items)) {
     stop("LD terms must be item:item interactions. Invalid term: ", label, call. = FALSE)
@@ -324,6 +443,17 @@ canonical_ld_term <- function(vars, items, label, source = "user") {
   )
 }
 
+#' Internal canonical dif term helper
+#'
+#' Supports the api model spec implementation while preserving its internal contract.
+#' @param vars Internal `vars` value used by this helper.
+#' @param items Item selection or item metadata.
+#' @param exogenous Internal `exogenous` value used by this helper.
+#' @param label Internal `label` value used by this helper.
+#' @param source Internal `source` value used by this helper.
+#' @return The internal `canonical_dif_term()` computation result.
+#' @keywords internal
+#' @noRd
 canonical_dif_term <- function(vars, items, exogenous, label, source = "user") {
   item <- vars[vars %in% items]
   exo <- vars[vars %in% exogenous]
@@ -340,6 +470,12 @@ canonical_dif_term <- function(vars, items, exogenous, label, source = "user") {
   )
 }
 
+#' Internal empty ld terms helper
+#'
+#' Supports the api model spec implementation while preserving its internal contract.
+#' @return The internal `empty_ld_terms()` computation result.
+#' @keywords internal
+#' @noRd
 empty_ld_terms <- function() {
   data.frame(
     type = character(),
@@ -351,6 +487,12 @@ empty_ld_terms <- function() {
   )
 }
 
+#' Internal empty dif terms helper
+#'
+#' Supports the api model spec implementation while preserving its internal contract.
+#' @return The internal `empty_dif_terms()` computation result.
+#' @keywords internal
+#' @noRd
 empty_dif_terms <- function() {
   data.frame(
     type = character(),
@@ -362,6 +504,12 @@ empty_dif_terms <- function() {
   )
 }
 
+#' Internal empty score effect terms helper
+#'
+#' Supports the api model spec implementation while preserving its internal contract.
+#' @return The internal `empty_score_effect_terms()` computation result.
+#' @keywords internal
+#' @noRd
 empty_score_effect_terms <- function() {
   data.frame(
     type = character(),
@@ -372,6 +520,13 @@ empty_score_effect_terms <- function() {
   )
 }
 
+#' Internal screen ld terms helper
+#'
+#' Supports the api model spec implementation while preserving its internal contract.
+#' @param values Values to validate or transform.
+#' @return The internal `screen_ld_terms()` computation result.
+#' @keywords internal
+#' @noRd
 screen_ld_terms <- function(values) {
   rows <- values$model$local_dependence$rows %||% data.frame()
   if (!nrow(rows)) {
@@ -391,6 +546,13 @@ screen_ld_terms <- function(values) {
   )
 }
 
+#' Internal screen dif terms helper
+#'
+#' Supports the api model spec implementation while preserving its internal contract.
+#' @param values Values to validate or transform.
+#' @return The internal `screen_dif_terms()` computation result.
+#' @keywords internal
+#' @noRd
 screen_dif_terms <- function(values) {
   mat <- values$model$item_bias
   if (is.null(mat) || !length(mat) || !any(mat, na.rm = TRUE)) {
@@ -407,6 +569,13 @@ screen_dif_terms <- function(values) {
   )
 }
 
+#' Internal screen score effect terms helper
+#'
+#' Supports the api model spec implementation while preserving its internal contract.
+#' @param values Values to validate or transform.
+#' @return The internal `screen_score_effect_terms()` computation result.
+#' @keywords internal
+#' @noRd
 screen_score_effect_terms <- function(values) {
   rows <- values$model$score_effects$rows %||% data.frame()
   if (!nrow(rows)) {

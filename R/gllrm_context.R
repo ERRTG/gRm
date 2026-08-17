@@ -1,11 +1,17 @@
-# GLLRM context construction.
-#
-# Source trace: source/PAS_skunits/skbias12b.pas::Initialize_GLLRMinfo
-# prepares the model dimensions and source/PAS_skunits/skbias12b.pas::
-# Estimate_GLLRM receives the item, LD, DIF, score, and exogenous structures
-# used by the GLLRM fitting loop. The R context keeps those same
-# sufficient statistics in list/data-frame form instead of Pascal global
-# arrays.
+#' GLLRM context construction.
+#'
+#' Source trace: source/PAS_skunits/skbias12b.pas::Initialize_GLLRMinfo
+#' prepares the model dimensions and source/PAS_skunits/skbias12b.pas::
+#' Estimate_GLLRM receives the item, LD, DIF, score, and exogenous structures
+#' used by the GLLRM fitting loop. The R context keeps those same
+#' sufficient statistics in list/data-frame form instead of Pascal global
+#' arrays.
+#' @param spec GLLRM model specification.
+#' @param bundle Source-shaped analysis bundle.
+#' @param max_joint_configs Internal `max_joint_configs` value used by this helper.
+#' @return A newly assembled internal object or table.
+#' @keywords internal
+#' @noRd
 build_gllrm_context <- function(spec, bundle, max_joint_configs = 200000L) {
   items <- bundle$model$items
   backgrounds <- bundle$model$backgrounds
@@ -34,6 +40,7 @@ build_gllrm_context <- function(spec, bundle, max_joint_configs = 200000L) {
     item_matrix = item_matrix,
     background_matrix = background_matrix,
     score = as.integer(data$score),
+    estimation_rows = valid_rows,
     valid_rows = valid_rows,
     counts = rasch_counts(bundle),
     ld_specs = ld_specs,
@@ -41,6 +48,14 @@ build_gllrm_context <- function(spec, bundle, max_joint_configs = 200000L) {
     dif_background_indices = sort(unique(vapply(dif_specs, `[[`, integer(1L), "background"))),
     max_joint_configs = as.integer(max_joint_configs)
   )
+  # Source trace: source/PAS_skunits/skbias14.pas::Count_IJtable through
+  # Count_IXStable use Get_Items/get_exogene over all records, while Count_IJK
+  # retains item-complete records after the exogenous failure check was
+  # commented out. Keep these diagnostic policies separate from Estimate_GLLRM.
+  context$complete_item_rows <- source_complete_item_rows(context)
+  context$complete_background_rows <- source_complete_background_rows(context)
+  context$complete_item_exogenous_rows <- source_complete_item_exogenous_rows(context)
+  context$cm3_observed_ijk_rows <- source_cm3_observed_ijk_rows(context)
   components <- gllrm_ld_components(context)
   context$ld_components_items <- components$items
   context$ld_component_of <- components$component_of
@@ -118,6 +133,16 @@ build_gllrm_context <- function(spec, bundle, max_joint_configs = 200000L) {
   context
 }
 
+#' Internal gllrm item score reference helper
+#'
+#' Supports the gllrm context implementation while preserving its internal contract.
+#' Source trace: `source/PAS_skunits/skbias12b.pas::Initialize_GLLRMinfo`.
+#' @param item_matrix Internal `item_matrix` value used by this helper.
+#' @param valid_rows Internal `valid_rows` value used by this helper.
+#' @param items Item selection or item metadata.
+#' @return The internal `gllrm_item_score_reference()` computation result.
+#' @keywords internal
+#' @noRd
 gllrm_item_score_reference <- function(item_matrix, valid_rows, items) {
   max_score <- max(as.integer(items$raw_max), 0L) - 1L
   if (max_score < 0L || !length(valid_rows)) {
@@ -128,6 +153,14 @@ gllrm_item_score_reference <- function(item_matrix, valid_rows, items) {
   which.max(counts) - 1L
 }
 
+#' Internal gllrm metadata matrix helper
+#'
+#' Supports the gllrm context implementation while preserving its internal contract.
+#' Source trace: `source/PAS_skunits/skbias12b.pas::Initialize_GLLRMinfo`.
+#' @param x Object or value to process.
+#' @return The internal `gllrm_metadata_matrix()` computation result.
+#' @keywords internal
+#' @noRd
 gllrm_metadata_matrix <- function(x) {
   out <- as.matrix(x)
   storage.mode(out) <- "integer"
@@ -135,6 +168,15 @@ gllrm_metadata_matrix <- function(x) {
   out
 }
 
+#' Internal gllrm ld specs helper
+#'
+#' Supports the gllrm context implementation while preserving its internal contract.
+#' Source trace: `source/PAS_skunits/skbias12b.pas::Initialize_GLLRMinfo`.
+#' @param ld_terms Internal `ld_terms` value used by this helper.
+#' @param items Item selection or item metadata.
+#' @return The internal `gllrm_ld_specs()` computation result.
+#' @keywords internal
+#' @noRd
 gllrm_ld_specs <- function(ld_terms, items) {
   if (is.null(ld_terms) || nrow(ld_terms) == 0L) {
     return(list())
@@ -160,6 +202,16 @@ gllrm_ld_specs <- function(ld_terms, items) {
   })
 }
 
+#' Internal gllrm dif specs helper
+#'
+#' Supports the gllrm context implementation while preserving its internal contract.
+#' Source trace: `source/PAS_skunits/skbias12b.pas::Initialize_GLLRMinfo`.
+#' @param dif_terms Internal `dif_terms` value used by this helper.
+#' @param items Item selection or item metadata.
+#' @param backgrounds Internal `backgrounds` value used by this helper.
+#' @return The internal `gllrm_dif_specs()` computation result.
+#' @keywords internal
+#' @noRd
 gllrm_dif_specs <- function(dif_terms, items, backgrounds) {
   if (is.null(dif_terms) || nrow(dif_terms) == 0L) {
     return(list())
@@ -180,6 +232,15 @@ gllrm_dif_specs <- function(dif_terms, items, backgrounds) {
   })
 }
 
+#' Internal gllrm item matrix helper
+#'
+#' Supports the gllrm context implementation while preserving its internal contract.
+#' Source trace: `source/PAS_skunits/skbias12b.pas::Initialize_GLLRMinfo`.
+#' @param data Input data for the computation.
+#' @param items Item selection or item metadata.
+#' @return The internal `gllrm_item_matrix()` computation result.
+#' @keywords internal
+#' @noRd
 gllrm_item_matrix <- function(data, items) {
   out <- matrix(0L, nrow = nrow(data), ncol = nrow(items))
   for (item_index in seq_len(nrow(items))) {
@@ -188,6 +249,15 @@ gllrm_item_matrix <- function(data, items) {
   out
 }
 
+#' Internal gllrm background matrix helper
+#'
+#' Supports the gllrm context implementation while preserving its internal contract.
+#' Source trace: `source/PAS_skunits/skbias12b.pas::Initialize_GLLRMinfo`.
+#' @param data Input data for the computation.
+#' @param backgrounds Internal `backgrounds` value used by this helper.
+#' @return The internal `gllrm_background_matrix()` computation result.
+#' @keywords internal
+#' @noRd
 gllrm_background_matrix <- function(data, backgrounds) {
   out <- matrix(0L, nrow = nrow(data), ncol = nrow(backgrounds))
   for (background_index in seq_len(nrow(backgrounds))) {
@@ -196,10 +266,15 @@ gllrm_background_matrix <- function(data, backgrounds) {
   out
 }
 
-# Source trace: source/GLLRM_ESTIM.txt and
-# source/PAS_skunits/skbias12b.pas store observed IJ margins for each included
-# local-dependence term before calling the iterative GLLRM update. The R code
-# builds the same item-by-item score margins from the input rows.
+#' Source trace: source/GLLRM_ESTIM.txt and
+#' source/PAS_skunits/skbias12b.pas store observed IJ margins for each included
+#' local-dependence term before calling the iterative GLLRM update. The R code
+#' builds the same item-by-item score margins from the input rows.
+#' Source trace: `source/PAS_skunits/skbias12b.pas::Initialize_GLLRMinfo`.
+#' @param context Prepared GLLRM computation context.
+#' @return The internal `gllrm_observed_ld()` computation result.
+#' @keywords internal
+#' @noRd
 gllrm_observed_ld <- function(context) {
   lapply(context$ld_specs, function(spec) {
     rows <- context$item_raw_max[[spec$item1]]
@@ -219,10 +294,15 @@ gllrm_observed_ld <- function(context) {
   })
 }
 
-# Source trace: source/GLLRM_ESTIM.txt and
-# source/PAS_skunits/skbias12b.pas store observed IX margins for each included
-# DIF term. The R code materializes those target-item-by-exogenous margins
-# directly from the complete records used by the current GLLRM.
+#' Source trace: source/GLLRM_ESTIM.txt and
+#' source/PAS_skunits/skbias12b.pas store observed IX margins for each included
+#' DIF term. The R code materializes those target-item-by-exogenous margins
+#' directly from the complete records used by the current GLLRM.
+#' Source trace: `source/PAS_skunits/skbias12b.pas::Initialize_GLLRMinfo`.
+#' @param context Prepared GLLRM computation context.
+#' @return The internal `gllrm_observed_dif()` computation result.
+#' @keywords internal
+#' @noRd
 gllrm_observed_dif <- function(context) {
   lapply(context$dif_specs, function(spec) {
     rows <- context$item_raw_max[[spec$item]]
@@ -242,10 +322,16 @@ gllrm_observed_dif <- function(context) {
   })
 }
 
-# Source trace: source/PAS_skunits/skbias12b.pas::Estimate_GLLRM iterates over
-# total-score and background combinations when evaluating expected margins. The
-# R helper makes those combinations explicit so the later fit code can perform
-# the same source-shaped summation without Pascal global state.
+#' Source trace: source/PAS_skunits/skbias12b.pas::Estimate_GLLRM iterates over
+#' total-score and background combinations when evaluating expected margins. The
+#' R helper makes those combinations explicit so the later fit code can perform
+#' the same source-shaped summation without Pascal global state.
+#' Source trace: `source/PAS_skunits/skbias12b.pas::Initialize_GLLRMinfo`.
+#' @param context Prepared GLLRM computation context.
+#' @param rows Rows used by the computation.
+#' @return The internal `gllrm_score_exo_groups()` computation result.
+#' @keywords internal
+#' @noRd
 gllrm_score_exo_groups <- function(context, rows = context$valid_rows) {
   if (length(rows) == 0L) {
     out <- data.frame(score = integer(), count = integer())
@@ -285,13 +371,18 @@ gllrm_score_exo_groups <- function(context, rows = context$valid_rows) {
   out
 }
 
-# Implementation guard for explicit GLLRM component enumeration.
-#
-# Source trace: source/PAS_skunits/SKTypes.pas fixes the Pascal table and array
-# bounds used by source/PAS_skunits/skbias22.pas::LD_Gamma_calculation. R is not
-# constrained by those exact global arrays, but this guard prevents the explicit
-# component-configuration enumeration from silently leaving the intended
-# source-shaped calculation regime.
+#' Implementation guard for explicit GLLRM component enumeration.
+#'
+#' Source trace: source/PAS_skunits/SKTypes.pas fixes the Pascal table and array
+#' bounds used by source/PAS_skunits/skbias22.pas::LD_Gamma_calculation. R is not
+#' constrained by those exact global arrays, but this guard prevents the explicit
+#' component-configuration enumeration from silently leaving the intended
+#' source-shaped calculation regime.
+#' Source trace: `source/PAS_skunits/skbias12b.pas::Initialize_GLLRMinfo`.
+#' @param context Prepared GLLRM computation context.
+#' @return The internal `gllrm_check_component_complexity()` computation result.
+#' @keywords internal
+#' @noRd
 gllrm_check_component_complexity <- function(context) {
   components <- context$ld_components_items %||% gllrm_ld_components(context)$items
   for (component_items in components) {

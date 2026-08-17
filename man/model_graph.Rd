@@ -2,7 +2,10 @@
 % Please edit documentation in R/api-model-graph.R, R/api-model-plot.R
 \name{model_graph}
 \alias{model_graph}
+\alias{model_graph.gRm_model}
+\alias{model_graph.gRm_fit}
 \alias{plot.gRm_model}
+\alias{plot.gRm_fit}
 \title{Build or plot the score-inclusive GLLRM graph}
 \usage{
 model_graph(object, ...)
@@ -29,11 +32,34 @@ model_graph(object, ...)
   xlim = NULL,
   ylim = NULL
 )
+
+\method{plot}{gRm_fit}(
+  x,
+  ...,
+  layout = c("score_left", "fr", "kk", "nicely"),
+  x_spacing = 2.5,
+  y_spacing = 1.4,
+  item_spacing = 1.6,
+  vertex.label = NULL,
+  vertex.color = NULL,
+  vertex.shape = NULL,
+  vertex.size = NULL,
+  vertex.label.cex = NULL,
+  vertex.label.dist = NULL,
+  vertex.label.degree = NULL,
+  edge.color = NULL,
+  edge.lty = NULL,
+  edge.width = NULL,
+  margin = NULL,
+  rescale = FALSE,
+  xlim = NULL,
+  ylim = NULL
+)
 }
 \arguments{
 \item{object}{A \code{gRm_model} or \code{gRm_fit} object.}
 
-\item{...}{Reserved for S3 dispatch compatibility; ignored by
+\item{...}{Reserved for S3 dispatch compatibility and must be empty for
 \code{model_graph()} methods.}
 
 \item{x}{A \code{gRm_model} or \code{gRm_fit} object.}

@@ -5,14 +5,14 @@
 #' @usage
 #' fit(object, ...)
 #' \method{fit}{gRm_model}(object, max_step = 5000L, max_delta = 0.0001, ...)
-#' @aliases fit.gRm_model
+#' @aliases fit.gRm_model fit.gRm_analysis fit.gRm_screen fit.default
 #' @param object A `gRm_model` object created by [gllrm()]. Calling
 #'   `fit()` directly on an analysis object is an error; specify the model
 #'   first.
 #' @param max_step Single positive integer-like maximum number of fitting
 #'   iterations.
-#' @param max_delta Single positive finite convergence tolerance for the maximum
-#'   absolute parameter update.
+#' @param max_delta Single positive finite strict convergence tolerance for the
+#'   maximum absolute observed-versus-fitted sufficient-count discrepancy.
 #' @param ... Reserved for S3 dispatch compatibility; no additional fitting
 #'   arguments are currently supported.
 #' @return A `gRm_fit` object containing the fitted model, convergence
@@ -61,24 +61,26 @@ fit.gRm_model <- function(object,
                              max_step = 5000L,
                              max_delta = 0.0001,
                              ...) {
+  reject_public_dots(...)
   controls <- normalize_public_fit_controls(max_step, max_delta)
   max_step <- controls$max_step
   max_delta <- controls$max_delta
   bundle <- build_item_parameters_bundle(object$analysis$project)
-  assert_public_estimable_fit_bundle(bundle)
+  assert_gRm_analysis_identity(object$analysis, bundle)
+  assert_public_estimable_fit_bundle(bundle, object)
   if (nrow(object$ld) > 0L || nrow(object$dif) > 0L) {
     gllrm_fit <- fit_gllrm(object, max_step = max_step, max_delta = max_delta, bundle = bundle)
     output_state <- gllrm_output_parameter_state(gllrm_fit$context, gllrm_fit$state)
     output_fit <- list(context = gllrm_fit$context, state = output_state, bundle = gllrm_fit$bundle)
     values <- gllrm_values(output_fit, object)
+    assert_public_fit_values(values)
     return(new_gRm_fit(
       model = object,
       bundle = gllrm_fit$bundle,
       fit = c(gllrm_fit$state, list(context = gllrm_fit$context)),
       values = values,
-      convergence = list(
-        converged = gllrm_fit$state$converged,
-        iterations = gllrm_fit$state$n_step,
+      convergence = gRm_gllrm_convergence_state(
+        gllrm_fit$state,
         max_step = max_step,
         max_delta = max_delta
       ),
@@ -89,36 +91,20 @@ fit.gRm_model <- function(object,
 
   base_fit <- fit_rasch_base(bundle, max_step = max_step, max_delta = max_delta)
   values <- item_parameters_values(base_fit, bundle)
+  assert_public_fit_values(values)
   new_gRm_fit(
     model = object,
     bundle = bundle,
     fit = base_fit,
     values = values,
-    convergence = list(
-      converged = base_fit$converged %||% values$converged %||% NA,
-      iterations = base_fit$n_step %||% base_fit$iteration %||% values$iteration %||% NA,
+    convergence = gRm_rasch_convergence_state(
+      base_fit,
       max_step = max_step,
       max_delta = max_delta
     ),
     source_trace = c(object$source_trace %||% character(), fit = "fit_rasch_base"),
     call = match.call()
   )
-}
-
-assert_public_estimable_fit_bundle <- function(bundle) {
-  # Source trace: source/PAS_skunits/skbias21.pas exits report sections when
-  # Nvalid < 1. The R fitting API should therefore not manufacture a converged
-  # model object when the source-shaped estimating margins are empty.
-  if (isTRUE(bundle$manifest$nvalid < 1L)) {
-    stop(
-      paste(
-        "Rasch fitting requires at least one source-valid complete response pattern",
-        "inside the DIGRAM score window."
-      ),
-      call. = FALSE
-    )
-  }
-  invisible(bundle)
 }
 
 #' @export
@@ -134,6 +120,14 @@ fit.default <- function(object, ...) {
   stop("fit() requires a DIGRAM model specification created by gllrm().", call. = FALSE)
 }
 
+#' Internal normalize public fit controls helper
+#'
+#' Supports the api fit implementation while preserving its internal contract.
+#' @param max_step Maximum fitting iteration.
+#' @param max_delta Sufficient-count discrepancy tolerance.
+#' @return The normalized or validated internal value.
+#' @keywords internal
+#' @noRd
 normalize_public_fit_controls <- function(max_step, max_delta) {
   list(
     max_step = normalize_public_max_step(max_step),
@@ -141,6 +135,13 @@ normalize_public_fit_controls <- function(max_step, max_delta) {
   )
 }
 
+#' Internal normalize public max step helper
+#'
+#' Supports the api fit implementation while preserving its internal contract.
+#' @param max_step Maximum fitting iteration.
+#' @return The normalized or validated internal value.
+#' @keywords internal
+#' @noRd
 normalize_public_max_step <- function(max_step) {
   if (
     length(max_step) != 1L ||
@@ -156,6 +157,13 @@ normalize_public_max_step <- function(max_step) {
   as.integer(max_step)
 }
 
+#' Internal normalize public max delta helper
+#'
+#' Supports the api fit implementation while preserving its internal contract.
+#' @param max_delta Sufficient-count discrepancy tolerance.
+#' @return The normalized or validated internal value.
+#' @keywords internal
+#' @noRd
 normalize_public_max_delta <- function(max_delta) {
   if (
     length(max_delta) != 1L ||
@@ -169,10 +177,25 @@ normalize_public_max_delta <- function(max_delta) {
   as.numeric(max_delta)
 }
 
+#' Internal new gRm fit helper
+#'
+#' Supports the api fit implementation while preserving its internal contract.
+#' @param model gRm model specification.
+#' @param bundle Source-shaped analysis bundle.
+#' @param fit Fitted gRm model.
+#' @param values Values to validate or transform.
+#' @param convergence Internal `convergence` value used by this helper.
+#' @param source_trace Internal `source_trace` value used by this helper.
+#' @param call Captured R call.
+#' @return A newly assembled internal object or table.
+#' @keywords internal
+#' @noRd
 new_gRm_fit <- function(model, bundle, fit, values, convergence, source_trace, call) {
   out <- list(
     analysis = model$analysis,
     project = model$analysis$project,
+    analysis_fingerprint = model$analysis_fingerprint %||% model$analysis$analysis_fingerprint,
+    likelihood_sample = model$likelihood_sample %||% model$analysis$likelihood_sample,
     model = model,
     model_type = model$model_type,
     bundle = bundle,
@@ -190,6 +213,14 @@ new_gRm_fit <- function(model, bundle, fit, values, convergence, source_trace, c
   out
 }
 
+#' Internal stop gRm not implemented helper
+#'
+#' Supports the api fit implementation while preserving its internal contract.
+#' @param feature Internal `feature` value used by this helper.
+#' @param validation_needed Internal `validation_needed` value used by this helper.
+#' @return The internal `stop_gRm_not_implemented()` computation result.
+#' @keywords internal
+#' @noRd
 stop_gRm_not_implemented <- function(feature, validation_needed = NULL) {
   message <- paste0(feature, " is not implemented in the source-faithful R API yet.")
   if (!is.null(validation_needed)) {

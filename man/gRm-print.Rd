@@ -28,8 +28,8 @@
 \arguments{
 \item{x}{An gRm analysis, model, fit, screen, or result object.}
 
-\item{...}{Reserved for S3 dispatch compatibility; ignored by all gRm
-print methods.}
+\item{...}{Reserved for S3 dispatch compatibility and must be empty for all
+gRm print methods.}
 }
 \value{
 The input object, invisibly.

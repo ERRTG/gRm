@@ -1,34 +1,47 @@
+#' Internal gRm source score cap helper
+#'
+#' Supports the exo select values implementation while preserving its internal contract.
+#' Source trace: `source/PAS_skunits/SKbias13.pas::StepwiseScoreScreening`.
+#' @return The internal `gRm_source_score_cap()` computation result.
+#' @keywords internal
+#' @noRd
 gRm_source_score_cap <- function() {
   # Source trace: source/PAS_skunits/SKTypes.pas defines MAXDIM = 57, and
   # source/PAS_skunits/SKbias13.pas collapses scores above maxdim - 1.
   56L
 }
 
-# Derive DIGRAM exogenous-selection numeric values
-#
-# Computes source-shaped exogenous overview, missing-exogenous diagnostics,
-# score distribution, and score/exogenous screening values. The source path is
-# `SKbias2.pas` for exogenous overview, missing-exogenous diagnostics and
-# score distribution, then `SKbias13.pas::StepwiseScoreScreening` for the
-# score/exogenous screening.
-#
-# Production R computes from `DIGRAM.var` and `DIGRAM.dat`; Pascal and the
-# supplied DIGRAM output files are external validation inputs only.
-#
-# @param project A parsed DIGRAM project from [read_digram_project()].
-# @param score_cap Highest printed score category for the score/exogenous
-#   screening table. Source `maxdim - 1` gives `56` for this source tree.
-# @param exact Logical; when `TRUE`, run the source-shaped Monte Carlo exact
-#   table branch used by `SKexa2`/`SKrandom.GENTAB1`.
-# @param nsim Number of random tables for exact p-values.
-# @param seed Seed for the R implementation of the source Monte Carlo branch.
-# @return A `gRm_exo_select_values` object.
-# @examples
-# \dontrun{
-# project <- read_digram_project("path/to/DIGRAM")
-# values <- exo_select_values(project)
-# values$screen
-# }
+#' Derive DIGRAM exogenous-selection numeric values
+#'
+#' Computes source-shaped exogenous overview, missing-exogenous diagnostics,
+#' score distribution, and score/exogenous screening values. The source path is
+#' `SKbias2.pas` for exogenous overview, missing-exogenous diagnostics and
+#' score distribution, then `SKbias13.pas::StepwiseScoreScreening` for the
+#' score/exogenous screening.
+#'
+#' Production R computes from the encoded project object and its `raw_data`
+#' matrix; Pascal and supplied DIGRAM output files are external validation
+#' inputs only.
+#'
+#' Source trace: `source/PAS_skunits/SKbias13.pas::StepwiseScoreScreening`.
+#' @param project A parsed DIGRAM project from [read_digram_project()].
+#' @param score_cap Highest printed score category for the score/exogenous
+#'   screening table. Source `maxdim - 1` gives `56` for this source tree.
+#' @param exact Logical; when `TRUE`, run the source-shaped Monte Carlo exact
+#'   table branch used by `SKexa2`/`SKrandom.GENTAB1`.
+#' @param nsim Number of random tables for exact p-values.
+#' @param seed Seed for the R implementation of the source Monte Carlo branch.
+#' @return A `gRm_exo_select_values` object.
+#' @examples
+#' \dontrun{
+#' project <- read_digram_project("path/to/DIGRAM")
+#' values <- exo_select_values(project)
+#' values$screen
+#' }
+#' @param repeated Whether to use repeated sequential simulation.
+#' @param exact_state Internal `exact_state` value used by this helper.
+#' @keywords internal
+#' @noRd
 exo_select_values <- function(project,
                               score_cap = gRm_source_score_cap(),
                               exact = FALSE,
@@ -124,13 +137,16 @@ exo_select_values <- function(project,
   )
 }
 
-# Missing-exogenous diagnostics for complete item cases
-#
-# @param project Parsed project.
-# @param scores Raw scores for all records.
-# @param complete_item Complete-item mask.
-# @param valid_exo Valid exogenous-value matrix.
-# @return Data frame of source-shaped missing diagnostics.
+#' Missing-exogenous diagnostics for complete item cases
+#'
+#' Source trace: `source/PAS_skunits/SKbias13.pas::StepwiseScoreScreening`.
+#' @param project Parsed project.
+#' @param scores Raw scores for all records.
+#' @param complete_item Complete-item mask.
+#' @param valid_exo Valid exogenous-value matrix.
+#' @return Data frame of source-shaped missing diagnostics.
+#' @keywords internal
+#' @noRd
 exo_select_missing_diagnostics <- function(project, scores, complete_item, valid_exo) {
   backgrounds <- project$backgrounds
   rows <- vector("list", nrow(backgrounds))
@@ -173,14 +189,18 @@ exo_select_missing_diagnostics <- function(project, scores, complete_item, valid
   do.call(rbind, rows)
 }
 
-# Score distribution for exo-selection item-score cases
-#
-# @param scores Raw scores for all records.
-# @param known Logical mask for records with source-known item scores.
-# @param min_score Lower score limit.
-# @param max_score Upper score limit.
-# @param largest_possible_score Largest source-possible score.
-# @return Distribution and summary list.
+#' Score distribution for exo-selection item-score cases
+#'
+#' Source trace: `source/PAS_skunits/SKbias13.pas::StepwiseScoreScreening`.
+#' @param scores Raw scores for all records.
+#' @param known Logical mask for records with source-known item scores.
+#' @param min_score Lower score limit.
+#' @param max_score Upper score limit.
+#' @param largest_possible_score Largest source-possible score.
+#' @return Distribution and summary list.
+#' @param missing_known Internal `missing_known` value used by this helper.
+#' @keywords internal
+#' @noRd
 exo_select_score_distribution <- function(scores,
                                           known = rep(TRUE, length(scores)),
                                           missing_known = known,
@@ -280,13 +300,21 @@ exo_select_score_distribution <- function(scores,
   )
 }
 
-# Source score/exogenous screening values
-#
-# @param project Parsed project.
-# @param scores Raw scores.
-# @param complete_item Complete-item mask.
-# @param score_cap Maximum score category after source collapsing.
-# @return Data frame of screening rows.
+#' Source score/exogenous screening values
+#'
+#' Source trace: `source/PAS_skunits/SKbias13.pas::StepwiseScoreScreening`.
+#' @param project Parsed project.
+#' @param scores Raw scores.
+#' @param complete_item Complete-item mask.
+#' @param score_cap Maximum score category after source collapsing.
+#' @return Data frame of screening rows.
+#' @param exact Whether to use the exact Monte Carlo branch.
+#' @param repeated Whether to use repeated sequential simulation.
+#' @param nsim Requested simulation count.
+#' @param seed Random-stream seed.
+#' @param exact_state Internal `exact_state` value used by this helper.
+#' @keywords internal
+#' @noRd
 exo_select_score_screen <- function(project,
                                     scores,
                                     complete_item,
@@ -418,6 +446,25 @@ exo_select_score_screen <- function(project,
   screen
 }
 
+#' Internal exo select stepwise score screening helper
+#'
+#' Supports the exo select values implementation while preserving its internal contract.
+#' Source trace: `source/PAS_skunits/SKbias13.pas::StepwiseScoreScreening`.
+#' @param score_category Internal `score_category` value used by this helper.
+#' @param score_valid Internal `score_valid` value used by this helper.
+#' @param score_in_range Internal `score_in_range` value used by this helper.
+#' @param exo_values Internal `exo_values` value used by this helper.
+#' @param backgrounds Internal `backgrounds` value used by this helper.
+#' @param marginal_p_min Internal `marginal_p_min` value used by this helper.
+#' @param score_cap Internal `score_cap` value used by this helper.
+#' @param exact Whether to use the exact Monte Carlo branch.
+#' @param repeated Whether to use repeated sequential simulation.
+#' @param nsim Requested simulation count.
+#' @param seed Random-stream seed.
+#' @param exact_state Internal `exact_state` value used by this helper.
+#' @return The internal `exo_select_stepwise_score_screening()` computation result.
+#' @keywords internal
+#' @noRd
 exo_select_stepwise_score_screening <- function(score_category,
                                                 score_valid,
                                                 score_in_range,
@@ -518,6 +565,15 @@ exo_select_stepwise_score_screening <- function(score_category,
   list(rows = rows_df, iterations = iterations, remaining = current)
 }
 
+#' Internal exo select repeated count cutoff helper
+#'
+#' Supports the exo select values implementation while preserving its internal contract.
+#' Source trace: `source/PAS_skunits/SKbias13.pas::StepwiseScoreScreening`.
+#' @param project Encoded gRm project.
+#' @param exact_state Internal `exact_state` value used by this helper.
+#' @return The internal `exo_select_repeated_count_cutoff()` computation result.
+#' @keywords internal
+#' @noRd
 exo_select_repeated_count_cutoff <- function(project, exact_state = NULL) {
   if (is.null(exact_state)) {
     exact_state <- gRm_exact_command_state("repeated")
@@ -525,10 +581,13 @@ exo_select_repeated_count_cutoff <- function(project, exact_state = NULL) {
   as.integer(exact_state$seq_limit[[1L]])
 }
 
-# Source Benjamini-Hochberg thresholds for score/exogenous screening
-#
-# @param screen Screening rows from [exo_select_score_screen()].
-# @return List with FDR 0.05 and 0.01 source critical p-values.
+#' Source Benjamini-Hochberg thresholds for score/exogenous screening
+#'
+#' Source trace: `source/PAS_skunits/SKbias13.pas::StepwiseScoreScreening`.
+#' @param screen Screening rows from `exo_select_score_screen()`.
+#' @return List with FDR 0.05 and 0.01 source critical p-values.
+#' @keywords internal
+#' @noRd
 exo_select_bh_thresholds <- function(screen) {
   exact_available <- "exact_chi_p" %in% names(screen) &&
     all(!is.na(screen$exact_chi_p)) &&
@@ -544,13 +603,22 @@ exo_select_bh_thresholds <- function(screen) {
   )
 }
 
-# Source-shaped Monte Carlo exact score/exogenous test
-#
-# @param tab Observed score by exogenous table after source score collapsing.
-# @param observed_chi Observed chi-square statistic.
-# @param observed_gamma Observed RC gamma statistic.
-# @param nsim Number of random tables.
-# @return List of simulated exact p-values and effective simulation count.
+#' Source-shaped Monte Carlo exact score/exogenous test
+#'
+#' Source trace: `source/PAS_skunits/SKbias13.pas::StepwiseScoreScreening`.
+#' @param tab Observed score by exogenous table after source score collapsing.
+#' @param observed_chi Observed chi-square statistic.
+#' @param observed_gamma Observed RC gamma statistic.
+#' @param nsim Number of random tables.
+#' @return List of simulated exact p-values and effective simulation count.
+#' @param random_draw Internal `random_draw` value used by this helper.
+#' @param seed Random-stream seed.
+#' @param sequential Internal `sequential` value used by this helper.
+#' @param sequential_count_cutoff Internal `sequential_count_cutoff` value used by this helper.
+#' @param seq_p0 Internal `seq_p0` value used by this helper.
+#' @param seq_boundary Internal `seq_boundary` value used by this helper.
+#' @keywords internal
+#' @noRd
 exo_select_exact_test <- function(tab,
                                   observed_chi,
                                   observed_gamma,
@@ -626,18 +694,30 @@ exo_select_exact_test <- function(tab,
   )
 }
 
-# Generate one conditional random table with fixed margins
-#
-# This is the R port of `source/PAS_scd/SKrandom.pas::GENTAB1`. It fills the
-# free cells sequentially using the source hypergeometric probability ordering
-# around the rounded expected cell and preserves the observed margins.
-#
-# @param tab Observed two-way table.
-# @return Generated two-way table with the same margins.
+#' Generate one conditional random table with fixed margins
+#'
+#' This is the R port of `source/PAS_scd/SKrandom.pas::GENTAB1`. It fills the
+#' free cells sequentially using the source hypergeometric probability ordering
+#' around the rounded expected cell and preserves the observed margins.
+#'
+#' Source trace: `source/PAS_skunits/SKbias13.pas::StepwiseScoreScreening`.
+#' @param tab Observed two-way table.
+#' @return Generated two-way table with the same margins.
+#' @param random_draw Internal `random_draw` value used by this helper.
+#' @keywords internal
+#' @noRd
 exo_select_gentab1 <- function(tab, random_draw = NULL) {
   exo_select_gentab1_prepared(exo_select_prepare_gentab1(tab), random_draw = random_draw)
 }
 
+#' Internal exo select prepare gentab1 helper
+#'
+#' Supports the exo select values implementation while preserving its internal contract.
+#' Source trace: `source/PAS_skunits/SKbias13.pas::StepwiseScoreScreening`.
+#' @param tab Internal `tab` value used by this helper.
+#' @return The internal `exo_select_prepare_gentab1()` computation result.
+#' @keywords internal
+#' @noRd
 exo_select_prepare_gentab1 <- function(tab) {
   tab <- as.matrix(tab)
   row_total <- as.integer(rowSums(tab))
@@ -662,6 +742,15 @@ exo_select_prepare_gentab1 <- function(tab) {
   )
 }
 
+#' Internal exo select gentab1 prepared helper
+#'
+#' Supports the exo select values implementation while preserving its internal contract.
+#' Source trace: `source/PAS_skunits/SKbias13.pas::StepwiseScoreScreening`.
+#' @param prepared Internal `prepared` value used by this helper.
+#' @param random_draw Internal `random_draw` value used by this helper.
+#' @return The internal `exo_select_gentab1_prepared()` computation result.
+#' @keywords internal
+#' @noRd
 exo_select_gentab1_prepared <- function(prepared, random_draw = NULL) {
   cdim <- prepared$cdim
   rdim <- prepared$rdim
@@ -760,11 +849,14 @@ exo_select_gentab1_prepared <- function(prepared, random_draw = NULL) {
   newtab
 }
 
-# Wilson-style 99 percent source confidence limits
-#
-# @param n Number of simulations.
-# @param p Simulated p-value.
-# @return Numeric vector with lower and upper limits.
+#' Wilson-style 99 percent source confidence limits
+#'
+#' Source trace: `source/PAS_skunits/SKbias13.pas::StepwiseScoreScreening`.
+#' @param n Number of simulations.
+#' @param p Simulated p-value.
+#' @return Numeric vector with lower and upper limits.
+#' @keywords internal
+#' @noRd
 source_conflimit99 <- function(n, p) {
   z <- 2.5758
   zsquare <- z * z
@@ -776,10 +868,13 @@ source_conflimit99 <- function(n, p) {
   c(low = (a - b) / c_value, high = (a + b) / c_value)
 }
 
-# Source gamma test for a score/exogenous table
-#
-# @param tab Contingency table.
-# @return List with gamma and one-sided p-value.
+#' Source gamma test for a score/exogenous table
+#'
+#' Source trace: `source/PAS_skunits/SKbias13.pas::StepwiseScoreScreening`.
+#' @param tab Contingency table.
+#' @return List with gamma and one-sided p-value.
+#' @keywords internal
+#' @noRd
 exo_select_gamma_test <- function(tab) {
   tab <- as.matrix(tab)
   cells <- gamma_cell_tables(tab)
@@ -806,15 +901,18 @@ exo_select_gamma_test <- function(tab) {
   list(gamma = gamma, p_one_sided = p_one)
 }
 
-# Source significance marker
-#
-# @param p_value P-value used for the marker.
-# @param statistic Statistic sign source.
-# @param bh05 FDR 0.05 threshold.
-# @param bh01 FDR 0.01 threshold.
-# @param positive Direction for gamma markers.
-# @param chi Whether to use chi-square marker style.
-# @return Marker text.
+#' Source significance marker
+#'
+#' Source trace: `source/PAS_skunits/SKbias13.pas::StepwiseScoreScreening`.
+#' @param p_value P-value used for the marker.
+#' @param statistic Statistic sign source.
+#' @param bh05 FDR 0.05 threshold.
+#' @param bh01 FDR 0.01 threshold.
+#' @param positive Direction for gamma markers.
+#' @param chi Whether to use chi-square marker style.
+#' @return Marker text.
+#' @keywords internal
+#' @noRd
 exo_select_marker <- function(p_value, statistic, bh05, bh01, positive = TRUE, chi = FALSE) {
   if (p_value <= bh01) {
     if (chi) return("xx")

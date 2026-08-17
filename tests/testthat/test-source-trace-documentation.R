@@ -103,18 +103,20 @@ test_that("included DIF, included LD, and screen J helpers carry local source tr
       "Find_new_IJparameters",
       "Adjust_IJparameters"
     ),
-    "R/screen_j_values.R" = c(
-      "XYZ_bias_ANALYSE",
+    "R/screen_j_values.R" = "XYZ_bias_ANALYSE",
+    "R/screen_j_conditional.R" = c(
       "source/PAS_skunits/SKxyz1.PAS::MAKE_XYZ_TABLE",
-      "source/PAS_skunits/SKbigtab.pas::Transfer_BT_to_XYZ_TABLE",
-      "StepwiseScoreScreening"
+      "source/PAS_skunits/SKbigtab.pas::Transfer_BT_to_XYZ_TABLE"
     ),
-    "R/global_homogeneity_values.R" = c(
+    "R/screen_j_score_effects.R" = "StepwiseScoreScreening",
+    "R/global_homogeneity_ld.R" = c(
       "gllrm_uniform_summary_stats",
-      "source/PAS_skunits/skfit2.pas::Standardize_ETAB2_to_TAB2_margins",
-      "source/PAS_skunits/skfit2.pas::Standardize_tab4",
       "degrees-of-freedom floor",
       "requires source or validator evidence before changing"
+    ),
+    "R/global_homogeneity_dif.R" = c(
+      "source/PAS_skunits/skfit2.pas::Standardize_ETAB2_to_TAB2_margins",
+      "source/PAS_skunits/skfit2.pas::Standardize_tab4"
     )
   )
 
@@ -137,6 +139,6 @@ test_that("source bundle manifest counters document Pascal counter names", {
 
   expect_match(source_bundle_text, "Nincomplete", fixed = TRUE)
   expect_match(source_bundle_text, "Nuseless", fixed = TRUE)
-  expect_match(source_bundle_text, "nmissing_items = n_incomplete", fixed = TRUE)
-  expect_match(source_bundle_text, "nmissing_backgrounds = n_useless", fixed = TRUE)
+  expect_match(source_bundle_text, "nmissing_items = classified$n_incomplete", fixed = TRUE)
+  expect_match(source_bundle_text, "nmissing_backgrounds = classified$n_useless", fixed = TRUE)
 })

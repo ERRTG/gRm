@@ -65,7 +65,7 @@ test_that("internal null-coalescing helper is package-owned and not exported", {
   expect_false("%||%" %in% getNamespaceExports("gRm"))
 })
 
-test_that("installed help pages are limited to the public API surface", {
+test_that("public help topics coexist with explicitly internal documentation", {
   root <- source_package_root()
   skip_if(is.na(root), "source-tree help files are not installed")
 
@@ -94,7 +94,52 @@ test_that("installed help pages are limited to the public API surface", {
     "update.gRm_model"
   )
 
-  expect_setequal(help_pages, expected)
+  expect_true(all(expected %in% help_pages))
+  internal_pages <- setdiff(help_pages, expected)
+  for (page in internal_pages) {
+    rd <- readLines(file.path(man_dir, paste0(page, ".Rd")), warn = FALSE)
+    expect_true(
+      any(grepl("\\\\keyword\\{internal\\}", rd)),
+      info = paste(page, "must be marked as internal")
+    )
+  }
+})
+
+test_that("every registered S3 method has an exact Rd alias", {
+  root <- source_package_root()
+  skip_if(is.na(root), "source-tree help files are not installed")
+
+  namespace <- readLines(file.path(root, "NAMESPACE"), warn = FALSE)
+  registrations <- grep("^S3method\\(", namespace, value = TRUE)
+  registered_methods <- sub(
+    "^S3method\\(([^,]+),([^\\)]+)\\).*$",
+    "\\1.\\2",
+    registrations
+  )
+  rd <- unlist(lapply(
+    list.files(file.path(root, "man"), pattern = "[.]Rd$", full.names = TRUE),
+    readLines,
+    warn = FALSE
+  ), use.names = FALSE)
+  aliases <- sub("^\\\\alias\\{([^}]+)\\}$", "\\1", grep("^\\\\alias\\{", rd, value = TRUE))
+
+  expect_setequal(intersect(registered_methods, aliases), registered_methods)
+})
+
+test_that("contributor object and internal model-term contracts are generated", {
+  root <- source_package_root()
+  skip_if(is.na(root), "source-tree help files are not installed")
+
+  for (topic in c("gRm-object-shapes.Rd", "gRm-model-terms.Rd")) {
+    path <- file.path(root, "man", topic)
+    expect_true(file.exists(path), info = topic)
+    if (file.exists(path)) {
+      expect_true(
+        any(grepl("\\\\keyword\\{internal\\}", readLines(path, warn = FALSE))),
+        info = topic
+      )
+    }
+  }
 })
 
 test_that("workflow objects and namespace use only current public class names", {

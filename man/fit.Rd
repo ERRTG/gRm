@@ -3,6 +3,9 @@
 \name{fit}
 \alias{fit}
 \alias{fit.gRm_model}
+\alias{fit.gRm_analysis}
+\alias{fit.gRm_screen}
+\alias{fit.default}
 \title{Fit a DIGRAM model}
 \usage{
 fit(object, ...)
@@ -19,8 +22,8 @@ arguments are currently supported.}
 \item{max_step}{Single positive integer-like maximum number of fitting
 iterations.}
 
-\item{max_delta}{Single positive finite convergence tolerance for the maximum
-absolute parameter update.}
+\item{max_delta}{Single positive finite strict convergence tolerance for the
+maximum absolute observed-versus-fitted sufficient-count discrepancy.}
 }
 \value{
 A \code{gRm_fit} object containing the fitted model, convergence

@@ -111,7 +111,22 @@ test_that("superseded non-context candidate diagnostic helpers are not retained"
     "candidate_ld_loglike",
     "candidate_dif_counts",
     "calculate_candidate_dif_expected",
-    "candidate_dif_loglike"
+    "candidate_dif_loglike",
+    "build_candidate_ld_context",
+    "candidate_ld_counts_context",
+    "convolve_components_except",
+    "build_candidate_ld_components",
+    "calculate_candidate_ld_expected_context",
+    "fit_ld_candidate",
+    "candidate_ld_loglike_context",
+    "adjust_ld_gamma_source_reference",
+    "build_candidate_dif_context",
+    "adjust_item_gammas_source_scale_context",
+    "build_candidate_dif_score_gamma",
+    "candidate_dif_counts_context",
+    "calculate_candidate_dif_expected_context",
+    "fit_dif_candidate",
+    "candidate_dif_loglike_context"
   )
 
   expect_false(any(vapply(

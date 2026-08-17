@@ -1,18 +1,21 @@
-# Derive source score-distribution and score-group values
-#
-# This file contains the source item-selection score summary used by automatic
-# score-cut construction and validator parity checks. The private
-# items_select_values() name is retained because validator code and source
-# traces still refer to the historical DIGRAM item-selection report path.
-#
-# @param project A parsed DIGRAM project from [read_digram_project()].
-# @return A `gRm_items_select_values` object.
-# @examples
-# \dontrun{
-# project <- read_digram_project("path/to/DIGRAM")
-# values <- items_select_values(project)
-# values$score_summary
-# }
+#' Derive source score-distribution and score-group values
+#'
+#' This file contains the source item-selection score summary used by automatic
+#' score-cut construction and validator parity checks. The private
+#' items_select_values() name is retained because validator code and source
+#' traces still refer to the historical DIGRAM item-selection report path.
+#'
+#' Source trace: `source/PAS_skunits/BIASvars.pas::ScoreGruppe`.
+#' @param project A parsed DIGRAM project from [read_digram_project()].
+#' @return A `gRm_items_select_values` object.
+#' @examples
+#' \dontrun{
+#' project <- read_digram_project("path/to/DIGRAM")
+#' values <- items_select_values(project)
+#' values$score_summary
+#' }
+#' @keywords internal
+#' @noRd
 items_select_values <- function(project) {
   items <- project$items
   raw <- project$raw_data
@@ -122,10 +125,13 @@ items_select_values <- function(project) {
   )
 }
 
-# Source default score cut for item selection
-#
-# @param score_counts Integer counts indexed by score plus one.
-# @return Integer cutpoint.
+#' Source default score cut for item selection
+#'
+#' Source trace: `source/PAS_skunits/BIASvars.pas::ScoreGruppe`.
+#' @param score_counts Integer counts indexed by score plus one.
+#' @return Integer cutpoint.
+#' @keywords internal
+#' @noRd
 item_selection_default_cut <- function(score_counts) {
   # Source trace: DGRexe.pas chooses a median-like cut by accumulating
   # non-extreme score counts and then moving one score down if the previous

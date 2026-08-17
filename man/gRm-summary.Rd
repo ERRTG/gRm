@@ -34,8 +34,8 @@ with multiple views. Available for \code{gRm_fit} and
 
 \item{x}{A \code{summary.gRm} object returned by \code{summary()}.}
 
-\item{...}{Reserved for S3 dispatch compatibility; ignored by all gRm
-summary and summary-print methods.}
+\item{...}{Reserved for S3 dispatch compatibility and must be empty for all
+gRm summary and summary-print methods.}
 }
 \value{
 A \code{summary.gRm} list. The requested tables are available both by

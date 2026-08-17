@@ -29,6 +29,11 @@ library(gRm)
 Load the data and inspect the names of the variables
 ```{r}
 SPADI <- read.csv(url("https://erda.ku.dk/public/archives/bacc560d26b01f7a65e77a9712a92e86/SPADI.csv"))
+# The source file contains one isolated P1 = 0 observation whose remaining
+# record state leaves that category outside the conditional estimation sample.
+# Remove that unusable category before inferring the vignette's item levels so
+# every declared category has source estimation support.
+SPADI <- SPADI[is.na(SPADI$P1) | SPADI$P1 > 0, , drop = FALSE]
 colnames(SPADI)
 ```
 
@@ -142,7 +147,9 @@ spadi_screen
 summary(spadi_screen)
 ```
 
-The result from the screening can automatically be turned into a GLLRM model by feeding it into the gllrm function. We can then see that the model includes the two LD terms and the two DIF terms identified in the screening.
+The result from the screening can automatically be turned into a GLLRM model
+by feeding it into `gllrm()`. The resulting model contains the LD and DIF terms
+identified by SCREEN J.
 
 ```{r}
 m_screen <- gllrm(spadi_screen)
@@ -155,20 +162,24 @@ A visualization of the model can be obtained by the plot function.
 plot(m_screen)
 ```
 
-As before we can fit the new GLLRM and do the test for global homogeneity. We here show how it can be done in a single pipeline.
+SCREEN J proposes candidate terms; the public fit boundary still verifies the
+source item-category and interaction-margin support before estimation. For
+these data the complete screened model has the required support and converges.
 
 ```{r}
-spadi_proj |> screen() |> gllrm() |> fit() |> global_homogeneity() |> summary()
+screen_fit <- fit(m_screen)
+screen_fit
 ```
 
-We see that the output now includes test for uniform local dependence and DIF.
+For comparison, we also demonstrate a smaller custom GLLRM chosen from the
+same candidate families.
 
 # Setting up a general GLLRM
 
 A custom GLLRM can also be defined by giving the specific LDs and DIFs as one-sided formula objects.
 
 ```{r}
-m_gllrm <- gllrm(spadi_proj, ld =~ P3:P4 + P1:P3, dif =~ P1:over60 + P4:over60)
+m_gllrm <- gllrm(spadi_proj, ld = ~ P3:P4, dif = ~ P4:over60)
 ```
 
 We can do a direct likelihood ratio test of the GLLRM against the Rach model
@@ -178,19 +189,26 @@ fit_gllrm <- fit(m_gllrm)
 anova(fit_rasch, fit_gllrm)
 ```
 
+Global homogeneity for the fitted GLLRM includes the applicable uniform local
+dependence and DIF sections.
+
+```{r}
+summary(global_homogeneity(fit_gllrm))
+```
+
 
 # ARI plot
 
 The package also includes ARI plots
 
 ```{r, fig.width=6, fig.height=4, out.width="100%", dpi=192}
-m_gllrm |> fit() |> ari() |> plot()
+fit_gllrm |> ari() |> plot()
 ```
 
 # M2 
 
 ```{r}
-m2_fit <- m_gllrm |> fit() |> m2()
+m2_fit <- m2(fit_gllrm)
 m2_fit
 ```
 
@@ -202,7 +220,7 @@ summary(m2_fit)
 # M3
 
 ```{r}
-m3_fit <- m_gllrm |> fit() |> m3()
+m3_fit <- m3(fit_gllrm)
 m3_fit
 ```
 

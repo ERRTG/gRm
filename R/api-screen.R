@@ -7,7 +7,7 @@
 #' \method{screen}{gRm_analysis}(project,
 #'   inference = c("asymptotic", "exact", "repeated"), nsim = 1000L,
 #'   seed = 9L, critlevel = NULL, risk = NULL, ...)
-#' @aliases screen.gRm_analysis
+#' @aliases screen.gRm_analysis screen.gRm_project screen.default
 #' @param project A `gRm_analysis` object from [gRm()] or
 #'   [read_digram_project()], or a source-shaped `gRm_project`.
 #' @param inference Inference mode. `"asymptotic"` maps to DIGRAM command 17,
@@ -124,6 +124,8 @@ screen.gRm_analysis <- function(project,
   out <- list(
     analysis = analysis,
     project = analysis$project,
+    analysis_fingerprint = analysis$analysis_fingerprint,
+    likelihood_sample = analysis$likelihood_sample,
     values = values,
     inference = inference,
     exact_state = exact_state,
@@ -166,6 +168,7 @@ screen.default <- function(project, ...) {
 
 #' @export
 print.gRm_screen <- function(x, ...) {
+  reject_public_dots(...)
   tables <- public_screen_summary_tables(x)
   bh <- x$values$bh %||% list()
   exact_state <- x$exact_state %||% list()

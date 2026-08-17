@@ -1,3 +1,5 @@
 ^src/.*[.](o|so|dll|dylib)$
 ^src/symbols[.]rds$
 ^[^/]*[.]Rcheck$
+^ALGORITHMS[.]md$
+^CHANGELOG[.]md$

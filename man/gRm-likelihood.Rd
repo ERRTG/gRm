@@ -14,7 +14,7 @@
 
 \item{...}{For \code{anova.gRm_fit()}, additional \code{gRm_fit} objects fitted to the
 same gRm analysis. For \code{logLik.gRm_fit()}, reserved for S3 compatibility
-and ignored.}
+and must be empty.}
 
 \item{test}{Test column to include in the model-comparison table. \code{"Chisq"}
 and \code{"LRT"} request the standard likelihood-ratio chi-square p-value
@@ -50,19 +50,15 @@ degrees-of-freedom increase and non-negative likelihood-ratio statistic.
 Reversed or otherwise invalid comparison rows keep the signed diagnostic
 \code{Df} and \code{Chisq} values, but \verb{Pr(>Chisq)} is set to \code{NA}.
 
-The comparison assumes that supplied models are nested and fitted to the same
-gRm analysis. The method checks the available analysis identity and
-likelihood sample-size metadata, but it does not prove mathematical
-nestedness.
+The supplied models must have nested LD/DIF term sets and must be fitted to
+exactly the same analysis and likelihood rows. The comparison checks the
+deterministic analysis fingerprint, its canonical payload, the exact
+likelihood row mask, and term-set inclusion before calculating a table.
 }
 \examples{
-data <- data.frame(
-  ID = seq_len(12L),
-  I1 = c(1L, 1L, 2L, 2L, 3L, 3L, 1L, 2L, 3L, 1L, 2L, 3L),
-  I2 = c(1L, 2L, 1L, 3L, 2L, 3L, 3L, 1L, 2L, 2L, 3L, 1L),
-  I3 = c(2L, 1L, 3L, 1L, 2L, 3L, 2L, 1L, 3L, 3L, 2L, 1L),
-  site = c(1L, 1L, 1L, 2L, 2L, 2L, 1L, 1L, 2L, 2L, 1L, 2L)
-)
+data <- expand.grid(I1 = 1:3, I2 = 1:3, I3 = 1:3)
+data$ID <- seq_len(nrow(data))
+data$site <- rep(1:3, length.out = nrow(data))
 analysis <- gRm(
   data,
   items = c("I1", "I2", "I3"),

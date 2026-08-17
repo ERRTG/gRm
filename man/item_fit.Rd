@@ -13,13 +13,14 @@ item_fit(fit, which = c("tests", "items"), include_extended = TRUE, ...)
 inferential item fit diagnostics and is the default. \code{"items"} returns the
 extended per-item outfit/infit diagnostic decomposition.}
 
-\item{include_extended}{Whether to compute extended item fit detail tables.
-When \code{FALSE}, \code{item_fit(fit, which = "items")} returns an empty data
+\item{include_extended}{Single non-missing logical value controlling whether
+to compute extended item fit detail tables. When \code{FALSE},
+\code{item_fit(fit, which = "items")} returns an empty data
 frame with the expected item-summary columns because the per-item extended
 diagnostic summaries were not computed. The compact \code{which = "tests"}
 table remains available.}
 
-\item{...}{Reserved for S3 dispatch compatibility; ignored.}
+\item{...}{Reserved for S3 dispatch compatibility and must be empty.}
 }
 \value{
 A data-frame-like \code{gRm_item_fit} table. The unchanged

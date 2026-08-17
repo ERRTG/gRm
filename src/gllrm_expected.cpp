@@ -1,6 +1,8 @@
 #include <algorithm>
+#include <climits>
 #include <cmath>
 #include <cstring>
+#include <set>
 #include <stdexcept>
 #include <string>
 #include <unordered_map>
@@ -57,8 +59,9 @@ struct NativeInput {
   std::vector<int> dif_backgrounds;
 };
 
-inline int index2(int row, int col, int nrow) {
-  return row + nrow * col;
+inline R_xlen_t index2(int row, int col, int nrow) {
+  return static_cast<R_xlen_t>(row) +
+    static_cast<R_xlen_t>(nrow) * static_cast<R_xlen_t>(col);
 }
 
 SEXP list_element(SEXP list, const char *name) {
@@ -89,6 +92,10 @@ int as_single_int(SEXP value, const char *name) {
   if (TYPEOF(value) == REALSXP) {
     double out = REAL(value)[0];
     if (!R_FINITE(out)) throw GllrmExpectedError(std::string("`") + name + "` must be finite.");
+    if (out != std::floor(out) || out < static_cast<double>(INT_MIN) ||
+        out > static_cast<double>(INT_MAX)) {
+      throw GllrmExpectedError(std::string("`") + name + "` must be integer-like.");
+    }
     return static_cast<int>(out);
   }
   throw GllrmExpectedError(std::string("`") + name + "` must be numeric.");
@@ -109,6 +116,10 @@ std::vector<int> integer_vector(SEXP value, const char *name) {
     for (R_xlen_t i = 0; i < n; ++i) {
       double cell = REAL(value)[i];
       if (!R_FINITE(cell)) throw GllrmExpectedError(std::string("`") + name + "` must be finite.");
+      if (cell != std::floor(cell) || cell < static_cast<double>(INT_MIN) ||
+          cell > static_cast<double>(INT_MAX)) {
+        throw GllrmExpectedError(std::string("`") + name + "` must contain integer-like values.");
+      }
       out[static_cast<std::size_t>(i)] = static_cast<int>(cell);
     }
     return out;
@@ -152,7 +163,8 @@ std::vector<SEXP> list_values(SEXP value, const char *name) {
 
 void require_matrix(SEXP value, const char *name) {
   SEXP dim = Rf_getAttrib(value, R_DimSymbol);
-  if (Rf_length(dim) != 2) {
+  if (TYPEOF(dim) != INTSXP || Rf_length(dim) != 2 ||
+      INTEGER(dim)[0] < 0 || INTEGER(dim)[1] < 0) {
     throw GllrmExpectedError(std::string("`") + name + "` must be a matrix.");
   }
 }
@@ -184,7 +196,12 @@ int matrix_ncols(SEXP matrix) {
 }
 
 int integer_matrix_at(SEXP matrix, int row, int col, const char *name) {
-  R_xlen_t idx = static_cast<R_xlen_t>(index2(row, col, matrix_nrows(matrix)));
+  int nrow = matrix_nrows(matrix);
+  int ncol = matrix_ncols(matrix);
+  if (row < 0 || row >= nrow || col < 0 || col >= ncol) {
+    throw GllrmExpectedError(std::string("`") + name + "` index is out of range.");
+  }
+  R_xlen_t idx = index2(row, col, nrow);
   if (TYPEOF(matrix) == INTSXP) {
     int out = INTEGER(matrix)[idx];
     if (out == NA_INTEGER) throw GllrmExpectedError(std::string("`") + name + "` must not contain NA.");
@@ -193,24 +210,52 @@ int integer_matrix_at(SEXP matrix, int row, int col, const char *name) {
   if (TYPEOF(matrix) == REALSXP) {
     double out = REAL(matrix)[idx];
     if (!R_FINITE(out)) throw GllrmExpectedError(std::string("`") + name + "` must be finite.");
+    if (out != std::floor(out) || out < static_cast<double>(INT_MIN) ||
+        out > static_cast<double>(INT_MAX)) {
+      throw GllrmExpectedError(std::string("`") + name + "` must contain integer-like values.");
+    }
     return static_cast<int>(out);
   }
   throw GllrmExpectedError(std::string("`") + name + "` must be numeric.");
 }
 
-double numeric_matrix_at(SEXP matrix, int row, int col, const char *name) {
-  R_xlen_t idx = static_cast<R_xlen_t>(index2(row, col, matrix_nrows(matrix)));
-  if (TYPEOF(matrix) == REALSXP) {
-    double out = REAL(matrix)[idx];
-    if (!R_FINITE(out)) throw GllrmExpectedError(std::string("`") + name + "` must be finite.");
-    return out;
+inline int integer_matrix_at_unchecked(SEXP matrix, int row, int col) {
+  int nrow = INTEGER(Rf_getAttrib(matrix, R_DimSymbol))[0];
+  R_xlen_t idx = index2(row, col, nrow);
+  return TYPEOF(matrix) == INTSXP
+    ? INTEGER(matrix)[idx]
+    : static_cast<int>(REAL(matrix)[idx]);
+}
+
+inline double numeric_matrix_at_unchecked(SEXP matrix, int row, int col) {
+  int nrow = INTEGER(Rf_getAttrib(matrix, R_DimSymbol))[0];
+  return REAL(matrix)[index2(row, col, nrow)];
+}
+
+void require_integer_like_matrix(SEXP value, const char *name) {
+  require_matrix(value, name);
+  if (TYPEOF(value) != INTSXP && TYPEOF(value) != REALSXP) {
+    throw GllrmExpectedError(std::string("`") + name + "` must be numeric.");
   }
-  if (TYPEOF(matrix) == INTSXP) {
-    int out = INTEGER(matrix)[idx];
-    if (out == NA_INTEGER) throw GllrmExpectedError(std::string("`") + name + "` must not contain NA.");
-    return static_cast<double>(out);
+  int nrow = matrix_nrows(value);
+  int ncol = matrix_ncols(value);
+  for (int col = 0; col < ncol; ++col) {
+    for (int row = 0; row < nrow; ++row) {
+      (void) integer_matrix_at(value, row, col, name);
+    }
   }
-  throw GllrmExpectedError(std::string("`") + name + "` must be numeric.");
+}
+
+void require_finite_nonnegative_matrix(SEXP value, const char *name) {
+  require_numeric_matrix(value, name);
+  for (R_xlen_t index = 0; index < XLENGTH(value); ++index) {
+    double cell = REAL(value)[index];
+    if (!R_FINITE(cell) || cell < 0.0) {
+      throw GllrmExpectedError(
+        std::string("`") + name + "` must contain non-negative finite values."
+      );
+    }
+  }
 }
 
 NativeInput parse_native_input(SEXP native_input) {
@@ -283,6 +328,258 @@ NativeInput parse_native_input(SEXP native_input) {
   return input;
 }
 
+// Validate the complete index graph once before any expected-margin loop.
+// Source trace: source/PAS_skunits/skbias12b.pas::Initialize_GLLRMinfo and
+// source/GLLRM_ESTIM.txt::CalculateBiasedGammaValues2 rely on globally bounded
+// Pascal arrays. The R native boundary must establish those same bounds
+// explicitly because malformed list metadata otherwise becomes unchecked
+// pointer arithmetic below.
+void validate_native_input_graph(const NativeInput &input,
+                                 SEXP item_gamma,
+                                 const std::vector<SEXP> &ld_parameters,
+                                 const std::vector<SEXP> &dif_parameters) {
+  const int n_items = static_cast<int>(input.item_raw_max.size());
+  if (n_items < 1) {
+    throw GllrmExpectedError("Native GLLRM input must contain at least one item.");
+  }
+  if (input.max_total_score < 0) {
+    throw GllrmExpectedError("`max_total_score` must not be negative.");
+  }
+
+  require_finite_nonnegative_matrix(item_gamma, "item_gamma");
+  if (matrix_nrows(item_gamma) != n_items) {
+    throw GllrmExpectedError("`item_gamma` must have one row per item.");
+  }
+  const int item_gamma_columns = matrix_ncols(item_gamma);
+  long long possible_total_score = 0;
+  for (int item = 0; item < n_items; ++item) {
+    int category_count = input.item_raw_max[static_cast<std::size_t>(item)];
+    if (category_count < 1 || category_count > item_gamma_columns) {
+      throw GllrmExpectedError(
+        "`item_raw_max` entries must be positive and within `item_gamma` columns."
+      );
+    }
+    possible_total_score += static_cast<long long>(category_count - 1);
+    if (possible_total_score > INT_MAX) {
+      throw GllrmExpectedError("The declared item score range is too large.");
+    }
+  }
+  if (input.max_total_score != static_cast<int>(possible_total_score)) {
+    throw GllrmExpectedError(
+      "`max_total_score` must equal the sum of declared item maximum scores."
+    );
+  }
+
+  if (input.components.empty()) {
+    throw GllrmExpectedError("Native GLLRM input must contain item components.");
+  }
+  std::vector<int> item_membership(static_cast<std::size_t>(n_items), 0);
+  std::vector<int> ld_reference_count(ld_parameters.size(), 0);
+  for (std::size_t component_index = 0;
+       component_index < input.components.size();
+       ++component_index) {
+    const NativeComponent &component = input.components[component_index];
+    if (component.items.empty()) {
+      throw GllrmExpectedError("GLLRM item components must not be empty.");
+    }
+    require_integer_like_matrix(component.config_matrix, "config_matrices");
+    require_integer_like_matrix(component.ld_local, "ld_local_matrices");
+
+    for (int item_one_based : component.items) {
+      if (item_one_based < 1 || item_one_based > n_items) {
+        throw GllrmExpectedError("`components` contains an out-of-range item index.");
+      }
+      int item = item_one_based - 1;
+      ++item_membership[static_cast<std::size_t>(item)];
+      if (item_membership[static_cast<std::size_t>(item)] > 1) {
+        throw GllrmExpectedError("Each item must occur in exactly one GLLRM component.");
+      }
+    }
+
+    int n_config = matrix_nrows(component.config_matrix);
+    for (int config = 0; config < n_config; ++config) {
+      int score_sum = 0;
+      for (int local = 0;
+           local < static_cast<int>(component.items.size());
+           ++local) {
+        int item = component.items[static_cast<std::size_t>(local)] - 1;
+        int score = integer_matrix_at(
+          component.config_matrix,
+          config,
+          local,
+          "config_matrices"
+        );
+        int category_count = input.item_raw_max[static_cast<std::size_t>(item)];
+        if (score < 0 || score >= category_count) {
+          throw GllrmExpectedError(
+            "`config_matrices` contains a score outside its item's category range."
+          );
+        }
+        score_sum += score;
+      }
+      int declared_score = component.config_scores[static_cast<std::size_t>(config)];
+      if (declared_score < 0 || declared_score > input.max_total_score) {
+        throw GllrmExpectedError("`config_scores` contains an out-of-range score.");
+      }
+      if (declared_score != score_sum) {
+        throw GllrmExpectedError(
+          "Each `config_scores` value must equal its configuration row sum."
+        );
+      }
+    }
+
+    int n_ld_rows = matrix_nrows(component.ld_local);
+    for (int row = 0; row < n_ld_rows; ++row) {
+      int ld_index = integer_matrix_at(
+        component.ld_local,
+        row,
+        0,
+        "ld_local_matrices"
+      );
+      int item1_pos = integer_matrix_at(
+        component.ld_local,
+        row,
+        1,
+        "ld_local_matrices"
+      );
+      int item2_pos = integer_matrix_at(
+        component.ld_local,
+        row,
+        2,
+        "ld_local_matrices"
+      );
+      if (ld_index < 1 || ld_index > static_cast<int>(ld_parameters.size())) {
+        throw GllrmExpectedError(
+          "`ld_local_matrices` contains an out-of-range LD parameter index."
+        );
+      }
+      if (item1_pos < 1 ||
+          item1_pos > static_cast<int>(component.items.size()) ||
+          item2_pos < 1 ||
+          item2_pos > static_cast<int>(component.items.size()) ||
+          item1_pos == item2_pos) {
+        throw GllrmExpectedError(
+          "`ld_local_matrices` contains invalid local item positions."
+        );
+      }
+      ++ld_reference_count[static_cast<std::size_t>(ld_index - 1)];
+      int item1 = component.items[static_cast<std::size_t>(item1_pos - 1)] - 1;
+      int item2 = component.items[static_cast<std::size_t>(item2_pos - 1)] - 1;
+      SEXP parameter = ld_parameters[static_cast<std::size_t>(ld_index - 1)];
+      if (matrix_nrows(parameter) != input.item_raw_max[static_cast<std::size_t>(item1)] ||
+          matrix_ncols(parameter) != input.item_raw_max[static_cast<std::size_t>(item2)]) {
+        throw GllrmExpectedError(
+          "Each LD parameter matrix must match its two item category counts."
+        );
+      }
+    }
+  }
+  if (std::any_of(item_membership.begin(), item_membership.end(), [](int count) {
+        return count != 1;
+      })) {
+    throw GllrmExpectedError("Each item must occur in exactly one GLLRM component.");
+  }
+
+  for (std::size_t index = 0; index < ld_parameters.size(); ++index) {
+    require_finite_nonnegative_matrix(ld_parameters[index], "ld_parameters");
+    if (ld_reference_count[index] != 1) {
+      throw GllrmExpectedError(
+        "Every LD parameter matrix must be referenced exactly once."
+      );
+    }
+  }
+
+  int background_count = matrix_ncols(input.group_backgrounds);
+  require_integer_like_matrix(input.group_backgrounds, "group_backgrounds");
+  for (int group = 0; group < matrix_nrows(input.group_backgrounds); ++group) {
+    for (int background = 0; background < background_count; ++background) {
+      if (integer_matrix_at(
+            input.group_backgrounds,
+            group,
+            background,
+            "group_backgrounds"
+          ) < 1) {
+        throw GllrmExpectedError(
+          "`group_backgrounds` values must be positive one-based categories."
+        );
+      }
+    }
+  }
+  for (std::size_t group = 0; group < input.group_scores.size(); ++group) {
+    int score = input.group_scores[group];
+    if (score < 0 || score > input.max_total_score) {
+      throw GllrmExpectedError("`group_scores` contains an out-of-range score.");
+    }
+    if (input.group_counts[group] < 0.0) {
+      throw GllrmExpectedError("`group_counts` must contain non-negative values.");
+    }
+  }
+
+  std::vector<int> dif_reference_count(dif_parameters.size(), 0);
+  std::set<int> referenced_backgrounds;
+  for (int item = 0; item < n_items; ++item) {
+    SEXP mappings = input.dif_by_item[static_cast<std::size_t>(item)];
+    require_integer_like_matrix(mappings, "dif_by_item");
+    int n_mapping = matrix_nrows(mappings);
+    for (int row = 0; row < n_mapping; ++row) {
+      int background = integer_matrix_at(mappings, row, 0, "dif_by_item");
+      int dif_index = integer_matrix_at(mappings, row, 1, "dif_by_item");
+      if (background < 1 || background > background_count) {
+        throw GllrmExpectedError(
+          "`dif_by_item` contains an out-of-range background index."
+        );
+      }
+      if (dif_index < 1 || dif_index > static_cast<int>(dif_parameters.size())) {
+        throw GllrmExpectedError(
+          "`dif_by_item` contains an out-of-range DIF parameter index."
+        );
+      }
+      referenced_backgrounds.insert(background);
+      ++dif_reference_count[static_cast<std::size_t>(dif_index - 1)];
+      SEXP parameter = dif_parameters[static_cast<std::size_t>(dif_index - 1)];
+      if (matrix_nrows(parameter) != input.item_raw_max[static_cast<std::size_t>(item)]) {
+        throw GllrmExpectedError(
+          "Each DIF parameter matrix must match its item category count."
+        );
+      }
+      int parameter_columns = matrix_ncols(parameter);
+      for (int group = 0; group < matrix_nrows(input.group_backgrounds); ++group) {
+        int category = integer_matrix_at(
+          input.group_backgrounds,
+          group,
+          background - 1,
+          "group_backgrounds"
+        );
+        if (category > parameter_columns) {
+          throw GllrmExpectedError(
+            "A `group_backgrounds` category exceeds its DIF parameter columns."
+          );
+        }
+      }
+    }
+  }
+  for (std::size_t index = 0; index < dif_parameters.size(); ++index) {
+    require_finite_nonnegative_matrix(dif_parameters[index], "dif_parameters");
+    if (dif_reference_count[index] != 1) {
+      throw GllrmExpectedError(
+        "Every DIF parameter matrix must be referenced exactly once."
+      );
+    }
+  }
+
+  std::set<int> declared_backgrounds;
+  for (int background : input.dif_backgrounds) {
+    if (!declared_backgrounds.insert(background).second) {
+      throw GllrmExpectedError("`dif_backgrounds` must not contain duplicates.");
+    }
+  }
+  if (declared_backgrounds != referenced_backgrounds) {
+    throw GllrmExpectedError(
+      "`dif_backgrounds` must exactly match backgrounds used by DIF mappings."
+    );
+  }
+}
+
 // Source trace: source/PAS_skunits/skbias22.pas::Gamma_calculation combines
 // component score polynomials by truncated convolution over total score.
 std::vector<double> convolve_truncated(const std::vector<double> &a,
@@ -311,7 +608,11 @@ std::string background_key(SEXP group_backgrounds,
   for (std::size_t i = 0; i < dif_backgrounds.size(); ++i) {
     if (i > 0) out.push_back('\r');
     int background = dif_backgrounds[i] - 1;
-    out += std::to_string(integer_matrix_at(group_backgrounds, group, background, "group_backgrounds"));
+    out += std::to_string(integer_matrix_at_unchecked(
+      group_backgrounds,
+      group,
+      background
+    ));
   }
   return out;
 }
@@ -334,41 +635,55 @@ ComponentCache build_component_cache(const NativeInput &input,
     double weight = 1.0;
     for (int local = 0; local < static_cast<int>(component.items.size()); ++local) {
       int item = component.items[static_cast<std::size_t>(local)] - 1;
-      int score = integer_matrix_at(component.config_matrix, config, local, "config_matrices");
+      int score = integer_matrix_at_unchecked(
+        component.config_matrix,
+        config,
+        local
+      );
       // Item score parameters are the base component weight in the source loop.
-      weight *= numeric_matrix_at(item_gamma, item, score, "item_gamma");
+      weight *= numeric_matrix_at_unchecked(item_gamma, item, score);
 
       SEXP dif_rows = input.dif_by_item[static_cast<std::size_t>(item)];
       int n_dif_rows = matrix_nrows(dif_rows);
       for (int dif_row = 0; dif_row < n_dif_rows; ++dif_row) {
-        int background = integer_matrix_at(dif_rows, dif_row, 0, "dif_by_item") - 1;
-        int dif_index = integer_matrix_at(dif_rows, dif_row, 1, "dif_by_item") - 1;
-        int background_value = integer_matrix_at(input.group_backgrounds, group_index, background, "group_backgrounds");
+        int background = integer_matrix_at_unchecked(dif_rows, dif_row, 0) - 1;
+        int dif_index = integer_matrix_at_unchecked(dif_rows, dif_row, 1) - 1;
+        int background_value = integer_matrix_at_unchecked(
+          input.group_backgrounds,
+          group_index,
+          background
+        );
         // IX/DIF parameters are selected by the relevant exogenous background
         // value for the current score/exogenous group.
-        weight *= numeric_matrix_at(
+        weight *= numeric_matrix_at_unchecked(
           dif_parameters[static_cast<std::size_t>(dif_index)],
           score,
-          background_value - 1,
-          "dif_parameters"
+          background_value - 1
         );
       }
     }
 
     int n_ld_rows = matrix_nrows(component.ld_local);
     for (int ld_row = 0; ld_row < n_ld_rows; ++ld_row) {
-      int ld_index = integer_matrix_at(component.ld_local, ld_row, 0, "ld_local_matrices") - 1;
-      int item1_pos = integer_matrix_at(component.ld_local, ld_row, 1, "ld_local_matrices") - 1;
-      int item2_pos = integer_matrix_at(component.ld_local, ld_row, 2, "ld_local_matrices") - 1;
-      int score1 = integer_matrix_at(component.config_matrix, config, item1_pos, "config_matrices");
-      int score2 = integer_matrix_at(component.config_matrix, config, item2_pos, "config_matrices");
+      int ld_index = integer_matrix_at_unchecked(component.ld_local, ld_row, 0) - 1;
+      int item1_pos = integer_matrix_at_unchecked(component.ld_local, ld_row, 1) - 1;
+      int item2_pos = integer_matrix_at_unchecked(component.ld_local, ld_row, 2) - 1;
+      int score1 = integer_matrix_at_unchecked(
+        component.config_matrix,
+        config,
+        item1_pos
+      );
+      int score2 = integer_matrix_at_unchecked(
+        component.config_matrix,
+        config,
+        item2_pos
+      );
       // IJ/LD parameters apply only to LD terms whose two items are inside the
       // current LD-connected component.
-      weight *= numeric_matrix_at(
+      weight *= numeric_matrix_at_unchecked(
         ld_parameters[static_cast<std::size_t>(ld_index)],
         score1,
-        score2,
-        "ld_parameters"
+        score2
       );
     }
 
@@ -476,15 +791,23 @@ void accumulate_group_expected(const NativeInput &input,
 
       for (int local = 0; local < static_cast<int>(component.items.size()); ++local) {
         int item = component.items[static_cast<std::size_t>(local)] - 1;
-        int score = integer_matrix_at(component.config_matrix, config, local, "config_matrices");
+        int score = integer_matrix_at_unchecked(
+          component.config_matrix,
+          config,
+          local
+        );
         REAL(expected_items)[index2(item, score, expected_item_rows)] += expected;
 
         SEXP dif_rows = input.dif_by_item[static_cast<std::size_t>(item)];
         int n_dif_rows = matrix_nrows(dif_rows);
         for (int dif_row = 0; dif_row < n_dif_rows; ++dif_row) {
-          int background = integer_matrix_at(dif_rows, dif_row, 0, "dif_by_item") - 1;
-          int dif_index = integer_matrix_at(dif_rows, dif_row, 1, "dif_by_item") - 1;
-          int background_value = integer_matrix_at(input.group_backgrounds, group_index, background, "group_backgrounds");
+          int background = integer_matrix_at_unchecked(dif_rows, dif_row, 0) - 1;
+          int dif_index = integer_matrix_at_unchecked(dif_rows, dif_row, 1) - 1;
+          int background_value = integer_matrix_at_unchecked(
+            input.group_backgrounds,
+            group_index,
+            background
+          );
           SEXP matrix = expected_dif[static_cast<std::size_t>(dif_index)];
           REAL(matrix)[index2(score, background_value - 1, matrix_nrows(matrix))] += expected;
         }
@@ -492,11 +815,19 @@ void accumulate_group_expected(const NativeInput &input,
 
       int n_ld_rows = matrix_nrows(component.ld_local);
       for (int ld_row = 0; ld_row < n_ld_rows; ++ld_row) {
-        int ld_index = integer_matrix_at(component.ld_local, ld_row, 0, "ld_local_matrices") - 1;
-        int item1_pos = integer_matrix_at(component.ld_local, ld_row, 1, "ld_local_matrices") - 1;
-        int item2_pos = integer_matrix_at(component.ld_local, ld_row, 2, "ld_local_matrices") - 1;
-        int score1 = integer_matrix_at(component.config_matrix, config, item1_pos, "config_matrices");
-        int score2 = integer_matrix_at(component.config_matrix, config, item2_pos, "config_matrices");
+        int ld_index = integer_matrix_at_unchecked(component.ld_local, ld_row, 0) - 1;
+        int item1_pos = integer_matrix_at_unchecked(component.ld_local, ld_row, 1) - 1;
+        int item2_pos = integer_matrix_at_unchecked(component.ld_local, ld_row, 2) - 1;
+        int score1 = integer_matrix_at_unchecked(
+          component.config_matrix,
+          config,
+          item1_pos
+        );
+        int score2 = integer_matrix_at_unchecked(
+          component.config_matrix,
+          config,
+          item2_pos
+        );
         SEXP matrix = expected_ld[static_cast<std::size_t>(ld_index)];
         REAL(matrix)[index2(score1, score2, matrix_nrows(matrix))] += expected;
       }
@@ -527,14 +858,17 @@ extern "C" SEXP gRm_gllrm_expected_margins(SEXP native_input,
   try {
     NativeInput input = parse_native_input(native_input);
     require_numeric_matrix(item_gamma, "item_gamma");
-    if (matrix_nrows(item_gamma) != static_cast<int>(input.item_raw_max.size())) {
-      throw GllrmExpectedError("`item_gamma` must have one row per item.");
-    }
     require_numeric_matrix_list(ld_parameters, "ld_parameters");
     require_numeric_matrix_list(dif_parameters, "dif_parameters");
 
     std::vector<SEXP> ld_parameter_values = list_values(ld_parameters, "ld_parameters");
     std::vector<SEXP> dif_parameter_values = list_values(dif_parameters, "dif_parameters");
+    validate_native_input_graph(
+      input,
+      item_gamma,
+      ld_parameter_values,
+      dif_parameter_values
+    );
 
     SEXP expected_items = PROTECT(Rf_duplicate(item_gamma));
     std::fill(REAL(expected_items), REAL(expected_items) + XLENGTH(expected_items), 0.0);

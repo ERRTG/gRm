@@ -220,7 +220,7 @@ test_that("conditional bias native and R fallback agree for exact and repeated",
   expect_equal(native_repeated$exact_nsim, r_repeated$exact_nsim)
 })
 
-test_that("item-pair exact helper matches current strata path when native routing is available", {
+test_that("item-pair native gate covers every statistic and deterministic state field", {
   item_matrix <- matrix(
     c(
       1L, 1L, 2L,
@@ -250,18 +250,7 @@ test_that("item-pair exact helper matches current strata path when native routin
   )
   partial_stats <- screen_j_opt_internal("screen_j_partial_gamma")(strata)
   partial_chi <- screen_j_opt_internal("screen_j_partial_chi")(strata)
-  exact <- screen_j_opt_internal("screen_j_exact_partial_gamma")(
-    strata,
-    partial_stats$gamma,
-    nsim = 41L,
-    seed = 9L,
-    observed_chi = partial_chi$stat,
-    sequential = FALSE,
-    seq_limit = 41L
-  )
-
   expect_true(is.finite(partial_stats$gamma))
-  expect_true(is.finite(exact))
 
   native_helper <- screen_j_opt_internal("screen_j_item_pair_conditional_exact_native", required = FALSE)
   if (is.null(native_helper)) {
@@ -284,11 +273,29 @@ test_that("item-pair exact helper matches current strata path when native routin
   if (is.null(native)) {
     skip("Native item-pair conditional exact wrapper is disabled.")
   }
+  reference <- screen_j_opt_internal("screen_j_item_pair_probe_reference")(
+    list(
+      x = item_matrix[, 1L],
+      y = item_matrix[, 2L],
+      x_dim = 3L,
+      y_dim = 2L,
+      condition_values = rest_score + 1L,
+      condition_dim = max(rest_score) + 1L,
+      valid = valid
+    ),
+    c(41L, 9L, 41L),
+    FALSE
+  )
+  fields <- c(
+    "chi_square", "df", "gamma", "ppq", "pmq", "s",
+    "p_chi_asymp", "p_gamma_asymp", "p_chi_exact", "p_gamma_exact",
+    "exact_nsim", "chi_exceed", "gamma_exceed", "draw_count", "final_seed"
+  )
 
+  expect_equal(native[fields], reference[fields], tolerance = 1e-12)
+  expect_equal(native$chi_square, partial_chi$stat, tolerance = 0)
   expect_equal(native$gamma, partial_stats$gamma, tolerance = 0)
-  expect_equal(native$ppq, partial_stats$ppq, tolerance = 0)
-  expect_equal(native$pmq, partial_stats$pmq, tolerance = 0)
-  expect_equal(native$p_gamma_exact, screen_j_opt_internal("screen_j_source_single")(exact), tolerance = 0)
+  expect_true(screen_j_opt_internal("screen_j_item_pair_native_source_faithful")())
 })
 
 test_that("native exact routing preserves selected SCREEN J model terms", {

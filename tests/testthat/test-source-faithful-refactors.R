@@ -33,7 +33,7 @@ test_that("item fit result assembly is shared", {
 })
 
 test_that("GLLRM global homogeneity uniform summaries share an accumulator", {
-  gh_text <- readLines(repo_path("gRm", "R", "global_homogeneity_values.R"), warn = FALSE)
+  gh_text <- readLines(repo_path("gRm", "R", "global_homogeneity_ld.R"), warn = FALSE)
 
   expect_true(any(grepl("^gllrm_uniform_summary_stats <- function", gh_text)))
   expect_true(exists("gllrm_uniform_summary_stats", mode = "function"))
@@ -67,6 +67,9 @@ test_that("base global homogeneity does not expose unsupported variance helpers"
 
   expect_false(exists("global_homogeneity_expected_score_variances", envir = namespace, inherits = FALSE))
   expect_false(exists("global_homogeneity_expected_summary_cpp", envir = namespace, inherits = FALSE))
+  expect_false(exists("global_homogeneity_score_item_n", envir = namespace, inherits = FALSE))
+  expect_false(exists("global_homogeneity_component_score_gamma", envir = namespace, inherits = FALSE))
+  expect_false(exists("global_homogeneity_full_score_gamma", envir = namespace, inherits = FALSE))
 })
 
 test_that("included DIF diagnostics do not expose orphan conditional-test helpers", {
@@ -154,21 +157,22 @@ test_that("screen J conditional bias calculations have source-faithful helper bo
   expect_true(all(vapply(slice_stats$slices, screen_j_source_informative_slice, logical(1L))))
 })
 
-test_that("SCREEN J native source-random aliases are documented", {
-  screen_j_text <- paste(readLines(repo_path("gRm", "R", "screen_j_values.R"), warn = FALSE), collapse = "\n")
+test_that("SCREEN J native source-random aliases are registered centrally", {
+  conditional_text <- paste(readLines(repo_path("gRm", "R", "screen_j_conditional.R"), warn = FALSE), collapse = "\n")
   native_text <- paste(readLines(repo_path("gRm", "src", "screen_j_exact.cpp"), warn = FALSE), collapse = "\n")
+  registration_text <- paste(readLines(repo_path("gRm", "src", "init.c"), warn = FALSE), collapse = "\n")
 
-  expect_match(screen_j_text, "screen_j_conditional_try_native", fixed = TRUE)
-  expect_match(screen_j_text, "screen_j_conditional_exact_results", fixed = TRUE)
-  expect_false(grepl("screen_j_source_random_draws_native", screen_j_text, fixed = TRUE))
-  expect_false(grepl("gRm_screen_j_source_random_draws", screen_j_text, fixed = TRUE))
-  expect_match(native_text, "compatibility alias", fixed = TRUE)
-  expect_match(native_text, "_gRm_screen_j_source_random_draws", fixed = TRUE)
+  expect_match(conditional_text, "screen_j_conditional_try_native", fixed = TRUE)
+  expect_match(conditional_text, "screen_j_conditional_exact_results", fixed = TRUE)
+  expect_false(grepl("screen_j_source_random_draws_native", conditional_text, fixed = TRUE))
+  expect_false(grepl("gRm_screen_j_source_random_draws", conditional_text, fixed = TRUE))
   expect_match(native_text, "gRm_screen_j_source_random_draws", fixed = TRUE)
+  expect_match(registration_text, '"gRm_screen_j_source_random_draws"', fixed = TRUE)
+  expect_match(registration_text, '"_gRm_screen_j_source_random_draws"', fixed = TRUE)
 })
 
 test_that("SCREEN J conditional native comments describe parity coverage", {
-  screen_j_text <- paste(readLines(repo_path("gRm", "R", "screen_j_values.R"), warn = FALSE), collapse = "\n")
+  screen_j_text <- paste(readLines(repo_path("gRm", "R", "screen_j_exact_native.R"), warn = FALSE), collapse = "\n")
 
   expect_false(grepl("keeps the gate closed until the C++ semantics are fixed", screen_j_text, fixed = TRUE))
   expect_match(screen_j_text, "retained as parity", fixed = TRUE)
@@ -209,7 +213,8 @@ test_that("top ICE diagnostic wrapper delegates source cancellation formatting",
   }
 
   expect_equal(count_fixed(item_parameter_native, "volatile long double z = source_ln"), 1L)
-  expect_match(item_parameter_native, "std::string field = top_ice_field_from_gamma(gamma_top_extended, k);", fixed = TRUE)
+  expect_match(item_parameter_native, "return TopIceDiagnostic{value, field9_3_long_double(value)};", fixed = TRUE)
+  expect_match(item_parameter_native, "TopIceDiagnostic diagnostic = top_ice_diagnostic(", fixed = TRUE)
 })
 
 test_that("score-cut API omits retired score-spec scaffolding", {
@@ -296,7 +301,7 @@ test_that("native GLLRM expected native boundary omits dead metadata fields", {
   expect_true(grepl("keys <- vapply(components, gllrm_component_key, character(1L))", gllrm_fit_text, fixed = TRUE))
   expect_false(grepl("component_keys =", gllrm_fit_text, fixed = TRUE))
   expect_false(grepl("int item_gamma_rows = matrix_nrows(item_gamma);", native_text, fixed = TRUE))
-  expect_true(grepl("matrix_nrows(item_gamma) != static_cast<int>(input.item_raw_max.size())", native_text, fixed = TRUE))
+  expect_true(grepl("matrix_nrows(item_gamma) != n_items", native_text, fixed = TRUE))
 })
 
 test_that("rbind_fill preserves existing column types", {

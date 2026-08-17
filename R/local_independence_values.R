@@ -1,15 +1,21 @@
-# Source Goodman-Kruskal gamma count totals
-#
-# @param tab Two-way integer table.
-# @return Gamma, PPQ, and PMQ totals.
+#' Source Goodman-Kruskal gamma count totals
+#'
+#' Source trace: `source/PAS_scd/DGRirtD.pas::MissingLD`.
+#' @param tab Two-way integer table.
+#' @return Gamma, PPQ, and PMQ totals.
+#' @keywords internal
+#' @noRd
 local_independence_source_gamma_counts <- function(tab) {
   source_rc_gamma_counts(tab)
 }
 
-# Calculate source-shaped local-independence WPG gamma
-#
-# @param project DIGRAM project.
-# @return Raw item matrix and source score vectors.
+#' Calculate source-shaped local-independence WPG gamma
+#'
+#' Source trace: `source/PAS_scd/DGRirtD.pas::MissingLD`.
+#' @param project DIGRAM project.
+#' @return Raw item matrix and source score vectors.
+#' @keywords internal
+#' @noRd
 build_local_independence_gamma_context <- function(project) {
   items <- project$items
   item_matrix <- matrix(0L, nrow = nrow(project$raw_data), ncol = nrow(items))
@@ -29,13 +35,16 @@ build_local_independence_gamma_context <- function(project) {
   )
 }
 
-# Calculate directed source-shaped local-independence gamma counts
-#
-# @param context Context from [build_local_independence_gamma_context()].
-# @param item1 One-based first item index.
-# @param item2 One-based second item index.
-# @param items Item metadata.
-# @return PPQ and PMQ totals.
+#' Calculate directed source-shaped local-independence gamma counts
+#'
+#' Source trace: `source/PAS_scd/DGRirtD.pas::MissingLD`.
+#' @param context Context from `build_local_independence_gamma_context()`.
+#' @param item1 One-based first item index.
+#' @param item2 One-based second item index.
+#' @param items Item metadata.
+#' @return PPQ and PMQ totals.
+#' @keywords internal
+#' @noRd
 local_independence_directed_gamma_counts <- function(context, item1, item2, items) {
   rest_score <- context$item_score - (context$item_matrix[, item1] - 1L)
   x <- context$item_matrix[, item1]
@@ -61,16 +70,19 @@ local_independence_directed_gamma_counts <- function(context, item1, item2, item
   list(ppq = ppq, pmq = pmq)
 }
 
-# Calculate source-shaped local-independence WPG gamma
-#
-# Ports the weighted partial gamma used by `DGRirtD.MissingLD`: the two
-# directed item-screening partial gamma count totals are pooled before PMQ/PPQ.
-#
-# @param project DIGRAM project.
-# @param context Context from [build_local_independence_gamma_context()].
-# @param item1 One-based first item index.
-# @param item2 One-based second item index.
-# @return Source weighted partial gamma.
+#' Calculate source-shaped local-independence WPG gamma
+#'
+#' Ports the weighted partial gamma used by `DGRirtD.MissingLD`: the two
+#' directed item-screening partial gamma count totals are pooled before PMQ/PPQ.
+#'
+#' Source trace: `source/PAS_scd/DGRirtD.pas::MissingLD`.
+#' @param project DIGRAM project.
+#' @param context Context from `build_local_independence_gamma_context()`.
+#' @param item1 One-based first item index.
+#' @param item2 One-based second item index.
+#' @return Source weighted partial gamma.
+#' @keywords internal
+#' @noRd
 local_independence_wpg_gamma <- function(project, context, item1, item2) {
   items <- project$items
   forward <- local_independence_directed_gamma_counts(context, item1, item2, items)
@@ -80,367 +92,18 @@ local_independence_wpg_gamma <- function(project, context, item1, item2) {
   if (ppq > 0) pmq / ppq else 0
 }
 
-# Build a fast source-shaped local-dependence estimation context
-#
-# @param bundle Source-shaped bundle.
-# @return Cached integer matrices and source bounds for included-LD fitting.
-# Source trace: source/PAS_scd/DGRirtD.pas::MissingLD prepares each candidate
-# local-dependence term before fitting the included IJ parameter. The R context
-# holds the same item and score margins needed by the candidate calculation.
-build_candidate_ld_context <- function(bundle) {
-  items <- bundle$model$items
-  data <- bundle$data
-
-  item_matrix <- matrix(0L, nrow = nrow(data), ncol = nrow(items))
-  for (item_index in seq_len(nrow(items))) {
-    item_matrix[, item_index] <- as.integer(data[[items$name[[item_index]]]])
-  }
-
-  item_raw_max <- as.integer(items$raw_max)
-  valid_rows <- which(data$status == 1L)
-  list(
-    n_items = nrow(items),
-    item_raw_max = item_raw_max,
-    max_total_score = as.integer(bundle$model$max_total_score),
-    item_score_columns = lapply(item_raw_max, seq_len),
-    item_score_values = lapply(item_raw_max, function(raw_max) seq.int(0L, raw_max - 1L)),
-    item_score_reference = gllrm_item_score_reference(item_matrix, valid_rows, items),
-    item_matrix = item_matrix,
-    score = as.integer(data$score),
-    valid_rows = valid_rows
-  )
-}
-
-# Count observed margins for one included LD candidate using cached data
-#
-# @param context Included LD context from [build_candidate_ld_context()].
-# @param item1 One-based first item index.
-# @param item2 One-based second item index.
-# @return Observed pair margin matrix.
-candidate_ld_counts_context <- function(context, item1, item2) {
-  item1_max <- context$item_raw_max[[item1]]
-  item2_max <- context$item_raw_max[[item2]]
-  observed_ld <- matrix(
-    0L,
-    nrow = item1_max,
-    ncol = item2_max,
-    dimnames = list(
-      as.character(seq.int(0L, item1_max - 1L)),
-      as.character(seq.int(0L, item2_max - 1L))
-    )
-  )
-
-  score1 <- context$item_matrix[context$valid_rows, item1]
-  score2 <- context$item_matrix[context$valid_rows, item2]
-  linear <- score1 + score2 * item1_max + 1L
-  observed_ld[] <- tabulate(linear, nbins = length(observed_ld))
-  list(observed_ld = observed_ld)
-}
-
-# Convolve component weights excluding one component
-#
-# @param components List of score-weight vectors.
-# @param excluded One-based component index to exclude.
-# @param max_total_score Maximum score.
-# @return Score polynomial for all non-excluded components.
-convolve_components_except <- function(components, excluded, max_total_score) {
-  result <- c(1, numeric(max_total_score))
-  for (component_index in seq_along(components)) {
-    if (component_index == excluded) {
-      next
-    }
-    result <- convolve_score_vectors(result, components[[component_index]], max_total_score)
-  }
-  result
-}
-
-# Build local-dependence candidate component weights
-#
-# @param bundle Source-shaped bundle.
-# @param item_gamma Item gamma matrix.
-# @param ld_gamma Candidate LD gamma matrix.
-# @param item1 One-based first item index.
-# @param item2 One-based second item index.
-# @return Component metadata and score polynomials.
-build_candidate_ld_components <- function(bundle, item_gamma, ld_gamma, item1, item2) {
-  items <- bundle$model$items
-  max_total_score <- bundle$model$max_total_score
-  components <- list()
-  component_item <- integer(0)
-  pair_component <- NA_integer_
-
-  for (item_index in seq_len(nrow(items))) {
-    if (item_index %in% c(item1, item2)) {
-      next
-    }
-    scores <- seq.int(0L, items$raw_max[[item_index]] - 1L)
-    components[[length(components) + 1L]] <-
-      as.numeric(item_gamma[item_index, as.character(scores)])
-    component_item <- c(component_item, item_index)
-  }
-
-  pair_weights <- numeric(max_total_score + 1L)
-  for (score1 in seq.int(0L, items$raw_max[[item1]] - 1L)) {
-    for (score2 in seq.int(0L, items$raw_max[[item2]] - 1L)) {
-      # Source trace: an included LD candidate multiplies the two item score
-      # parameters by the item-by-item LD cell parameter before conditioning on
-      # the total score.
-      pair_weights[[score1 + score2 + 1L]] <- pair_weights[[score1 + score2 + 1L]] +
-        item_gamma[item1, as.character(score1)] *
-        item_gamma[item2, as.character(score2)] *
-        ld_gamma[score1 + 1L, score2 + 1L]
-    }
-  }
-  components[[length(components) + 1L]] <- pair_weights
-  component_item <- c(component_item, NA_integer_)
-  pair_component <- length(components)
-
-  list(
-    components = components,
-    component_item = component_item,
-    pair_component = pair_component,
-    full_gamma = Reduce(
-      function(left, right) convolve_score_vectors(left, right, max_total_score),
-      components,
-      init = c(1, numeric(max_total_score))
-    )
-  )
-}
-
-# Calculate expected margins for one included LD candidate using cached bounds
-#
-# @param context Included LD context from [build_candidate_ld_context()].
-# @param base_counts Base Rasch counts.
-# @param item_gamma Item gamma matrix.
-# @param ld_gamma Candidate LD gamma matrix.
-# @param item1 One-based first item index.
-# @param item2 One-based second item index.
-# @return Expected item and LD margins.
-# Source trace: source/GLLRM_ESTIM.txt::Find_new_IJparameters computes fitted
-# IJ margins for the local-dependence candidate before applying the
-# observed/fitted update. This R helper calculates those fitted candidate
-# margins directly from the current item and LD gammas.
-calculate_candidate_ld_expected_context <- function(context, base_counts, item_gamma, ld_gamma, item1, item2) {
-  max_total_score <- context$max_total_score
-  expected_items <- item_gamma
-  expected_items[,] <- 0
-  expected_ld <- ld_gamma
-  expected_ld[,] <- 0
-
-  components <- list()
-  component_item <- integer(0)
-  for (item_index in seq_len(context$n_items)) {
-    if (item_index %in% c(item1, item2)) {
-      next
-    }
-    components[[length(components) + 1L]] <-
-      as.numeric(item_gamma[item_index, context$item_score_columns[[item_index]]])
-    component_item <- c(component_item, item_index)
-  }
-
-  pair_weights <- numeric(max_total_score + 1L)
-  for (score1 in context$item_score_values[[item1]]) {
-    for (score2 in context$item_score_values[[item2]]) {
-      pair_weights[[score1 + score2 + 1L]] <- pair_weights[[score1 + score2 + 1L]] +
-        item_gamma[item1, score1 + 1L] *
-        item_gamma[item2, score2 + 1L] *
-        ld_gamma[score1 + 1L, score2 + 1L]
-    }
-  }
-  components[[length(components) + 1L]] <- pair_weights
-  component_item <- c(component_item, NA_integer_)
-  pair_component <- length(components)
-
-  prefix <- vector("list", length(components) + 1L)
-  suffix <- vector("list", length(components) + 1L)
-  prefix[[1L]] <- c(1, numeric(max_total_score))
-  for (component_index in seq_along(components)) {
-    prefix[[component_index + 1L]] <- convolve_score_vectors(
-      prefix[[component_index]],
-      components[[component_index]],
-      max_total_score
-    )
-  }
-  suffix[[length(components) + 1L]] <- c(1, numeric(max_total_score))
-  for (component_index in rev(seq_along(components))) {
-    suffix[[component_index]] <- convolve_score_vectors(
-      components[[component_index]],
-      suffix[[component_index + 1L]],
-      max_total_score
-    )
-  }
-  full_gamma <- prefix[[length(components) + 1L]]
-
-  score_counts <- base_counts$score_counts
-  used_score_indices <- which(score_counts > 0)
-  if (length(used_score_indices) == 0L) {
-    return(list(expected_items = expected_items, expected_ld = expected_ld))
-  }
-  denominator <- full_gamma[used_score_indices]
-  usable <- denominator > 0
-  if (!any(usable)) {
-    return(list(expected_items = expected_items, expected_ld = expected_ld))
-  }
-  used_score_indices <- used_score_indices[usable]
-  scores <- used_score_indices - 1L
-  score_weight <- score_counts[used_score_indices] / denominator[usable]
-
-  for (component_index in seq_along(components)) {
-    item_index <- component_item[[component_index]]
-    rest_gamma <- convolve_score_vectors(
-      prefix[[component_index]],
-      suffix[[component_index + 1L]],
-      max_total_score
-    )
-    if (!is.na(item_index)) {
-      for (item_score in context$item_score_values[[item_index]]) {
-        score_usable <- scores >= item_score
-        if (!any(score_usable)) {
-          next
-        }
-        item_col <- item_score + 1L
-        expected_items[item_index, item_col] <- expected_items[item_index, item_col] +
-          item_gamma[item_index, item_col] *
-          sum(score_weight[score_usable] * rest_gamma[scores[score_usable] - item_score + 1L])
-      }
-      next
-    }
-
-    for (score1 in context$item_score_values[[item1]]) {
-      for (score2 in context$item_score_values[[item2]]) {
-        pair_score <- score1 + score2
-        score_usable <- scores >= pair_score
-        if (!any(score_usable)) {
-          next
-        }
-        weight <- item_gamma[item1, score1 + 1L] *
-          item_gamma[item2, score2 + 1L] *
-          ld_gamma[score1 + 1L, score2 + 1L]
-        expected <- weight * sum(
-          score_weight[score_usable] * rest_gamma[scores[score_usable] - pair_score + 1L]
-        )
-        expected_items[item1, score1 + 1L] <- expected_items[item1, score1 + 1L] + expected
-        expected_items[item2, score2 + 1L] <- expected_items[item2, score2 + 1L] + expected
-        expected_ld[score1 + 1L, score2 + 1L] <- expected_ld[score1 + 1L, score2 + 1L] + expected
-      }
-    }
-  }
-
-  list(expected_items = expected_items, expected_ld = expected_ld)
-}
-
-# Fit one local-dependence candidate model
-#
-# @param bundle Source-shaped bundle.
-# @param base_counts Base Rasch counts.
-# @param item1 One-based first item index.
-# @param item2 One-based second item index.
-# @param max_step Maximum IPF iterations.
-# @param max_delta Convergence threshold.
-# @param initial_item_gamma_matrix Optional starting item gamma matrix.
-# @return Candidate fit state.
-# Source trace: source/GLLRM_ESTIM.txt::Find_new_IJparameters and
-# source/GLLRM_ESTIM.txt::Adjust_IJparameters define the candidate LD update
-# and final reporting gauge. The R function fits one candidate IJ term for
-# MissingLD without changing the surrounding current GLLRM.
-fit_ld_candidate <- function(bundle, base_counts, item1, item2, max_step = 5000L, max_delta = 0.0001, initial_item_gamma_matrix = NULL, context = NULL, candidate_counts = NULL) {
-  items <- bundle$model$items
-  if (is.null(context)) {
-    context <- build_candidate_ld_context(bundle)
-  }
-  item_gamma <- if (is.null(initial_item_gamma_matrix)) initial_item_gamma(bundle) else initial_item_gamma_matrix
-  ld_gamma <- matrix(
-    1,
-    nrow = items$raw_max[[item1]],
-    ncol = items$raw_max[[item2]],
-    dimnames = list(
-      as.character(seq.int(0L, items$raw_max[[item1]] - 1L)),
-      as.character(seq.int(0L, items$raw_max[[item2]] - 1L))
-    )
-  )
-  if (is.null(candidate_counts)) {
-    candidate_counts <- candidate_ld_counts_context(context, item1, item2)
-  }
-  delta <- 0
-  converged <- FALSE
-
-  for (step in seq_len(max_step)) {
-    expected <- calculate_candidate_ld_expected_context(
-      context, base_counts, item_gamma, ld_gamma, item1, item2
-    )
-    delta <- 0
-
-    for (item_index in seq_len(nrow(items))) {
-      for (item_score in seq.int(0L, items$raw_max[[item_index]] - 1L)) {
-        observed <- base_counts$item_counts[item_index, as.character(item_score)]
-        fitted <- expected$expected_items[item_index, as.character(item_score)]
-        if (observed > 0 && fitted > 0) {
-          # Source trace: IPF updates multiply each item score parameter by the
-          # observed/fitted sufficient-margin ratio.
-          ratio <- observed / fitted
-          item_gamma[item_index, as.character(item_score)] <-
-            item_gamma[item_index, as.character(item_score)] * ratio
-          delta <- max(delta, abs(fitted - observed))
-        } else if (observed == 0) {
-          item_gamma[item_index, as.character(item_score)] <- 0
-        }
-      }
-    }
-
-    for (score1 in seq.int(0L, items$raw_max[[item1]] - 1L)) {
-      for (score2 in seq.int(0L, items$raw_max[[item2]] - 1L)) {
-        observed <- candidate_counts$observed_ld[score1 + 1L, score2 + 1L]
-        fitted <- expected$expected_ld[score1 + 1L, score2 + 1L]
-        if (observed > 0 && fitted > 0) {
-          # Source trace: the included IJ/LD parameter is updated by the same
-          # observed/fitted margin ratio as the Pascal IPF step.
-          ratio <- observed / fitted
-          ld_gamma[score1 + 1L, score2 + 1L] <-
-            ld_gamma[score1 + 1L, score2 + 1L] * ratio
-          delta <- max(delta, abs(fitted - observed))
-        } else if (observed == 0) {
-          ld_gamma[score1 + 1L, score2 + 1L] <- 0
-        }
-      }
-    }
-
-    ld_reference <- as.integer(context$item_score_reference %||% 0L) + 1L
-    ld_gamma <- adjust_ld_gamma_source_reference_details(
-      candidate_counts$observed_ld,
-      ld_gamma,
-      i_ref = ld_reference,
-      j_ref = ld_reference,
-      preserve_current_ties = TRUE
-    )$adjusted
-    item_gamma <- adjust_item_gammas_source_scale(bundle, item_gamma)
-    if (delta <= max_delta) {
-      converged <- TRUE
-      break
-    }
-  }
-
-  list(
-    item_gamma = item_gamma,
-    ld_gamma = ld_gamma,
-    candidate_counts = candidate_counts,
-    delta = delta,
-    converged = converged
-  )
-}
-
-# Apply source reference adjustment to one LD gamma table
-#
-# Ports the LD part of `SourceRaschCore.pas::AdjustDependencyParameters`,
-# choosing the densest observed row/column as reference and converting raw IJ
-# cell parameters to source reference-relative parameters.
-#
-# @param observed_ld Observed item-pair margin.
-# @param ld_gamma Current LD gamma matrix.
-# @return Adjusted LD gamma matrix.
-adjust_ld_gamma_source_reference <- function(observed_ld, ld_gamma) {
-  adjust_ld_gamma_source_reference_details(observed_ld, ld_gamma)$adjusted
-}
-
+#' Internal adjust ld gamma source reference details helper
+#'
+#' Supports the local independence values implementation while preserving its internal contract.
+#' Source trace: `source/PAS_scd/DGRirtD.pas::MissingLD`.
+#' @param observed_ld Internal `observed_ld` value used by this helper.
+#' @param ld_gamma Internal `ld_gamma` value used by this helper.
+#' @param i_ref Internal `i_ref` value used by this helper.
+#' @param j_ref Internal `j_ref` value used by this helper.
+#' @param preserve_current_ties Internal `preserve_current_ties` value used by this helper.
+#' @return The internal `adjust_ld_gamma_source_reference_details()` computation result.
+#' @keywords internal
+#' @noRd
 adjust_ld_gamma_source_reference_details <- function(observed_ld,
                                                      ld_gamma,
                                                      i_ref = 1L,
@@ -541,52 +204,30 @@ adjust_ld_gamma_source_reference_details <- function(observed_ld,
   )
 }
 
-# Calculate local-dependence candidate negative log likelihood using cached data
-#
-# @param bundle Source-shaped bundle.
-# @param context Included LD context from [build_candidate_ld_context()].
-# @param fit Candidate fit from [fit_ld_candidate()].
-# @param item1 One-based first item index.
-# @param item2 One-based second item index.
-# @return Negative conditional log likelihood.
-candidate_ld_loglike_context <- function(bundle, context, fit, item1, item2) {
-  full_gamma <- build_candidate_ld_components(
-    bundle, fit$item_gamma, fit$ld_gamma, item1, item2
-  )$full_gamma
-
-  valid_rows <- context$valid_rows
-  product_gamma <- rep(1, length(valid_rows))
-  for (item_index in seq_len(context$n_items)) {
-    item_scores <- context$item_matrix[valid_rows, item_index]
-    product_gamma <- product_gamma * fit$item_gamma[cbind(item_index, item_scores + 1L)]
-  }
-  product_gamma <- product_gamma *
-    fit$ld_gamma[cbind(
-      context$item_matrix[valid_rows, item1] + 1L,
-      context$item_matrix[valid_rows, item2] + 1L
-    )]
-  probability <- product_gamma / full_gamma[context$score[valid_rows] + 1L]
-  probability <- probability[probability > 0]
-  -sum(log(probability))
-}
-
-# Compute DIGRAM local-independence candidate test values
-#
-# Computes the item-pair likelihood-ratio tests used in DIGRAM's
-# `check-local-independence.txt` and
-# `check-local-independence-extended.txt` reports. The implementation follows
-# `docs/example_LOCAL_INDEPENDENCE_SOURCE_TRACE.md`, especially the
-# `DGRirtD.pas` `MissingLD` branch.
-#
-# @param project A source-shaped DIGRAM project list, such as the `project`
-#   component returned by [gRm()] or [read_digram_project()].
-# @param max_step Maximum source Rasch/GLLRM estimation iterations.
-# @param max_delta Convergence threshold.
-# @param jobs Number of parallel candidate LD fits.
-# @return A `gRm_local_independence_values` object.
+#' Compute DIGRAM local-independence candidate test values
+#'
+#' Computes the item-pair likelihood-ratio tests used in DIGRAM's
+#' `check-local-independence.txt` and
+#' `check-local-independence-extended.txt` reports. The implementation follows
+#' `docs/source-traces/BIRT_LOCAL_INDEPENDENCE_SOURCE_TRACE.md`, especially the
+#' `DGRirtD.pas` `MissingLD` branch.
+#'
+#' Source trace: `source/PAS_scd/DGRirtD.pas::MissingLD`.
+#' @param project A source-shaped DIGRAM project list, such as the `project`
+#'   component returned by [gRm()] or [read_digram_project()].
+#' @param max_step Maximum source Rasch/GLLRM estimation iterations.
+#' @param max_delta Convergence threshold.
+#' @param jobs Number of parallel candidate LD fits.
+#' @return A `gRm_local_independence_values` object.
+#' @keywords internal
+#' @noRd
 local_independence_values <- function(project, max_step = 5000L, max_delta = 0.0001, jobs = min(32L, parallel::detectCores(logical = TRUE), 128L)) {
   if (inherits(project, "gRm_fit") && inherits(project$values, "gRm_gllrm_values")) {
     return(gllrm_local_independence_values(project, max_step = max_step, max_delta = max_delta, jobs = jobs))
+  }
+  candidate_object <- if (inherits(project, "gRm_fit")) project else NULL
+  if (inherits(project, "gRm_fit")) {
+    project <- project$project %||% project$analysis$project
   }
   if (!is.list(project)) {
     stop("`project` must be a DIGRAM project list.", call. = FALSE)
@@ -595,11 +236,14 @@ local_independence_values <- function(project, max_step = 5000L, max_delta = 0.0
     stop("Local-independence tests require at least two item variables.", call. = FALSE)
   }
 
-  bundle <- build_item_parameters_bundle(project)
-  context <- build_candidate_ld_context(bundle)
+  candidate_object <- candidate_object %||% gllrm_candidate_base_model(project)
+  bundle <- candidate_object$bundle %||% build_item_parameters_bundle(project)
   gamma_context <- build_local_independence_gamma_context(project)
-  base_fit <- fit_rasch_base(bundle, max_step = max_step, max_delta = max_delta)
-  base_counts <- base_fit$counts
+  base_fit <- if (inherits(candidate_object, "gRm_fit")) {
+    candidate_object$fit
+  } else {
+    fit_rasch_base(bundle, max_step = max_step, max_delta = max_delta)
+  }
   base_loglike <- base_rasch_loglike(bundle, base_fit$item_gamma)
   items <- project$items
   candidates <- expand.grid(
@@ -608,33 +252,28 @@ local_independence_values <- function(project, max_step = 5000L, max_delta = 0.0
   )
   candidates <- candidates[candidates$item1_index < candidates$item2_index, , drop = FALSE]
   candidates <- candidates[order(candidates$item1_index, candidates$item2_index), , drop = FALSE]
-  candidate_counts <- vector("list", nrow(candidates))
-  for (candidate_row in seq_len(nrow(candidates))) {
-    candidate_counts[[candidate_row]] <- candidate_ld_counts_context(
-      context,
-      candidates$item1_index[[candidate_row]],
-      candidates$item2_index[[candidate_row]]
-    )
-  }
 
   fit_one <- function(candidate_row) {
     item1 <- candidates$item1_index[[candidate_row]]
     item2 <- candidates$item2_index[[candidate_row]]
-    candidate_fit <- fit_ld_candidate(
-      bundle, base_counts, item1, item2,
-      max_step = max_step, max_delta = max_delta,
-      initial_item_gamma_matrix = base_fit$item_gamma,
-      context = context,
-      candidate_counts = candidate_counts[[candidate_row]]
+    # Source trace: DGRirtD.MissingLD reaches Find_new_IJparameters and
+    # Adjust_IJparameters through the shared Estimate_GLLRM candidate engine.
+    candidate_fit <- fit_gllrm_candidate_ld(
+      candidate_object,
+      item1 = item1,
+      item2 = item2,
+      max_step = max_step,
+      max_delta = max_delta
     )
-    candidate_loglike <- candidate_ld_loglike_context(bundle, context, candidate_fit, item1, item2)
+    candidate_loglike <- candidate_fit$log_likelihood
 
     # Source trace: DGRirtD MissingLD reports
     # lr := 2*abs(Raschloglike-Raschloglike1).
     clr <- 2 * abs(base_loglike - candidate_loglike)
     # Source trace: IJ df follows the observed nonzero item margins stored with
     # the candidate counts, not merely the declared raw category dimensions.
-    df <- source_ij_observed_df(candidate_counts[[candidate_row]]$observed_ld)
+    ld_index <- gllrm_context_ld_index(candidate_fit$context, item1, item2)
+    df <- source_ij_observed_df(candidate_fit$context$observed_ld[[ld_index]])
 
     data.frame(
       pair_label = paste0(items$label_code[[item1]], items$label_code[[item2]]),
@@ -648,7 +287,9 @@ local_independence_values <- function(project, max_step = 5000L, max_delta = 0.0
       p_value = source_pfchi(df, clr),
       wpg_gamma = local_independence_wpg_gamma(project, gamma_context, item1, item2),
       converged = candidate_fit$converged,
-      delta = candidate_fit$delta,
+      delta = candidate_fit$report_delta,
+      n_step = candidate_fit$n_step,
+      stop_reason = candidate_fit$stop_reason,
       stringsAsFactors = FALSE
     )
   }
@@ -669,6 +310,17 @@ local_independence_values <- function(project, max_step = 5000L, max_delta = 0.0
   result
 }
 
+#' Internal gllrm local independence values helper
+#'
+#' Supports the local independence values implementation while preserving its internal contract.
+#' Source trace: `source/PAS_scd/DGRirtD.pas::MissingLD`.
+#' @param fit Fitted gRm model.
+#' @param max_step Maximum fitting iteration.
+#' @param max_delta Sufficient-count discrepancy tolerance.
+#' @param jobs Requested worker count.
+#' @return The internal `gllrm_local_independence_values()` computation result.
+#' @keywords internal
+#' @noRd
 gllrm_local_independence_values <- function(fit, max_step = 5000L, max_delta = 0.0001, jobs = min(32L, parallel::detectCores(logical = TRUE), 128L)) {
   context <- fit$fit$context
   items <- context$items
@@ -715,6 +367,8 @@ gllrm_local_independence_values <- function(fit, max_step = 5000L, max_delta = 0
   fit_one <- function(candidate_row) {
     item1 <- candidates$item1_index[[candidate_row]]
     item2 <- candidates$item2_index[[candidate_row]]
+    # Source trace: DGRirtD.MissingLD reaches Find_new_IJparameters and
+    # Adjust_IJparameters through the shared Estimate_GLLRM candidate engine.
     candidate_fit <- fit_gllrm_with_added_ld(
       fit,
       item1 = item1,
@@ -725,20 +379,9 @@ gllrm_local_independence_values <- function(fit, max_step = 5000L, max_delta = 0
     attempted_fit <- candidate_fit
     reported_checkpoint_step <- NA_integer_
     report_value_source <- "attempted_fit"
-    if (!isTRUE(candidate_fit$converged) && max_step > 51L) {
-      # Source CHECK LID reports the first post-50 candidate checkpoint
-      # for non-converged IJ fits. Keep attempted_* metadata so the reported
-      # row explains that checkpoint replacement instead of hiding it.
-      candidate_fit <- fit_gllrm_with_added_ld(
-        fit,
-        item1 = item1,
-        item2 = item2,
-        max_step = 51L,
-        max_delta = max_delta
-      )
-      reported_checkpoint_step <- 51L
-      report_value_source <- "source_first_post_50_checkpoint"
-    }
+    # Source trace: source/PAS_scd/DGRirtD.pas::MissingLD calls
+    # Estimate_GLLRM once and reports that fit. Post-50 recurrence is handled
+    # inside the common estimator; there is no universal step-51 replacement.
     candidate_loglike <- candidate_fit$log_likelihood
     clr <- 2 * abs(base_loglike - candidate_loglike)
     ld_index <- gllrm_context_ld_index(candidate_fit$context, item1, item2)
@@ -785,6 +428,16 @@ gllrm_local_independence_values <- function(fit, max_step = 5000L, max_delta = 0
   )
 }
 
+#' Internal gllrm context ld index helper
+#'
+#' Supports the local independence values implementation while preserving its internal contract.
+#' Source trace: `source/PAS_scd/DGRirtD.pas::MissingLD`.
+#' @param context Prepared GLLRM computation context.
+#' @param item1 Internal `item1` value used by this helper.
+#' @param item2 Internal `item2` value used by this helper.
+#' @return The internal `gllrm_context_ld_index()` computation result.
+#' @keywords internal
+#' @noRd
 gllrm_context_ld_index <- function(context, item1, item2) {
   key <- gllrm_ld_key(item1, item2)
   hit <- which(vapply(context$ld_specs, function(spec) {
@@ -796,6 +449,15 @@ gllrm_context_ld_index <- function(context, item1, item2) {
   hit[[1L]]
 }
 
+#' Internal gllrm li candidates helper
+#'
+#' Supports the local independence values implementation while preserving its internal contract.
+#' Source trace: `source/PAS_scd/DGRirtD.pas::MissingLD`.
+#' @param context Prepared GLLRM computation context.
+#' @param components Internal `components` value used by this helper.
+#' @return The internal `gllrm_li_candidates()` computation result.
+#' @keywords internal
+#' @noRd
 gllrm_li_candidates <- function(context, components = NULL) {
   rows <- expand.grid(
     item1_index = seq_len(context$n_items),
@@ -815,6 +477,14 @@ gllrm_li_candidates <- function(context, components = NULL) {
   rows[order(rows$item1_index, rows$item2_index), , drop = FALSE]
 }
 
+#' Internal gllrm ld lookup helper
+#'
+#' Supports the local independence values implementation while preserving its internal contract.
+#' Source trace: `source/PAS_scd/DGRirtD.pas::MissingLD`.
+#' @param context Prepared GLLRM computation context.
+#' @return The internal `gllrm_ld_lookup()` computation result.
+#' @keywords internal
+#' @noRd
 gllrm_ld_lookup <- function(context) {
   out <- list()
   for (spec in context$ld_specs) {
@@ -823,10 +493,27 @@ gllrm_ld_lookup <- function(context) {
   out
 }
 
+#' Internal gllrm ld key helper
+#'
+#' Supports the local independence values implementation while preserving its internal contract.
+#' Source trace: `source/PAS_scd/DGRirtD.pas::MissingLD`.
+#' @param item1 Internal `item1` value used by this helper.
+#' @param item2 Internal `item2` value used by this helper.
+#' @return The internal `gllrm_ld_key()` computation result.
+#' @keywords internal
+#' @noRd
 gllrm_ld_key <- function(item1, item2) {
   paste(min(item1, item2), max(item1, item2), sep = ":")
 }
 
+#' Internal source ij observed df helper
+#'
+#' Supports the local independence values implementation while preserving its internal contract.
+#' Source trace: `source/PAS_scd/DGRirtD.pas::MissingLD`.
+#' @param observed_ij Internal `observed_ij` value used by this helper.
+#' @return The internal `source_ij_observed_df()` computation result.
+#' @keywords internal
+#' @noRd
 source_ij_observed_df <- function(observed_ij) {
   nonzero_item1_scores <- sum(rowSums(observed_ij) > 0)
   nonzero_item2_scores <- sum(colSums(observed_ij) > 0)

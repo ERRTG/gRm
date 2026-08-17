@@ -58,6 +58,20 @@ runtime residual variance materialization source-backed. Public summaries
 report those cells as not source-backed.
 }
 
+\section{Pascal Extended fixed-field capability}{
+
+DIGRAM's item-parameter report performs ICE cancellation and fixed-width
+formatting in Pascal \code{Extended} arithmetic. Exact parity for those character
+fields is platform-gated: fitted item-parameter values carry an
+\code{extended_capability} list reporting the compiled long-double mantissa,
+exponent range, storage size, x87 controls/logarithm support, and the final
+\code{pascal_extended_fixed_field_supported} flag. The flag is true only for the
+audited x87 80-bit path. On platforms such as arm64 where \verb{long double} does
+not provide that path, the package does not claim exact Pascal-Extended
+fixed-field parity; native numeric fitting remains independent of this
+presentation capability.
+}
+
 \section{Workflow scope}{
 
 Public workflows read DIGRAM projects, build item-analysis objects, specify
@@ -106,7 +120,15 @@ item_fit(fit0)
 }
 
 }
+\seealso{
+Useful links:
+\itemize{
+  \item \url{https://github.com/ERRTG/gRm}
+  \item Report bugs at \url{https://github.com/ERRTG/gRm/issues}
+}
+
+}
 \author{
-\strong{Maintainer}: DIGRAM Reimplementation \email{noreply@example.com}
+\strong{Maintainer}: Andreas Jensen \email{aeje@sund.ku.dk}
 
 }

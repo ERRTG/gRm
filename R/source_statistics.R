@@ -1,11 +1,16 @@
-# Source normal tail probability
-#
-# Port of `SkStat.TAILNORM`, used by the source chi-square tail approximation.
-#
-# @param value Normal deviate.
-# @param upper Logical; `TRUE` returns the upper tail.
-# @return Tail probability.
+#' Source normal tail probability
+#'
+#' Port of `SkStat.TAILNORM`, used by the source chi-square tail approximation.
+#'
+#' Source trace: `source/PAS_scd/SkStat.pas::TAILNORM`.
+#' @param value Normal deviate.
+#' @param upper Logical; `TRUE` returns the upper tail.
+#' @return Tail probability.
+#' @keywords internal
+#' @noRd
 source_tail_norm <- function(value, upper = TRUE) {
+  # SkStat.TAILNORM uses these literal binary64 constants and changes the tail
+  # flag, rather than the deviate, for a negative input.
   normal_c <- 0.3989422804014327
   big_x <- 170
   if (value == 0) {
@@ -29,6 +34,8 @@ source_tail_norm <- function(value, upper = TRUE) {
     return(0)
   }
   if ((upper && value > 2.32) || (!upper && value > 3.5)) {
+    # TAILNORM's large-deviate branch evaluates its two-term continued
+    # fraction until both successive floating-point ratios stop changing.
     q1 <- value
     p2 <- y * value
     i <- 1
@@ -67,6 +74,8 @@ source_tail_norm <- function(value, upper = TRUE) {
   i <- 1
   t <- 0
   while (s != t) {
+    # The central branch is the source odd-power series; retain its exact
+    # equality stop and addition order rather than calling stats::pnorm().
     i <- i + 2
     t <- s
     term <- term * x2 / i
@@ -79,13 +88,16 @@ source_tail_norm <- function(value, upper = TRUE) {
   }
 }
 
-# Source chi-square upper-tail probability
-#
-# Port of `SkStat.PFCHI`.
-#
-# @param df Degrees of freedom.
-# @param x Chi-square statistic.
-# @return Upper-tail probability.
+#' Source chi-square upper-tail probability
+#'
+#' Port of `SkStat.PFCHI`.
+#'
+#' Source trace: `source/PAS_scd/SkStat.pas::PFCHI`.
+#' @param df Degrees of freedom.
+#' @param x Chi-square statistic.
+#' @return Upper-tail probability.
+#' @keywords internal
+#' @noRd
 source_pfchi <- function(df, x) {
   source_co <- 0.3989422804014327
   big_x <- 170
@@ -94,10 +106,14 @@ source_pfchi <- function(df, x) {
     return(1)
   }
   if (df > 100L) {
+    # SkStat.PFCHI uses its Wilson--Hilferty normal transform above 100 df and
+    # passes that deviate through the source TAILNORM approximation.
     transformed <- sqrt(4.5 * df) * (exp(log(x / df) / 3) + 1 / (4.5 * df) - 1)
     return(source_tail_norm(transformed, TRUE))
   }
   if ((df %% 2L) == 0L) {
+    # Even df: start at exp(-x/2), then add the source finite gamma-series
+    # terms in increasing integer order.
     if (x < big_x) {
       p <- exp(-0.5 * x)
     } else {
@@ -114,6 +130,8 @@ source_pfchi <- function(df, x) {
   }
 
   p <- 2 * source_tail_norm(sqrt(x), TRUE)
+  # Odd df: start with twice the source normal tail and add the half-integer
+  # recurrence. This is deliberately not stats::pchisq().
   if (x < big_x) {
     c_value <- exp(-0.5 * x) * 2 * source_co / sqrt(x)
   } else {
@@ -128,14 +146,17 @@ source_pfchi <- function(df, x) {
   p
 }
 
-# Source Benjamini-Hochberg critical p-value
-#
-# Port of `SourceBenjaminiHochbergCritical`, matching the current Pascal
-# harness behavior.
-#
-# @param p_values Numeric p-values.
-# @param alpha False discovery rate target.
-# @return Critical p-value.
+#' Source Benjamini-Hochberg critical p-value
+#'
+#' Port of `SourceBenjaminiHochbergCritical`, matching the current Pascal
+#' harness behavior.
+#'
+#' Source trace: `source/PAS_skunits/SkStat.pas::BenjaminiHochberg0`.
+#' @param p_values Numeric p-values.
+#' @param alpha False discovery rate target.
+#' @return Critical p-value.
+#' @keywords internal
+#' @noRd
 source_bh_critical <- function(p_values, alpha = 0.05) {
   n <- length(p_values)
   if (n <= 0L) {
@@ -143,6 +164,9 @@ source_bh_critical <- function(p_values, alpha = 0.05) {
   }
   sorted <- sort(p_values)
   result <- alpha / n
+  # BenjaminiHochberg0 scans from the largest rank downward and assigns the
+  # rank boundary before testing p_(i) <= i*alpha/n. If none passes, the last
+  # assigned value is alpha/n; preserve that source boundary convention.
   for (index in rev(seq_len(n))) {
     candidate <- (index / n) * alpha
     result <- candidate

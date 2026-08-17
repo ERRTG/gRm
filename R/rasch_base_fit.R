@@ -1,9 +1,12 @@
-# Count observed item scores and total scores
-#
-# @param bundle An item-parameters bundle from
-#   [build_item_parameters_bundle()].
-# @return A list containing the number of valid rows, an item-by-score count
-#   matrix, and a total-score count vector.
+#' Count observed item scores and total scores
+#'
+#' Source trace: `source/PAS_skunits/skbias12b.pas::Estimate_GLLRM`.
+#' @param bundle An item-parameters bundle from
+#'   `build_item_parameters_bundle()`.
+#' @return A list containing the number of valid rows, an item-by-score count
+#'   matrix, and a total-score count vector.
+#' @keywords internal
+#' @noRd
 rasch_counts <- function(bundle) {
   # Source trace: pascal_harness/SourceRaschCore.pas::LoadCounts.
   # Only status==1 rows contribute to the CML item margins and total-score
@@ -37,12 +40,15 @@ rasch_counts <- function(bundle) {
   )
 }
 
-# Initialize item gamma parameters
-#
-# @param bundle An item-parameters bundle from
-#   [build_item_parameters_bundle()].
-# @return A matrix of initial multiplicative item score parameters, with valid
-#   categories initialized to one and unused cells set to zero.
+#' Initialize item gamma parameters
+#'
+#' Source trace: `source/PAS_skunits/skbias12b.pas::Estimate_GLLRM`.
+#' @param bundle An item-parameters bundle from
+#'   `build_item_parameters_bundle()`.
+#' @return A matrix of initial multiplicative item score parameters, with valid
+#'   categories initialized to one and unused cells set to zero.
+#' @keywords internal
+#' @noRd
 initial_item_gamma <- function(bundle) {
   # Source trace: pascal_harness/SourceRaschCore.pas::InitializeRaschFit.
   # DIGRAM starts all observed item-score gamma parameters at 1 and leaves
@@ -60,12 +66,15 @@ initial_item_gamma <- function(bundle) {
   gamma
 }
 
-# Build the score-generating function excluding one item
-#
-# @param bundle An item-parameters bundle.
-# @param item_gamma Matrix of current item gamma parameters.
-# @param excluded_item One-based item index to exclude from the convolution.
-# @return A numeric vector indexed by total score plus one.
+#' Build the score-generating function excluding one item
+#'
+#' Source trace: `source/PAS_skunits/skbias12b.pas::Estimate_GLLRM`.
+#' @param bundle An item-parameters bundle.
+#' @param item_gamma Matrix of current item gamma parameters.
+#' @param excluded_item One-based item index to exclude from the convolution.
+#' @return A numeric vector indexed by total score plus one.
+#' @keywords internal
+#' @noRd
 build_gamma_excluding_item <- function(bundle, item_gamma, excluded_item) {
   # Source trace: pascal_harness/SourceRaschCore.pas::BuildGammaExcludingItem.
   items <- bundle$model$items
@@ -99,12 +108,15 @@ build_gamma_excluding_item <- function(bundle, item_gamma, excluded_item) {
   gamma_values
 }
 
-# Build the DIGRAM source score gamma array
-#
-# @param bundle An item-parameters bundle.
-# @param item_gamma Matrix of current item gamma parameters.
-# @param use_items Logical vector selecting items included in the score gamma.
-# @return A numeric vector indexed by total score plus one.
+#' Build the DIGRAM source score gamma array
+#'
+#' Source trace: `source/PAS_skunits/skbias12b.pas::Estimate_GLLRM`.
+#' @param bundle An item-parameters bundle.
+#' @param item_gamma Matrix of current item gamma parameters.
+#' @param use_items Logical vector selecting items included in the score gamma.
+#' @return A numeric vector indexed by total score plus one.
+#' @keywords internal
+#' @noRd
 build_source_score_gamma <- function(bundle, item_gamma, use_items) {
   # Source trace: source/PAS_scd/skbias12.pas::
   # Inexpensive_Gamma_Calculation. NewGamma starts as Sgamma, each included
@@ -176,13 +188,16 @@ build_source_score_gamma <- function(bundle, item_gamma, use_items) {
   gamma_values
 }
 
-# Calculate expected item score counts under the current Rasch fit
-#
-# @param bundle An item-parameters bundle.
-# @param counts Count list from `rasch_counts()`.
-# @param item_gamma Matrix of current item gamma parameters.
-# @return A matrix of expected item score counts with the same shape as
-#   `item_gamma`.
+#' Calculate expected item score counts under the current Rasch fit
+#'
+#' Source trace: `source/PAS_skunits/skbias12b.pas::Estimate_GLLRM`.
+#' @param bundle An item-parameters bundle.
+#' @param counts Count list from `rasch_counts()`.
+#' @param item_gamma Matrix of current item gamma parameters.
+#' @return A matrix of expected item score counts with the same shape as
+#'   `item_gamma`.
+#' @keywords internal
+#' @noRd
 calculate_rasch_expected_items <- function(bundle, counts, item_gamma) {
   # Source trace: pascal_harness/SourceRaschCore.pas::CalculateRaschExpectedItems.
   items <- bundle$model$items
@@ -224,17 +239,20 @@ calculate_rasch_expected_items <- function(bundle, counts, item_gamma) {
   expected
 }
 
-# Calculate IPF update ratios for item gamma parameters
-#
-# @param bundle An item-parameters bundle.
-# @param counts Count list from `rasch_counts()`.
-# @param expected Expected item score counts from
-#   `calculate_rasch_expected_items()`.
-# @param item_gamma Matrix of current item gamma parameters.
-# @param apply_update Logical; if `TRUE`, multiply the current gamma values by
-#   the observed/fitted ratios.
-# @return A list containing the next gamma matrix, the update-ratio matrix, and
-#   the maximum observed/fitted count discrepancy.
+#' Calculate IPF update ratios for item gamma parameters
+#'
+#' Source trace: `source/PAS_skunits/skbias12b.pas::Estimate_GLLRM`.
+#' @param bundle An item-parameters bundle.
+#' @param counts Count list from `rasch_counts()`.
+#' @param expected Expected item score counts from
+#'   `calculate_rasch_expected_items()`.
+#' @param item_gamma Matrix of current item gamma parameters.
+#' @param apply_update Logical; if `TRUE`, multiply the current gamma values by
+#'   the observed/fitted ratios.
+#' @return A list containing the next gamma matrix, the update-ratio matrix, and
+#'   the maximum observed/fitted count discrepancy.
+#' @keywords internal
+#' @noRd
 calculate_rasch_update_ratios <- function(bundle, counts, expected, item_gamma, apply_update) {
   # Source trace:
   # pascal_harness/SourceRaschCore.pas::CalculateRaschUpdateRatiosFromScore
@@ -276,11 +294,14 @@ calculate_rasch_update_ratios <- function(bundle, counts, expected, item_gamma, 
   list(item_gamma = next_gamma, update = update, delta = delta)
 }
 
-# Rescale item gamma parameters to the Pascal source convention
-#
-# @param bundle An item-parameters bundle.
-# @param item_gamma Matrix of item gamma parameters after an IPF update.
-# @return A rescaled item gamma matrix using the source normalization.
+#' Rescale item gamma parameters to the Pascal source convention
+#'
+#' Source trace: `source/PAS_skunits/skbias12b.pas::Estimate_GLLRM`.
+#' @param bundle An item-parameters bundle.
+#' @param item_gamma Matrix of item gamma parameters after an IPF update.
+#' @return A rescaled item gamma matrix using the source normalization.
+#' @keywords internal
+#' @noRd
 adjust_item_gammas_source_scale <- function(bundle, item_gamma) {
   # Source trace: pascal_harness/SourceRaschCore.pas::AdjustItemGammasSourceScale.
   items <- bundle$model$items
@@ -355,37 +376,40 @@ adjust_item_gammas_source_scale <- function(bundle, item_gamma) {
   item_gamma
 }
 
-# Fit the base Rasch item parameters
-#
-# Fits the source-shaped base Rasch model used by the current DIGRAM
-# item-parameters report slice. The implementation mirrors the Pascal IPF/CML
-# update structure and returns both fitted parameters and diagnostic matrices
-# used by downstream parity tests.
-#
-# @param bundle An item-parameters bundle from
-#   [build_item_parameters_bundle()].
-# @param max_step Maximum number of IPF iterations.
-# @param max_delta Convergence threshold for the maximum item-score count
-#   discrepancy.
-# @return A list with components:
-#   \describe{
-#     \item{`n_step`}{Number of IPF iterations performed.}
-#     \item{`delta`}{Final maximum observed/fitted count discrepancy.}
-#     \item{`report_delta`}{Delta value reported at convergence, matching the
-#       Pascal report convention.}
-#     \item{`converged`}{Logical convergence flag.}
-#     \item{`item_gamma`}{Fitted multiplicative item score parameters.}
-#     \item{`expected_items`}{Expected item score counts at the fitted values.}
-#     \item{`update_items`}{Final observed/fitted update ratios.}
-#     \item{`counts`}{Observed count summaries used for fitting.}
-#   }
-# @examples
-# \dontrun{
-# project <- read_digram_project("path/to/DIGRAM")
-# bundle <- build_item_parameters_bundle(project)
-# fit <- fit_rasch_base(bundle)
-# fit$converged
-# }
+#' Fit the base Rasch item parameters
+#'
+#' Fits the source-shaped base Rasch model used by the current DIGRAM
+#' item-parameters report slice. The implementation mirrors the Pascal IPF/CML
+#' update structure and returns both fitted parameters and diagnostic matrices
+#' used by downstream parity tests.
+#'
+#' Source trace: `source/PAS_skunits/skbias12b.pas::Estimate_GLLRM`.
+#' @param bundle An item-parameters bundle from
+#'   `build_item_parameters_bundle()`.
+#' @param max_step Maximum number of IPF iterations.
+#' @param max_delta Convergence threshold for the maximum item-score count
+#'   discrepancy.
+#' @return A list with components:
+#'   \describe{
+#'     \item{`n_step`}{Number of IPF iterations performed.}
+#'     \item{`delta`}{Final maximum observed/fitted count discrepancy.}
+#'     \item{`report_delta`}{Delta value reported at convergence, matching the
+#'       Pascal report convention.}
+#'     \item{`converged`}{Logical convergence flag.}
+#'     \item{`item_gamma`}{Fitted multiplicative item score parameters.}
+#'     \item{`expected_items`}{Expected item score counts at the fitted values.}
+#'     \item{`update_items`}{Final observed/fitted update ratios.}
+#'     \item{`counts`}{Observed count summaries used for fitting.}
+#'   }
+#' @examples
+#' \dontrun{
+#' project <- read_digram_project("path/to/DIGRAM")
+#' bundle <- build_item_parameters_bundle(project)
+#' fit <- fit_rasch_base(bundle)
+#' fit$converged
+#' }
+#' @keywords internal
+#' @noRd
 fit_rasch_base <- function(bundle,
                            max_step = 5000L,
                            max_delta = 0.0001) {

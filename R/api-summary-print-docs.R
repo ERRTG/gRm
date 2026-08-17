@@ -25,8 +25,8 @@
 #'   with multiple views. Available for `gRm_fit` and
 #'   `gRm_global_homogeneity`; single-view summaries do not accept `which`.
 #' @param x A `summary.gRm` object returned by `summary()`.
-#' @param ... Reserved for S3 dispatch compatibility; ignored by all gRm
-#'   summary and summary-print methods.
+#' @param ... Reserved for S3 dispatch compatibility and must be empty for all
+#'   gRm summary and summary-print methods.
 #' @return A `summary.gRm` list. The requested tables are available both by
 #'   section name and through the `tables` component. `print.summary.gRm()`
 #'   returns the input object invisibly.
@@ -163,8 +163,8 @@ NULL
 #' \method{print}{gRm_m2}(x, ...)
 #' \method{print}{gRm_m3}(x, ...)
 #' @param x An gRm analysis, model, fit, screen, or result object.
-#' @param ... Reserved for S3 dispatch compatibility; ignored by all gRm
-#'   print methods.
+#' @param ... Reserved for S3 dispatch compatibility and must be empty for all
+#'   gRm print methods.
 #' @return The input object, invisibly.
 #' @details
 #' The print methods are intentionally compact. They identify the object type

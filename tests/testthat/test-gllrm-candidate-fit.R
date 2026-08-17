@@ -42,6 +42,105 @@ test_that("GLLRM candidate spec builders preserve source term order", {
   )
 })
 
+test_that("candidate states start fresh on positive observed support", {
+  fitted <- gllrm_candidate_fit(max_step = 10L)
+
+  ld_spec <- gllrm_candidate_ld_spec(fitted, item1 = 1L, item2 = 3L)
+  ld_context <- build_gllrm_context(ld_spec, fitted$bundle)
+  ld_state <- initialize_gllrm_state(ld_context)
+  ld_index <- gllrm_context_ld_index(ld_context, 1L, 3L)
+
+  expect_identical(
+    ld_state$ld_parameters[[ld_index]] > 0,
+    ld_context$observed_ld[[ld_index]] > 0
+  )
+  expect_identical(
+    ld_state$item_gamma > 0,
+    ld_context$counts$item_counts > 0
+  )
+
+  dif_spec <- gllrm_candidate_dif_spec(fitted, item = 1L, background = 1L)
+  dif_context <- build_gllrm_context(dif_spec, fitted$bundle)
+  dif_state <- initialize_gllrm_state(dif_context)
+  dif_index <- gllrm_context_dif_index(dif_context, 1L, 1L)
+
+  expect_identical(
+    dif_state$dif_parameters[[dif_index]] > 0,
+    dif_context$observed_dif[[dif_index]] > 0
+  )
+})
+
+test_that("candidate fits do not warm-start from the supplied fit state", {
+  fitted <- gllrm_candidate_fit(max_step = 10L)
+  altered <- fitted
+  altered$fit$item_gamma[,] <- 987654
+  altered$fit$ld_parameters <- lapply(
+    altered$fit$ld_parameters,
+    function(x) x * 0 + 123456
+  )
+  altered$fit$dif_parameters <- lapply(
+    altered$fit$dif_parameters,
+    function(x) x * 0 + 654321
+  )
+
+  original_ld <- fit_gllrm_candidate_ld(
+    fitted, item1 = 1L, item2 = 3L, max_step = 20L, max_delta = 0.0001
+  )
+  altered_ld <- fit_gllrm_candidate_ld(
+    altered, item1 = 1L, item2 = 3L, max_step = 20L, max_delta = 0.0001
+  )
+  original_dif <- fit_gllrm_candidate_dif(
+    fitted, item = 1L, background = 1L, max_step = 20L, max_delta = 0.0001
+  )
+  altered_dif <- fit_gllrm_candidate_dif(
+    altered, item = 1L, background = 1L, max_step = 20L, max_delta = 0.0001
+  )
+
+  expect_equal(altered_ld$state, original_ld$state, tolerance = 0)
+  expect_equal(altered_dif$state, original_dif$state, tolerance = 0)
+})
+
+test_that("nonconverged candidate metadata comes from the single attempted fit", {
+  data <- data.frame(
+    ID = seq_len(24L),
+    I1 = c(0L, 0L, 1L, 0L, 1L, 0L, 1L, 0L, 0L, 0L, 1L, 1L,
+           0L, 0L, 0L, 0L, 0L, 0L, 0L, 0L, 0L, 1L, 0L, 0L),
+    I2 = c(1L, 1L, 1L, 0L, 1L, 1L, 1L, 0L, 1L, 1L, 1L, 0L,
+           1L, 1L, 1L, 1L, 0L, 1L, 0L, 1L, 1L, 1L, 1L, 0L),
+    I3 = c(0L, 0L, 1L, 1L, 1L, 0L, 1L, 1L, 1L, 1L, 0L, 1L,
+           1L, 1L, 0L, 0L, 0L, 1L, 0L, 1L, 1L, 0L, 1L, 1L),
+    I4 = c(0L, 1L, 0L, 1L, 0L, 0L, 0L, 0L, 1L, 0L, 0L, 0L,
+           0L, 0L, 0L, 1L, 0L, 0L, 0L, 0L, 0L, 0L, 0L, 0L),
+    X1 = c(1L, 1L, 1L, 0L, 0L, 0L, 1L, 1L, 0L, 1L, 0L, 1L,
+           1L, 0L, 0L, 1L, 0L, 0L, 0L, 1L, 0L, 0L, 1L, 1L)
+  )
+  analysis <- gRm(
+    data,
+    items = c("I1", "I2", "I3", "I4"),
+    exogenous = "X1",
+    id = "ID",
+    item_levels = list(I1 = 0:1, I2 = 0:1, I3 = 0:1, I4 = 0:1),
+    exogenous_levels = list(X1 = 0:1),
+    score_cuts = c(1L, 4L)
+  )
+  model <- gllrm(analysis)
+  ld <- fit_gllrm_candidate_ld(
+    model, item1 = 1L, item2 = 2L, max_step = 1L, max_delta = 0
+  )
+  dif_candidate <- fit_gllrm_candidate_dif(
+    model, item = 1L, background = 1L, max_step = 1L, max_delta = 0
+  )
+
+  for (candidate in list(ld, dif_candidate)) {
+    expect_identical(candidate$n_step, 1L)
+    expect_identical(candidate$stop_reason, "max_step")
+    expect_false(candidate$converged)
+    expect_true(is.finite(candidate$report_delta))
+    expect_identical(candidate$state$n_step, candidate$n_step)
+    expect_identical(candidate$state$stop_reason, candidate$stop_reason)
+  }
+})
+
 test_that("lightweight included LD candidate fit matches full refit numerics", {
   fitted <- gllrm_candidate_fit(max_step = 20L)
   base_loglike <- fitted$fit$log_likelihood

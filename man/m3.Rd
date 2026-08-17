@@ -2,9 +2,21 @@
 % Please edit documentation in R/api-m2-m3.R
 \name{m3}
 \alias{m3}
-\title{M3 fit diagnostic (experimental)}
+\title{M3 fit diagnostic}
 \usage{
-m3(fit, items = NULL, score_cuts = NULL, ...)
+m3(
+  fit,
+  items = NULL,
+  score_cuts = NULL,
+  bootstrap = FALSE,
+  nsim = 100L,
+  seed = NULL,
+  reestimate = TRUE,
+  bootstrap_max_step = 500L,
+  keep_bootstrap_samples = FALSE,
+  resample_score_distribution = FALSE,
+  ...
+)
 }
 \arguments{
 \item{fit}{A fitted \code{gRm_fit} object returned by \code{\link[=fit]{fit()}}.}
@@ -21,6 +33,36 @@ this diagnostic result. \code{NULL} uses the score cuts stored on the
 state used for score-group rows in this result only; it does not mutate the
 analysis object and does not refit the model.}
 
+\item{bootstrap}{Single non-missing logical. If \code{TRUE}, run DIGRAM's
+source-shaped parametric bootstrap after the observed diagnostic. The
+default is \code{FALSE} so an ordinary diagnostic remains deterministic and
+inexpensive; DIGRAM's prompted runtime default is reproduced by the
+default \code{nsim = 100L} when bootstrap is enabled.}
+
+\item{nsim}{Positive integer-like number of bootstrap samples. DIGRAM prompts
+with a default of 100.}
+
+\item{seed}{\code{NULL} for a source-style nondeterministic initialization, or a
+positive integer-like seed in \verb{1..2147483646} for the private reproducible
+validation stream. Supplying a seed does not modify R's global RNG state.}
+
+\item{reestimate}{Single non-missing logical. If \code{TRUE} (the DIGRAM CM3
+command behavior), start a fresh fit of the same GLLRM in every bootstrap
+sample. If \code{FALSE}, evaluate samples under the supplied fitted parameters.}
+
+\item{bootstrap_max_step}{Positive integer-like maximum number of GLLRM
+fitting steps for each bootstrap refit. The source value is 500.}
+
+\item{keep_bootstrap_samples}{Single non-missing logical. Retain every
+generated zero-based response matrix and one-based exogenous matrix under
+\code{result$values$bootstrap$samples}. Raw per-replicate fit and statistic
+tables are always retained; response matrices default to being omitted.}
+
+\item{resample_score_distribution}{Single non-missing logical corresponding
+to Pascal's \code{ResampleScoreDist}. The preserved source routine has an empty
+resampling branch, so both values keep the observed score distribution;
+the requested value and no-op mode are recorded in bootstrap metadata.}
+
 \item{...}{Reserved for future extensions and must be empty.}
 }
 \value{
@@ -31,10 +73,6 @@ A \code{gRm_m3} result object. Programmatic tables are available in
 Compute DIGRAM's source-backed M3 diagnostic for a fitted gRm model.
 }
 \details{
-This function is experimental. The deterministic source-backed computation
-is implemented, but the public API and returned table layout may change as
-M2/M3 validation coverage expands.
-
 \code{m3()} is a diagnostic for the current fitted model. It does not search for,
 select, add, or refit local-dependence or DIF terms.
 

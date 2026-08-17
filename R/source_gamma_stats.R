@@ -1,9 +1,15 @@
-# Source-shaped Goodman-Kruskal/RC gamma table statistics.
-#
-# Source trace: source/GLLRM.txt::PREPARE_REAL_GAMMA_STATISTICS uses the
-# all-cell convention. For each table cell it builds AIJ and DIJ by scanning
-# every other table cell, then accumulates P = sum(tab * AIJ),
-# Q = sum(tab * DIJ), PPQ = P + Q, and PMQ = P - Q.
+#' Source-shaped Goodman-Kruskal/RC gamma table statistics.
+#'
+#' Source trace: source/GLLRM.txt::PREPARE_REAL_GAMMA_STATISTICS uses the
+#' all-cell convention. For each table cell it builds AIJ and DIJ by scanning
+#' every other table cell, then accumulates P = sum(tab * AIJ),
+#' Q = sum(tab * DIJ), PPQ = P + Q, and PMQ = P - Q.
+#' Source trace: `source/PAS_skunits/skfit2.pas::Standardize_tab4`.
+#' @param tab Internal `tab` value used by this helper.
+#' @param include_cells Internal `include_cells` value used by this helper.
+#' @return The internal `source_rc_gamma_stats()` computation result.
+#' @keywords internal
+#' @noRd
 source_rc_gamma_stats <- function(tab, include_cells = FALSE) {
   tab <- as.matrix(tab)
   storage.mode(tab) <- "double"
@@ -55,17 +61,32 @@ source_rc_gamma_stats <- function(tab, include_cells = FALSE) {
   out
 }
 
+#' Internal source rc gamma counts helper
+#'
+#' Supports the source gamma stats implementation while preserving its internal contract.
+#' Source trace: `source/PAS_skunits/skfit2.pas::Standardize_tab4`.
+#' @param tab Internal `tab` value used by this helper.
+#' @return The internal `source_rc_gamma_counts()` computation result.
+#' @keywords internal
+#' @noRd
 source_rc_gamma_counts <- function(tab) {
   stats <- source_rc_gamma_stats(tab, include_cells = FALSE)
   list(gamma = stats$gamma, ppq = stats$ppq, pmq = stats$pmq)
 }
 
-# Source trace: source/PAS_skunits/skfit2.pas::Standardize_tab4 performs
-# 30 fixed row/column scaling passes. Pascal stores table cells as
-# V1V2_TAB(.I,J.) and scales the first source table index to Cmarg before the
-# second source table index to Rmarg. R callers pass those source indices as
-# matrix rows and columns, so this helper scales rows before columns and keeps
-# the fixed pass count instead of iterating to convergence.
+#' Source trace: source/PAS_skunits/skfit2.pas::Standardize_tab4 performs
+#' 30 fixed row/column scaling passes. Pascal stores table cells as
+#' V1V2_TAB(.I,J.) and scales the first source table index to Cmarg before the
+#' second source table index to Rmarg. R callers pass those source indices as
+#' matrix rows and columns, so this helper scales rows before columns and keeps
+#' the fixed pass count instead of iterating to convergence.
+#' @param tab Internal `tab` value used by this helper.
+#' @param row_margins Internal `row_margins` value used by this helper.
+#' @param col_margins Internal `col_margins` value used by this helper.
+#' @param n_iter Internal `n_iter` value used by this helper.
+#' @return The internal `source_standardize_table_margins()` computation result.
+#' @keywords internal
+#' @noRd
 source_standardize_table_margins <- function(tab, row_margins, col_margins, n_iter = 30L) {
   out <- as.matrix(tab)
   storage.mode(out) <- "double"
@@ -95,6 +116,14 @@ source_standardize_table_margins <- function(tab, row_margins, col_margins, n_it
   out
 }
 
+#' Internal gamma cell tables helper
+#'
+#' Supports the source gamma stats implementation while preserving its internal contract.
+#' Source trace: `source/PAS_skunits/skfit2.pas::Standardize_tab4`.
+#' @param tab Internal `tab` value used by this helper.
+#' @return The internal `gamma_cell_tables()` computation result.
+#' @keywords internal
+#' @noRd
 gamma_cell_tables <- function(tab) {
   stats <- source_rc_gamma_stats(tab, include_cells = TRUE)
   list(aij = stats$aij, dij = stats$dij, p = stats$p, q = stats$q)

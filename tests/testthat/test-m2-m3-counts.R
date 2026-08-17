@@ -7,7 +7,8 @@ m2_m3_counts_fixture_context <- function() {
     c(1L, 1L, 1L),
     c(0L, 1L, 0L),
     c(1L, 0L, 0L),
-    c(0L, 0L, 1L)
+    c(0L, 0L, 1L),
+    c(0L, 1L, 1L)
   )
   background_matrix <- rbind(
     c(1L, 1L),
@@ -17,9 +18,11 @@ m2_m3_counts_fixture_context <- function() {
     c(1L, 3L),
     c(2L, 1L),
     c(1L, 2L),
-    c(2L, 3L)
+    c(2L, 3L),
+    c(-1L, 2L)
   )
   score <- rowSums(item_matrix)
+  score[[9L]] <- -1L
 
   list(
     project = list(
@@ -51,7 +54,8 @@ m2_m3_counts_fixture_context <- function() {
     item_matrix = item_matrix,
     background_matrix = background_matrix,
     score = score,
-    valid_rows = 1:6
+    estimation_rows = 2:8,
+    valid_rows = 2:8
   )
 }
 
@@ -63,21 +67,21 @@ expect_count_array <- function(observed, dimensions, cells) {
   expect_equal(unname(observed), expected)
 }
 
-test_that("M2 observed count helpers tabulate all two-way families from valid rows", {
+test_that("M2 observed counters include complete score-zero records outside estimation", {
   context <- m2_m3_counts_fixture_context()
   score_group_lookup <- m2_m3_score_group_lookup(context, context$analysis$score_groups)
 
   expect_equal(
     unname(m2_m3_count_item_item(context, 1L, 2L)),
-    matrix(c(1L, 1L, 2L, 2L), nrow = 2L)
+    matrix(c(2L, 2L, 2L, 2L), nrow = 2L)
   )
   expect_equal(
     unname(m2_m3_count_item_exogenous(context, 1L, 1L)),
-    matrix(c(2L, 1L, 1L, 2L), nrow = 2L)
+    matrix(c(2L, 2L, 2L, 2L), nrow = 2L)
   )
   expect_equal(
     unname(m2_m3_count_item_score_group(context, 1L, score_group_lookup)),
-    matrix(c(2L, 0L, 1L, 3L), nrow = 2L)
+    matrix(c(3L, 1L, 1L, 3L), nrow = 2L)
   )
 
   expect_equal(
@@ -86,7 +90,7 @@ test_that("M2 observed count helpers tabulate all two-way families from valid ro
       m2_m3_spec("item_score_group", item = 1L, score_group = TRUE),
       score_group_lookup
     )),
-    matrix(c(2L, 0L, 1L, 3L), nrow = 2L)
+    matrix(c(3L, 1L, 1L, 3L), nrow = 2L)
   )
 })
 
@@ -100,11 +104,11 @@ test_that("M2/M3 score group lookup honors explicit diagnostic score cuts", {
   )
   expect_equal(
     unname(m2_m3_count_item_score_group(context, 1L, score_group_lookup)),
-    matrix(c(2L, 0L, 1L, 2L), nrow = 2L)
+    matrix(c(3L, 1L, 1L, 2L), nrow = 2L)
   )
 })
 
-test_that("M3 observed count helpers tabulate all three-way families from valid rows", {
+test_that("M3 observed counters follow routine-specific source record policies", {
   context <- m2_m3_counts_fixture_context()
   score_group_lookup <- m2_m3_score_group_lookup(context, context$analysis$score_groups)
 
@@ -117,7 +121,10 @@ test_that("M3 observed count helpers tabulate all three-way families from valid 
       c(2L, 1L, 2L),
       c(2L, 2L, 1L),
       c(2L, 2L, 2L),
-      c(1L, 2L, 1L)
+      c(1L, 2L, 1L),
+      c(2L, 1L, 1L),
+      c(1L, 1L, 2L),
+      c(1L, 2L, 2L)
     )
   )
   expect_count_array(
@@ -129,7 +136,9 @@ test_that("M3 observed count helpers tabulate all three-way families from valid 
       c(2L, 1L, 2L),
       c(2L, 2L, 2L),
       c(2L, 2L, 1L),
-      c(1L, 2L, 2L)
+      c(1L, 2L, 2L),
+      c(2L, 1L, 1L),
+      c(1L, 1L, 2L)
     )
   )
   expect_count_array(
@@ -141,7 +150,9 @@ test_that("M3 observed count helpers tabulate all three-way families from valid 
       c(2L, 1L, 2L),
       c(2L, 2L, 2L),
       c(2L, 2L, 2L),
-      c(1L, 2L, 1L)
+      c(1L, 2L, 1L),
+      c(2L, 1L, 1L),
+      c(1L, 1L, 1L)
     )
   )
   expect_count_array(
@@ -153,7 +164,9 @@ test_that("M3 observed count helpers tabulate all three-way families from valid 
       c(2L, 2L, 2L),
       c(2L, 2L, 3L),
       c(2L, 1L, 3L),
-      c(1L, 2L, 1L)
+      c(1L, 2L, 1L),
+      c(2L, 1L, 2L),
+      c(1L, 2L, 3L)
     )
   )
   expect_count_array(
@@ -165,6 +178,8 @@ test_that("M3 observed count helpers tabulate all three-way families from valid 
       c(2L, 2L, 2L),
       c(2L, 2L, 2L),
       c(2L, 1L, 2L),
+      c(1L, 2L, 1L),
+      c(2L, 1L, 1L),
       c(1L, 2L, 1L)
     )
   )
@@ -179,21 +194,13 @@ test_that("M3 observed count helpers tabulate all three-way families from valid 
   )
 })
 
-test_that("observed count helpers ignore rows outside context valid_rows", {
+test_that("CM3 row policies preserve the missing-exogenous IJK asymmetry", {
   context <- m2_m3_counts_fixture_context()
-  score_group_lookup <- m2_m3_score_group_lookup(context, context$analysis$score_groups)
-  valid_context <- context
-  valid_context$item_matrix <- context$item_matrix[context$valid_rows, , drop = FALSE]
-  valid_context$background_matrix <- context$background_matrix[context$valid_rows, , drop = FALSE]
-  valid_context$score <- context$score[context$valid_rows]
-  valid_context$valid_rows <- seq_along(valid_context$score)
 
-  expect_equal(
-    m2_m3_count_item_item(context, 1L, 2L),
-    m2_m3_count_item_item(valid_context, 1L, 2L)
-  )
-  expect_equal(
-    m2_m3_count_item_exogenous_score_group(context, 1L, 1L, score_group_lookup),
-    m2_m3_count_item_exogenous_score_group(valid_context, 1L, 1L, score_group_lookup)
-  )
+  expect_equal(source_estimation_rows(context), 2:8)
+  expect_equal(source_complete_item_exogenous_rows(context), 1:8)
+  expect_equal(source_cm3_observed_ijk_rows(context), 1:9)
+  expect_equal(sum(m2_m3_count_item_item(context, 1L, 2L)), 8L)
+  expect_equal(sum(m2_m3_count_item_item_exogenous(context, 1L, 2L, 1L)), 8L)
+  expect_equal(sum(m2_m3_count_item_item_item(context, 1L, 2L, 3L)), 9L)
 })

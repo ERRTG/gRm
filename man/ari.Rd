@@ -2,6 +2,7 @@
 % Please edit documentation in R/api-ari.R
 \name{ari}
 \alias{ari}
+\alias{print.gRm_ari}
 \title{DIGRAM ARI item score curves}
 \usage{
 ari(fit, ...)
@@ -9,7 +10,7 @@ ari(fit, ...)
 \arguments{
 \item{fit}{A fitted gRm model.}
 
-\item{...}{Reserved for future extensions; ignored.}
+\item{...}{Reserved for future extensions and must be empty.}
 }
 \value{
 A data frame with class \code{gRm_ari}. Rows follow DIGRAM's

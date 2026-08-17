@@ -15,7 +15,7 @@ current LD terms. Use \code{~ 0} to remove all LD terms.}
 \item{dif}{Replacement DIF formula. Use \code{NULL} to keep the current DIF
 terms. Use \code{~ 0} to remove all DIF terms.}
 
-\item{...}{Reserved for S3 dispatch compatibility; ignored.}
+\item{...}{Reserved for S3 dispatch compatibility and must be empty.}
 }
 \value{
 An updated \code{gRm_model} object. The returned model is not fitted;

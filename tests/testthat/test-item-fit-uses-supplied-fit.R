@@ -1,10 +1,13 @@
 test_that("base item_fit uses the supplied fitted Rasch state", {
-  data <- data.frame(
-    ID = seq_len(18L),
-    I1 = c(0L, 0L, 0L, 1L, 1L, 1L, 2L, 2L, 2L, 0L, 1L, 2L, 0L, 1L, 2L, 0L, 1L, 2L),
-    I2 = c(0L, 1L, 2L, 0L, 1L, 2L, 0L, 1L, 2L, 2L, 0L, 1L, 1L, 2L, 0L, 0L, 2L, 1L),
-    I3 = c(2L, 1L, 0L, 2L, 1L, 0L, 2L, 1L, 0L, 0L, 2L, 1L, 1L, 0L, 2L, 2L, 0L, 1L)
+  data <- expand.grid(
+    I1 = 0:2,
+    I2 = 0:2,
+    I3 = 0:2,
+    KEEP.OUT.ATTRS = FALSE
   )
+  data <- rbind(data, data[c(2L, 5L, 11L, 19L), , drop = FALSE])
+  data$ID <- seq_len(nrow(data))
+  data <- data[c("ID", "I1", "I2", "I3")]
   analysis <- gRm(
     data,
     items = c("I1", "I2", "I3"),

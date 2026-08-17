@@ -6,22 +6,66 @@
 # public fit(), but skip public item-parameter output construction that the
 # candidate likelihood-ratio tests do not use.
 
+#' Internal gllrm candidate base model helper
+#'
+#' Supports the gllrm candidate fit implementation while preserving its internal contract.
+#' Source trace: `source/PAS_skunits/skbias12b.pas::Estimate_GLLRM`.
+#' @param object Object dispatched to this helper.
+#' @return The internal `gllrm_candidate_base_model()` computation result.
+#' @keywords internal
+#' @noRd
+gllrm_candidate_base_model <- function(object) {
+  if (inherits(object, "gRm_model")) {
+    return(object)
+  }
+  if (inherits(object, "gRm_fit")) {
+    return(object$model %||% object$spec)
+  }
+  if (inherits(object, "gRm_project") ||
+      (is.list(object) && is.data.frame(object$items))) {
+    analysis <- list(
+      project = object,
+      items = as.character(object$items$name),
+      exogenous = as.character(object$backgrounds$name %||% character()),
+      source_trace = object$source_trace %||% character()
+    )
+    class(analysis) <- c("gRm_analysis", "list")
+    return(new_gRm_model(
+      analysis = analysis,
+      ld = empty_ld_terms(),
+      dif = empty_dif_terms(),
+      call = match.call()
+    ))
+  }
+  gllrm(object)
+}
+
+#' Internal gllrm candidate ld spec helper
+#'
+#' Supports the gllrm candidate fit implementation while preserving its internal contract.
+#' Source trace: `source/PAS_skunits/skbias12b.pas::Estimate_GLLRM`.
+#' @param object Object dispatched to this helper.
+#' @param item1 Internal `item1` value used by this helper.
+#' @param item2 Internal `item2` value used by this helper.
+#' @return The internal `gllrm_candidate_ld_spec()` computation result.
+#' @keywords internal
+#' @noRd
 gllrm_candidate_ld_spec <- function(object, item1, item2) {
-  model <- object$model %||% object$spec
-  context <- object$fit$context
+  model <- gllrm_candidate_base_model(object)
+  items <- model$project$items
   candidate <- canonical_ld_term(
-    vars = c(context$items$name[[item1]], context$items$name[[item2]]),
-    items = context$items$name,
-    label = paste(context$items$name[[item1]], context$items$name[[item2]], sep = ":"),
+    vars = c(items$name[[item1]], items$name[[item2]]),
+    items = items$name,
+    label = paste(items$name[[item1]], items$name[[item2]], sep = ":"),
     source = "user"
   )
   ld_terms <- source_order_ld_table(
-    context$items,
+    items,
     rbind_fill(model$ld %||% empty_ld_terms(), candidate)
   )
   dif_terms <- source_order_dif_table(
-    context$items,
-    context$backgrounds,
+    items,
+    model$project$backgrounds,
     model$dif %||% empty_dif_terms()
   )
   new_gRm_model_from_canonical_terms(
@@ -32,23 +76,34 @@ gllrm_candidate_ld_spec <- function(object, item1, item2) {
   )
 }
 
+#' Internal gllrm candidate dif spec helper
+#'
+#' Supports the gllrm candidate fit implementation while preserving its internal contract.
+#' Source trace: `source/PAS_skunits/skbias12b.pas::Estimate_GLLRM`.
+#' @param object Object dispatched to this helper.
+#' @param item One-based item index.
+#' @param background One-based exogenous-variable index.
+#' @return The internal `gllrm_candidate_dif_spec()` computation result.
+#' @keywords internal
+#' @noRd
 gllrm_candidate_dif_spec <- function(object, item, background) {
-  model <- object$model %||% object$spec
-  context <- object$fit$context
+  model <- gllrm_candidate_base_model(object)
+  items <- model$project$items
+  backgrounds <- model$project$backgrounds
   candidate <- canonical_dif_term(
-    vars = c(context$items$name[[item]], context$backgrounds$name[[background]]),
-    items = context$items$name,
-    exogenous = context$backgrounds$name,
-    label = paste(context$items$name[[item]], context$backgrounds$name[[background]], sep = ":"),
+    vars = c(items$name[[item]], backgrounds$name[[background]]),
+    items = items$name,
+    exogenous = backgrounds$name,
+    label = paste(items$name[[item]], backgrounds$name[[background]], sep = ":"),
     source = "user"
   )
   ld_terms <- source_order_ld_table(
-    context$items,
+    items,
     model$ld %||% empty_ld_terms()
   )
   dif_terms <- source_order_dif_table(
-    context$items,
-    context$backgrounds,
+    items,
+    backgrounds,
     rbind_fill(model$dif %||% empty_dif_terms(), candidate)
   )
   new_gRm_model_from_canonical_terms(
@@ -59,6 +114,17 @@ gllrm_candidate_dif_spec <- function(object, item, background) {
   )
 }
 
+#' Internal fit gllrm candidate core helper
+#'
+#' Supports the gllrm candidate fit implementation while preserving its internal contract.
+#' Source trace: `source/PAS_skunits/skbias12b.pas::Estimate_GLLRM`.
+#' @param spec GLLRM model specification.
+#' @param bundle Source-shaped analysis bundle.
+#' @param max_step Maximum fitting iteration.
+#' @param max_delta Sufficient-count discrepancy tolerance.
+#' @return The internal `fit_gllrm_candidate_core()` computation result.
+#' @keywords internal
+#' @noRd
 fit_gllrm_candidate_core <- function(spec, bundle, max_step, max_delta) {
   fit_gllrm(
     spec,
@@ -68,16 +134,34 @@ fit_gllrm_candidate_core <- function(spec, bundle, max_step, max_delta) {
   )
 }
 
+#' Internal new gllrm candidate fit helper
+#'
+#' Supports the gllrm candidate fit implementation while preserving its internal contract.
+#' Source trace: `source/PAS_skunits/skbias12b.pas::Estimate_GLLRM`.
+#' @param gllrm_fit Internal `gllrm_fit` value used by this helper.
+#' @param spec GLLRM model specification.
+#' @param max_step Maximum fitting iteration.
+#' @param max_delta Sufficient-count discrepancy tolerance.
+#' @return A newly assembled internal object or table.
+#' @keywords internal
+#' @noRd
 new_gllrm_candidate_fit <- function(gllrm_fit, spec, max_step, max_delta) {
+  convergence <- gRm_gllrm_convergence_state(
+    gllrm_fit$state,
+    max_step = max_step,
+    max_delta = max_delta
+  )
   out <- list(
     spec = spec,
     context = gllrm_fit$context,
     state = gllrm_fit$state,
     log_likelihood = gllrm_fit$state$log_likelihood,
-    n_step = gllrm_fit$state$n_step,
-    report_delta = gllrm_fit$state$report_delta,
-    converged = gllrm_fit$state$converged,
-    stop_reason = gllrm_fit$state$stop_reason,
+    convergence = convergence,
+    n_step = convergence$iterations,
+    report_delta = convergence$report_delta,
+    final_delta = convergence$final_delta,
+    converged = convergence$converged,
+    stop_reason = convergence$stop_reason,
     max_step = max_step,
     max_delta = max_delta
   )
@@ -85,12 +169,33 @@ new_gllrm_candidate_fit <- function(gllrm_fit, spec, max_step, max_delta) {
   out
 }
 
+#' Internal fit gllrm candidate bundle helper
+#'
+#' Supports the gllrm candidate fit implementation while preserving its internal contract.
+#' Source trace: `source/PAS_skunits/skbias12b.pas::Estimate_GLLRM`.
+#' @param object Object dispatched to this helper.
+#' @param spec GLLRM model specification.
+#' @return The internal `fit_gllrm_candidate_bundle()` computation result.
+#' @keywords internal
+#' @noRd
 fit_gllrm_candidate_bundle <- function(object, spec) {
   object$bundle %||%
     object$fit$bundle %||%
     build_item_parameters_bundle(spec$project)
 }
 
+#' Internal fit gllrm candidate ld helper
+#'
+#' Supports the gllrm candidate fit implementation while preserving its internal contract.
+#' Source trace: `source/PAS_skunits/skbias12b.pas::Estimate_GLLRM`.
+#' @param object Object dispatched to this helper.
+#' @param item1 Internal `item1` value used by this helper.
+#' @param item2 Internal `item2` value used by this helper.
+#' @param max_step Maximum fitting iteration.
+#' @param max_delta Sufficient-count discrepancy tolerance.
+#' @return The internal `fit_gllrm_candidate_ld()` computation result.
+#' @keywords internal
+#' @noRd
 fit_gllrm_candidate_ld <- function(object, item1, item2, max_step, max_delta) {
   spec <- gllrm_candidate_ld_spec(object, item1 = item1, item2 = item2)
   bundle <- fit_gllrm_candidate_bundle(object, spec)
@@ -103,6 +208,18 @@ fit_gllrm_candidate_ld <- function(object, item1, item2, max_step, max_delta) {
   new_gllrm_candidate_fit(gllrm_fit, spec, max_step = max_step, max_delta = max_delta)
 }
 
+#' Internal fit gllrm candidate dif helper
+#'
+#' Supports the gllrm candidate fit implementation while preserving its internal contract.
+#' Source trace: `source/PAS_skunits/skbias12b.pas::Estimate_GLLRM`.
+#' @param object Object dispatched to this helper.
+#' @param item One-based item index.
+#' @param background One-based exogenous-variable index.
+#' @param max_step Maximum fitting iteration.
+#' @param max_delta Sufficient-count discrepancy tolerance.
+#' @return The internal `fit_gllrm_candidate_dif()` computation result.
+#' @keywords internal
+#' @noRd
 fit_gllrm_candidate_dif <- function(object, item, background, max_step, max_delta) {
   spec <- gllrm_candidate_dif_spec(object, item = item, background = background)
   bundle <- fit_gllrm_candidate_bundle(object, spec)

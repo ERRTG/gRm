@@ -1,3 +1,11 @@
+#' Internal ari validate plot input helper
+#'
+#' Supports the ari plot implementation while preserving its internal contract.
+#' @param x Object or value to process.
+#' @param confidence Internal `confidence` value used by this helper.
+#' @return The internal `ari_validate_plot_input()` computation result.
+#' @keywords internal
+#' @noRd
 ari_validate_plot_input <- function(x, confidence = NULL) {
   if (!inherits(x, "gRm_ari")) {
     stop("ARI plotting requires a gRm_ari object returned by ari().", call. = FALSE)
@@ -36,6 +44,14 @@ ari_validate_plot_input <- function(x, confidence = NULL) {
   invisible(x)
 }
 
+#' Internal ari validate whole number helper
+#'
+#' Supports the ari plot implementation while preserving its internal contract.
+#' @param x Object or value to process.
+#' @param name Internal name or label.
+#' @return The internal `ari_validate_whole_number()` computation result.
+#' @keywords internal
+#' @noRd
 ari_validate_whole_number <- function(x, name) {
   if (!is.numeric(x) && !is.integer(x)) {
     stop(name, " must be a positive whole number.", call. = FALSE)
@@ -46,6 +62,14 @@ ari_validate_whole_number <- function(x, name) {
   as.integer(x)
 }
 
+#' Internal ari validate probability scalar helper
+#'
+#' Supports the ari plot implementation while preserving its internal contract.
+#' @param x Object or value to process.
+#' @param name Internal name or label.
+#' @return The internal `ari_validate_probability_scalar()` computation result.
+#' @keywords internal
+#' @noRd
 ari_validate_probability_scalar <- function(x, name) {
   if (!is.numeric(x) && !is.integer(x)) {
     stop(name, " must be a number between 0 and 1.", call. = FALSE)
@@ -56,6 +80,14 @@ ari_validate_probability_scalar <- function(x, name) {
   as.numeric(x)
 }
 
+#' Internal ari score intervals helper
+#'
+#' Supports the ari plot implementation while preserving its internal contract.
+#' @param x Object or value to process.
+#' @param class_size Internal `class_size` value used by this helper.
+#' @return The internal `ari_score_intervals()` computation result.
+#' @keywords internal
+#' @noRd
 ari_score_intervals <- function(x, class_size = 40L) {
   ari_validate_plot_input(x)
   class_size <- ari_validate_whole_number(class_size, "class_size")
@@ -92,11 +124,27 @@ ari_score_intervals <- function(x, class_size = 40L) {
   )
 }
 
+#' Internal ari confidence multiplier helper
+#'
+#' Supports the ari plot implementation while preserving its internal contract.
+#' @param confidence Internal `confidence` value used by this helper.
+#' @return The internal `ari_confidence_multiplier()` computation result.
+#' @keywords internal
+#' @noRd
 ari_confidence_multiplier <- function(confidence) {
   confidence <- ari_validate_probability_scalar(confidence, "confidence")
   stats::qnorm((1 + confidence) / 2)
 }
 
+#' Internal ari plot data helper
+#'
+#' Supports the ari plot implementation while preserving its internal contract.
+#' @param x Object or value to process.
+#' @param class_size Internal `class_size` value used by this helper.
+#' @param confidence Internal `confidence` value used by this helper.
+#' @return The internal `ari_plot_data()` computation result.
+#' @keywords internal
+#' @noRd
 ari_plot_data <- function(x, class_size = 40L, confidence = 0.95) {
   ari_validate_plot_input(x, confidence = confidence)
   class_size <- ari_validate_whole_number(class_size, "class_size")
@@ -145,6 +193,14 @@ ari_plot_data <- function(x, class_size = 40L, confidence = 0.95) {
   out
 }
 
+#' Internal ari filter plot items helper
+#'
+#' Supports the ari plot implementation while preserving its internal contract.
+#' @param x Object or value to process.
+#' @param items Item selection or item metadata.
+#' @return The internal `ari_filter_plot_items()` computation result.
+#' @keywords internal
+#' @noRd
 ari_filter_plot_items <- function(x, items = NULL) {
   if (is.null(items)) {
     return(x)
@@ -185,6 +241,15 @@ ari_filter_plot_items <- function(x, items = NULL) {
   out
 }
 
+#' Internal ari validate facet layout helper
+#'
+#' Supports the ari plot implementation while preserving its internal contract.
+#' @param plot_data Internal `plot_data` value used by this helper.
+#' @param rows Rows used by the computation.
+#' @param columns Internal `columns` value used by this helper.
+#' @return The internal `ari_validate_facet_layout()` computation result.
+#' @keywords internal
+#' @noRd
 ari_validate_facet_layout <- function(plot_data, rows = NULL, columns = NULL) {
   nrow_value <- NULL
   ncol_value <- NULL
@@ -268,13 +333,8 @@ plot.gRm_ari <- function(x,
                          items = NULL,
                          confidence = 0.95,
                          show_expected = FALSE) {
-  dots <- list(...)
-  if (length(dots)) {
-    stop("The ... argument is reserved for future extensions and must be empty.", call. = FALSE)
-  }
-  if (!is.logical(show_expected) || length(show_expected) != 1L || is.na(show_expected)) {
-    stop("show_expected must be TRUE or FALSE.", call. = FALSE)
-  }
+  reject_public_dots(...)
+  show_expected <- normalize_public_logical(show_expected, "show_expected")
 
   plot_data <- ari_plot_data(x, class_size = class_size, confidence = confidence)
   plot_data <- ari_filter_plot_items(plot_data, items = items)
@@ -316,5 +376,8 @@ plot.gRm_ari <- function(x,
     ggplot2::scale_x_continuous(breaks = seq_len(max(plot_data$interval))) +
     ggplot2::scale_fill_manual(NULL, values = c("95% CI" = "grey70")) +
     ggplot2::labs(x = "class interval", y = "Mean item score") +
-    ggplot2::theme_minimal()
+    ggplot2::theme_minimal() +
+    # Keep the historical transparent report surface explicit. ggplot2 4.x
+    # resolves the inherited plot background differently from older releases.
+    ggplot2::theme(plot.background = ggplot2::element_blank())
 }

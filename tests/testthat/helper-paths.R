@@ -54,16 +54,6 @@ package_path <- function(...) {
   file.path(package_root(), ...)
 }
 
-source_gRm <- function() {
-  r_dir <- package_path("R")
-  files <- list.files(r_dir, pattern = "[.]R$", full.names = TRUE)
-  for (file in sort(files)) {
-    sys.source(file, envir = globalenv())
-  }
-}
-
-source_gRm()
-
 normalize_report_text <- function(text) {
   text <- paste(text, collapse = "\n")
   text <- gsub("\r\n?", "\n", text)

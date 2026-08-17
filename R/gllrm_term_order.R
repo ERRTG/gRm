@@ -1,11 +1,17 @@
-# GLLRM source-order canonicalization.
-#
-# Source trace: source/PAS_skunits/skbias12b.pas::Initialize_GLLRMinfo
-# fills IJinfo by scanning `i := 1..nitems-1`, `j := i+1..nitems`, and
-# fills IXinfo by scanning `i := 1..nitems`, `j := 1..nexogene`.
-# source/GLLRM.txt then reports included LD and DIF terms by iterating
-# k := 1..Nij and k := 1..Nix. R keeps the same model-term order so formula
-# order does not leak into source-shaped model arrays or public term tables.
+#' GLLRM source-order canonicalization.
+#'
+#' Source trace: source/PAS_skunits/skbias12b.pas::Initialize_GLLRMinfo
+#' fills IJinfo by scanning `i := 1..nitems-1`, `j := i+1..nitems`, and
+#' fills IXinfo by scanning `i := 1..nitems`, `j := 1..nexogene`.
+#' source/GLLRM.txt then reports included LD and DIF terms by iterating
+#' k := 1..Nij and k := 1..Nix. R keeps the same model-term order so formula
+#' order does not leak into source-shaped model arrays or public term tables.
+#' @param analysis Prepared gRm analysis.
+#' @param ld Internal `ld` value used by this helper.
+#' @param dif Internal `dif` value used by this helper.
+#' @return The internal `source_order_model_terms()` computation result.
+#' @keywords internal
+#' @noRd
 source_order_model_terms <- function(analysis, ld, dif) {
   list(
     ld = source_order_ld_table(analysis$items, ld),
@@ -13,6 +19,15 @@ source_order_model_terms <- function(analysis, ld, dif) {
   )
 }
 
+#' Internal source order ld table helper
+#'
+#' Supports the gllrm term order implementation while preserving its internal contract.
+#' Source trace: `source/PAS_skunits/skbias12b.pas::Initialize_GLLRMinfo`.
+#' @param items Item selection or item metadata.
+#' @param terms Internal `terms` value used by this helper.
+#' @return The internal `source_order_ld_table()` computation result.
+#' @keywords internal
+#' @noRd
 source_order_ld_table <- function(items, terms) {
   if (is.null(terms) || nrow(terms) == 0L) {
     return(empty_ld_terms())
@@ -37,6 +52,16 @@ source_order_ld_table <- function(items, terms) {
   out
 }
 
+#' Internal source order dif table helper
+#'
+#' Supports the gllrm term order implementation while preserving its internal contract.
+#' Source trace: `source/PAS_skunits/skbias12b.pas::Initialize_GLLRMinfo`.
+#' @param items Item selection or item metadata.
+#' @param backgrounds Internal `backgrounds` value used by this helper.
+#' @param terms Internal `terms` value used by this helper.
+#' @return The internal `source_order_dif_table()` computation result.
+#' @keywords internal
+#' @noRd
 source_order_dif_table <- function(items, backgrounds, terms) {
   if (is.null(terms) || nrow(terms) == 0L) {
     return(empty_dif_terms())
@@ -58,6 +83,14 @@ source_order_dif_table <- function(items, backgrounds, terms) {
   out
 }
 
+#' Internal source order names helper
+#'
+#' Supports the gllrm term order implementation while preserving its internal contract.
+#' Source trace: `source/PAS_skunits/skbias12b.pas::Initialize_GLLRMinfo`.
+#' @param x Object or value to process.
+#' @return The internal `source_order_names()` computation result.
+#' @keywords internal
+#' @noRd
 source_order_names <- function(x) {
   if (is.null(x)) {
     return(character())

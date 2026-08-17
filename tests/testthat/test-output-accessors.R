@@ -1,11 +1,20 @@
 output_accessor_data <- function() {
-  data.frame(
-    ID = seq_len(7L),
-    I1 = c(1L, 1L, 2L, 3L, 1L, 0L, 2L),
-    I2 = c(1L, 2L, 2L, 3L, 3L, 1L, NA_integer_),
-    I3 = c(1L, 3L, 2L, 3L, 1L, 2L, 2L),
-    site = c(1L, NA_integer_, 2L, 1L, 2L, 1L, NA_integer_)
+  complete <- expand.grid(
+    I1 = 0:2,
+    I2 = 0:2,
+    I3 = 0:2,
+    site = 0:1,
+    KEEP.OUT.ATTRS = FALSE
   )
+  incomplete <- data.frame(
+    I1 = c(0L, 1L),
+    I2 = c(NA_integer_, 2L),
+    I3 = c(1L, 2L),
+    site = c(1L, NA_integer_)
+  )
+  data <- rbind(complete, incomplete)
+  data$ID <- seq_len(nrow(data))
+  data[c("ID", "I1", "I2", "I3", "site")]
 }
 
 test_that("summary is the public output accessor for analysis objects", {

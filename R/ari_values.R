@@ -1,3 +1,11 @@
+#' Internal ari values helper
+#'
+#' Supports the ari values implementation while preserving its internal contract.
+#' Source trace: `source/PAS_skunits/skbias15.pas::Calculate_Ari`.
+#' @param fit Fitted gRm model.
+#' @return The internal `ari_values()` computation result.
+#' @keywords internal
+#' @noRd
 ari_values <- function(fit) {
   bundle <- fit$bundle
   observed <- ari_observed_tables(bundle)
@@ -5,6 +13,14 @@ ari_values <- function(fit) {
   ari_row_table(bundle, observed, expected)
 }
 
+#' Internal ari observed tables helper
+#'
+#' Supports the ari values implementation while preserving its internal contract.
+#' Source trace: `source/PAS_skunits/skbias15.pas::Calculate_Ari`.
+#' @param bundle Source-shaped analysis bundle.
+#' @return The internal `ari_observed_tables()` computation result.
+#' @keywords internal
+#' @noRd
 ari_observed_tables <- function(bundle) {
   items <- bundle$model$items
   data <- bundle$data
@@ -46,6 +62,8 @@ ari_observed_tables <- function(bundle) {
   }
 
   rows <- which(valid)
+  # Calculate_Ari.Count_Observed traverses accepted records, then items, and
+  # adds the record frequency to the score/item/category cell in that order.
   for (row in rows) {
     score <- as.integer(data$score[[row]])
     weight <- row_weight[[row]]
@@ -59,6 +77,14 @@ ari_observed_tables <- function(bundle) {
   list(counts = counts, score_min = 1L, score_max = max_total_score - 1L)
 }
 
+#' Internal ari expected moments helper
+#'
+#' Supports the ari values implementation while preserving its internal contract.
+#' Source trace: `source/PAS_skunits/skbias15.pas::Calculate_Ari`.
+#' @param fit Fitted gRm model.
+#' @return The internal `ari_expected_moments()` computation result.
+#' @keywords internal
+#' @noRd
 ari_expected_moments <- function(fit) {
   if (is_gllrm_public_fit(fit)) {
     context <- fit$fit$context
@@ -79,6 +105,16 @@ ari_expected_moments <- function(fit) {
   )
 }
 
+#' Internal ari row table helper
+#'
+#' Supports the ari values implementation while preserving its internal contract.
+#' Source trace: `source/PAS_skunits/skbias15.pas::Calculate_Ari`.
+#' @param bundle Source-shaped analysis bundle.
+#' @param observed Internal `observed` value used by this helper.
+#' @param expected Internal `expected` value used by this helper.
+#' @return The internal `ari_row_table()` computation result.
+#' @keywords internal
+#' @noRd
 ari_row_table <- function(bundle, observed, expected) {
   items <- bundle$model$items
   n_items <- nrow(items)
@@ -103,6 +139,8 @@ ari_row_table <- function(bundle, observed, expected) {
       observed_supported <- observed_prob[seq_along(supported_scores)]
       obs_mean <- sum(supported_scores * observed_supported)
       raw_obs_var <- sum(supported_scores^2 * observed_supported) - obs_mean^2
+      # Calculate_Ari.SaveARI prints the unusual (n-1)/n multiplier. Retain it
+      # exactly; this is not the usual unbiased n/(n-1) variance correction.
       obs_var <- if (n > 1) ((n - 1) / n) * raw_obs_var else 0
 
       moment <- expected[[item_index]][[score + 1L]]
@@ -113,6 +151,9 @@ ari_row_table <- function(bundle, observed, expected) {
       }
       exp_mean <- as.numeric(moment$mean %||% 0)
       exp_var <- as.numeric(moment$variance %||% 0)
+      # Calculate_Ari.SaveARI standardizes the observed-minus-expected mean by
+      # the fitted item variance at this total score, with a zero-variance
+      # sentinel z of zero.
       z <- if (isTRUE(exp_var > 0)) {
         sqrt(n) * (obs_mean - exp_mean) / sqrt(exp_var)
       } else {
@@ -143,10 +184,26 @@ ari_row_table <- function(bundle, observed, expected) {
   out
 }
 
+#' Internal ari global item max helper
+#'
+#' Supports the ari values implementation while preserving its internal contract.
+#' Source trace: `source/PAS_skunits/skbias15.pas::Calculate_Ari`.
+#' @param items Item selection or item metadata.
+#' @return The internal `ari_global_item_max()` computation result.
+#' @keywords internal
+#' @noRd
 ari_global_item_max <- function(items) {
   max(as.integer(items$raw_max), 0L) - 1L
 }
 
+#' Internal ari table columns helper
+#'
+#' Supports the ari values implementation while preserving its internal contract.
+#' Source trace: `source/PAS_skunits/skbias15.pas::Calculate_Ari`.
+#' @param global_item_max Internal `global_item_max` value used by this helper.
+#' @return The internal `ari_table_columns()` computation result.
+#' @keywords internal
+#' @noRd
 ari_table_columns <- function(global_item_max) {
   c(
     "ItemNo", "Item", "Score", "n",
@@ -157,6 +214,14 @@ ari_table_columns <- function(global_item_max) {
   )
 }
 
+#' Internal ari empty table helper
+#'
+#' Supports the ari values implementation while preserving its internal contract.
+#' Source trace: `source/PAS_skunits/skbias15.pas::Calculate_Ari`.
+#' @param global_item_max Internal `global_item_max` value used by this helper.
+#' @return The internal `ari_empty_table()` computation result.
+#' @keywords internal
+#' @noRd
 ari_empty_table <- function(global_item_max) {
   columns <- ari_table_columns(global_item_max)
   out <- data.frame(

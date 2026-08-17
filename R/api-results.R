@@ -87,6 +87,15 @@ score_effects <- function(analysis,
   )
 }
 
+#' Internal score effects public table helper
+#'
+#' Supports the api results implementation while preserving its internal contract.
+#' @param values Values to validate or transform.
+#' @param metadata Internal `metadata` value used by this helper.
+#' @param call Captured R call.
+#' @return The internal `score_effects_public_table()` computation result.
+#' @keywords internal
+#' @noRd
 score_effects_public_table <- function(values, metadata, call) {
   bh <- score_effects_bh_table(values)
   table <- score_effects_tests_table(values, metadata$inference %||% "asymptotic")
@@ -107,6 +116,14 @@ score_effects_public_table <- function(values, metadata, call) {
   out
 }
 
+#' Internal score effects tests table helper
+#'
+#' Supports the api results implementation while preserving its internal contract.
+#' @param values Values to validate or transform.
+#' @param inference Internal `inference` value used by this helper.
+#' @return The internal `score_effects_tests_table()` computation result.
+#' @keywords internal
+#' @noRd
 score_effects_tests_table <- function(values, inference) {
   tests <- normalize_summary_table(values$screen %||% data.frame())
   if (!nrow(tests)) {
@@ -149,6 +166,15 @@ score_effects_tests_table <- function(values, inference) {
   out
 }
 
+#' Internal score effects column helper
+#'
+#' Supports the api results implementation while preserving its internal contract.
+#' @param tests Diagnostic test rows.
+#' @param column Internal `column` value used by this helper.
+#' @param default Internal `default` value used by this helper.
+#' @return The internal `score_effects_column()` computation result.
+#' @keywords internal
+#' @noRd
 score_effects_column <- function(tests, column, default) {
   if (column %in% names(tests)) {
     return(tests[[column]])
@@ -170,12 +196,13 @@ score_effects_column <- function(tests, column, default) {
 #' @param which Item fit table to return. `"tests"` returns the compact
 #'   inferential item fit diagnostics and is the default. `"items"` returns the
 #'   extended per-item outfit/infit diagnostic decomposition.
-#' @param include_extended Whether to compute extended item fit detail tables.
-#'   When `FALSE`, `item_fit(fit, which = "items")` returns an empty data
+#' @param include_extended Single non-missing logical value controlling whether
+#'   to compute extended item fit detail tables. When `FALSE`,
+#'   `item_fit(fit, which = "items")` returns an empty data
 #'   frame with the expected item-summary columns because the per-item extended
 #'   diagnostic summaries were not computed. The compact `which = "tests"`
 #'   table remains available.
-#' @param ... Reserved for S3 dispatch compatibility; ignored.
+#' @param ... Reserved for S3 dispatch compatibility and must be empty.
 #' @return A data-frame-like `gRm_item_fit` table. The unchanged
 #'   `gRm_item_fits_values` backend object is available as
 #'   `attr(result, "values")`; the Benjamini-Hochberg threshold table is
@@ -263,7 +290,9 @@ score_effects_column <- function(tests, column, default) {
 #' item_summaries <- item_fit(fit0, which = "items")
 #' }
 item_fit <- function(fit, which = c("tests", "items"), include_extended = TRUE, ...) {
+  reject_public_dots(...)
   fit <- as_public_gRm_fit(fit)
+  include_extended <- normalize_public_logical(include_extended, "include_extended")
   if (missing(which)) {
     which <- "tests"
   }
@@ -278,11 +307,21 @@ item_fit <- function(fit, which = c("tests", "items"), include_extended = TRUE, 
   item_fit_public_table(
     values,
     which = which,
-    include_extended = isTRUE(include_extended),
+    include_extended = include_extended,
     call = match.call()
   )
 }
 
+#' Internal item fit public table helper
+#'
+#' Supports the api results implementation while preserving its internal contract.
+#' @param values Values to validate or transform.
+#' @param which Internal `which` value used by this helper.
+#' @param include_extended Internal `include_extended` value used by this helper.
+#' @param call Captured R call.
+#' @return The internal `item_fit_public_table()` computation result.
+#' @keywords internal
+#' @noRd
 item_fit_public_table <- function(values,
                                   which,
                                   include_extended,
@@ -326,6 +365,13 @@ item_fit_public_table <- function(values,
   )
 }
 
+#' Internal item fit tests table helper
+#'
+#' Supports the api results implementation while preserving its internal contract.
+#' @param values Values to validate or transform.
+#' @return The internal `item_fit_tests_table()` computation result.
+#' @keywords internal
+#' @noRd
 item_fit_tests_table <- function(values) {
   table <- values$items %||% data.frame()
   if (!is.data.frame(table)) {
@@ -370,6 +416,13 @@ item_fit_fdr_marker <- function(risk) {
   unname(markers[match(as.integer(risk), 0:3)])
 }
 
+#' Internal item fit items table helper
+#'
+#' Supports the api results implementation while preserving its internal contract.
+#' @param values Values to validate or transform.
+#' @return The internal `item_fit_items_table()` computation result.
+#' @keywords internal
+#' @noRd
 item_fit_items_table <- function(values) {
   table <- values$extended$summaries %||% item_fit_empty_items_table()
   if (!is.data.frame(table) || !nrow(table)) {
@@ -391,6 +444,12 @@ item_fit_items_table <- function(values) {
   )
 }
 
+#' Internal item fit empty items table helper
+#'
+#' Supports the api results implementation while preserving its internal contract.
+#' @return The internal `item_fit_empty_items_table()` computation result.
+#' @keywords internal
+#' @noRd
 item_fit_empty_items_table <- function() {
   data.frame(
     Item = character(),
@@ -407,6 +466,16 @@ item_fit_empty_items_table <- function() {
   )
 }
 
+#' Internal item fit public column helper
+#'
+#' Supports the api results implementation while preserving its internal contract.
+#' @param table Numeric contingency or result table.
+#' @param column Internal `column` value used by this helper.
+#' @param prototype Internal `prototype` value used by this helper.
+#' @param n Internal `n` value used by this helper.
+#' @return The internal `item_fit_public_column()` computation result.
+#' @keywords internal
+#' @noRd
 item_fit_public_column <- function(table, column, prototype, n) {
   if (column %in% names(table)) {
     return(table[[column]])
@@ -414,6 +483,13 @@ item_fit_public_column <- function(table, column, prototype, n) {
   rep(item_fit_public_missing_value(prototype), n)
 }
 
+#' Internal item fit public missing value helper
+#'
+#' Supports the api results implementation while preserving its internal contract.
+#' @param prototype Internal `prototype` value used by this helper.
+#' @return The internal `item_fit_public_missing_value()` computation result.
+#' @keywords internal
+#' @noRd
 item_fit_public_missing_value <- function(prototype) {
   if (is.character(prototype)) {
     return(NA_character_)
@@ -430,6 +506,13 @@ item_fit_public_missing_value <- function(prototype) {
   NA
 }
 
+#' Internal item fit bh table helper
+#'
+#' Supports the api results implementation while preserving its internal contract.
+#' @param values Values to validate or transform.
+#' @return The internal `item_fit_bh_table()` computation result.
+#' @keywords internal
+#' @noRd
 item_fit_bh_table <- function(values) {
   table <- result_named_numeric_table(values$bh_limits %||% numeric(), "threshold", "p_value")
   if (!nrow(table)) {
@@ -439,6 +522,14 @@ item_fit_bh_table <- function(values) {
   table[c("threshold", "fdr", "p_value")]
 }
 
+#' Internal item fit bh footer helper
+#'
+#' Supports the api results implementation while preserving its internal contract.
+#' @param bh Internal `bh` value used by this helper.
+#' @param digits Internal `digits` value used by this helper.
+#' @return The internal `item_fit_bh_footer()` computation result.
+#' @keywords internal
+#' @noRd
 item_fit_bh_footer <- function(bh, digits = max(3L, getOption("digits") - 3L)) {
   if (!is.data.frame(bh) || !nrow(bh)) {
     return(character())
@@ -458,6 +549,13 @@ item_fit_bh_footer <- function(bh, digits = max(3L, getOption("digits") - 3L)) {
   paste0("Benjamini-Hochberg thresholds: ", paste(parts, collapse = ", "))
 }
 
+#' Internal score effects bh table helper
+#'
+#' Supports the api results implementation while preserving its internal contract.
+#' @param values Values to validate or transform.
+#' @return The internal `score_effects_bh_table()` computation result.
+#' @keywords internal
+#' @noRd
 score_effects_bh_table <- function(values) {
   bh <- values$bh %||% list()
   data.frame(
@@ -468,10 +566,25 @@ score_effects_bh_table <- function(values) {
   )
 }
 
+#' Internal score effects bh footer helper
+#'
+#' Supports the api results implementation while preserving its internal contract.
+#' @param bh Internal `bh` value used by this helper.
+#' @param digits Internal `digits` value used by this helper.
+#' @return The internal `score_effects_bh_footer()` computation result.
+#' @keywords internal
+#' @noRd
 score_effects_bh_footer <- function(bh, digits = max(3L, getOption("digits") - 3L)) {
   item_fit_bh_footer(bh, digits = digits)
 }
 
+#' Internal item fit bh fdr label helper
+#'
+#' Supports the api results implementation while preserving its internal contract.
+#' @param threshold Internal `threshold` value used by this helper.
+#' @return The internal `item_fit_bh_fdr_label()` computation result.
+#' @keywords internal
+#' @noRd
 item_fit_bh_fdr_label <- function(threshold) {
   out <- as.character(threshold)
   out[out %in% c("fdr_5", "fdr_05")] <- "0.05"
@@ -480,6 +593,24 @@ item_fit_bh_fdr_label <- function(threshold) {
   out
 }
 
+#' Internal make gRm direct table helper
+#'
+#' Supports the api results implementation while preserving its internal contract.
+#' @param table Numeric contingency or result table.
+#' @param class Internal `class` value used by this helper.
+#' @param values Values to validate or transform.
+#' @param bh Internal `bh` value used by this helper.
+#' @param which Internal `which` value used by this helper.
+#' @param title Internal `title` value used by this helper.
+#' @param table_note Internal `table_note` value used by this helper.
+#' @param analysis Prepared gRm analysis.
+#' @param fit Fitted gRm model.
+#' @param result Result value to assemble or transform.
+#' @param metadata Internal `metadata` value used by this helper.
+#' @param call Captured R call.
+#' @return A newly assembled internal object or table.
+#' @keywords internal
+#' @noRd
 make_gRm_direct_table <- function(table,
                                   class,
                                   values,
@@ -518,7 +649,7 @@ make_gRm_direct_table <- function(table,
 #' @param max_delta Single positive finite convergence threshold for candidate
 #'   models.
 #' @param jobs Number of parallel jobs. Defaults to source-stable serial work.
-#' @param ... Reserved for S3 dispatch compatibility; ignored.
+#' @param ... Reserved for S3 dispatch compatibility and must be empty.
 #' @return A `gRm_local_dependence` result object.
 #' @export
 #' @examples
@@ -542,6 +673,7 @@ local_dependence <- function(fit,
                              max_delta = 0.0001,
                              jobs = 1L,
                              ...) {
+  reject_public_dots(...)
   fit <- as_public_gRm_fit(fit)
   controls <- normalize_public_fit_controls(max_step, max_delta)
   max_step <- controls$max_step
@@ -556,7 +688,7 @@ local_dependence <- function(fit,
     )
   } else {
     local_independence_values(
-      fit$project %||% fit$analysis$project,
+      fit,
       max_step = max_step,
       max_delta = max_delta,
       jobs = jobs
@@ -581,7 +713,7 @@ local_dependence <- function(fit,
 #' @param max_delta Single positive finite convergence threshold for candidate
 #'   models.
 #' @param jobs Number of parallel jobs. Defaults to source-stable serial work.
-#' @param ... Reserved for S3 dispatch compatibility; ignored.
+#' @param ... Reserved for S3 dispatch compatibility and must be empty.
 #' @return A `gRm_dif` result object.
 #' @export
 #' @examples
@@ -608,6 +740,7 @@ dif <- function(fit,
                 max_delta = 0.0001,
                 jobs = 1L,
                 ...) {
+  reject_public_dots(...)
   fit <- as_public_gRm_fit(fit)
   controls <- normalize_public_fit_controls(max_step, max_delta)
   max_step <- controls$max_step
@@ -622,7 +755,7 @@ dif <- function(fit,
     )
   } else {
     dif_tests_values(
-      fit$project %||% fit$analysis$project,
+      fit,
       max_step = max_step,
       max_delta = max_delta,
       jobs = jobs
@@ -656,7 +789,7 @@ dif <- function(fit,
 #'   iterations for group models.
 #' @param max_delta Single positive finite convergence threshold for group
 #'   models.
-#' @param ... Reserved for S3 dispatch compatibility; ignored.
+#' @param ... Reserved for S3 dispatch compatibility and must be empty.
 #' @return A `gRm_global_homogeneity` result object.
 #' @details
 #' `summary(result, which = "test")` reports the source-backed likelihood-ratio
@@ -741,6 +874,19 @@ global_homogeneity <- function(fit,
   )
 }
 
+#' Internal new gRm result helper
+#'
+#' Supports the api results implementation while preserving its internal contract.
+#' @param class Internal `class` value used by this helper.
+#' @param analysis Prepared gRm analysis.
+#' @param fit Fitted gRm model.
+#' @param values Values to validate or transform.
+#' @param result Result value to assemble or transform.
+#' @param metadata Internal `metadata` value used by this helper.
+#' @param call Captured R call.
+#' @return A newly assembled internal object or table.
+#' @keywords internal
+#' @noRd
 new_gRm_result <- function(class,
                               analysis,
                               fit,
@@ -751,6 +897,8 @@ new_gRm_result <- function(class,
   out <- list(
     analysis = analysis,
     project = analysis$project,
+    analysis_fingerprint = analysis$analysis_fingerprint,
+    likelihood_sample = analysis$likelihood_sample,
     fit = fit,
     values = values,
     result = result,
@@ -768,6 +916,13 @@ new_gRm_result <- function(class,
   out
 }
 
+#' Internal as public gRm analysis helper
+#'
+#' Supports the api results implementation while preserving its internal contract.
+#' @param x Object or value to process.
+#' @return The normalized or validated internal value.
+#' @keywords internal
+#' @noRd
 as_public_gRm_analysis <- function(x) {
   if (inherits(x, "gRm_analysis")) {
     return(x)
@@ -784,6 +939,13 @@ as_public_gRm_analysis <- function(x) {
   stop("Expected a DIGRAM analysis object.", call. = FALSE)
 }
 
+#' Internal as public gRm fit helper
+#'
+#' Supports the api results implementation while preserving its internal contract.
+#' @param x Object or value to process.
+#' @return The normalized or validated internal value.
+#' @keywords internal
+#' @noRd
 as_public_gRm_fit <- function(x) {
   if (inherits(x, "gRm_fit")) {
     return(x)
@@ -791,12 +953,26 @@ as_public_gRm_fit <- function(x) {
   stop("Expected a fitted DIGRAM model.", call. = FALSE)
 }
 
+#' Internal is gllrm public fit helper
+#'
+#' Supports the api results implementation while preserving its internal contract.
+#' @param fit Fitted gRm model.
+#' @return A length-one logical result.
+#' @keywords internal
+#' @noRd
 is_gllrm_public_fit <- function(fit) {
   inherits(fit$values, "gRm_gllrm_values") ||
     nrow(fit$spec$ld %||% data.frame()) > 0L ||
     nrow(fit$spec$dif %||% data.frame()) > 0L
 }
 
+#' Internal normalize public jobs helper
+#'
+#' Supports the api results implementation while preserving its internal contract.
+#' @param jobs Requested worker count.
+#' @return The normalized or validated internal value.
+#' @keywords internal
+#' @noRd
 normalize_public_jobs <- function(jobs) {
   if (is.null(jobs)) {
     jobs <- 1L
@@ -809,14 +985,56 @@ normalize_public_jobs <- function(jobs) {
   )
 }
 
+#' Internal reject public dots helper
+#'
+#' Supports the api results implementation while preserving its internal contract.
+#' @param ... Additional internal arguments passed through this helper.
+#' @return The internal `reject_public_dots()` computation result.
+#' @keywords internal
+#' @noRd
 reject_public_dots <- function(...) {
   dots <- list(...)
   if (length(dots)) {
-    stop("The ... argument is reserved for future extensions and must be empty.", call. = FALSE)
+    labels <- names(dots)
+    if (is.null(labels)) {
+      labels <- rep("", length(dots))
+    }
+    unnamed <- !nzchar(labels)
+    labels[unnamed] <- paste0("..", which(unnamed))
+    stop(
+      "The ... argument is reserved for future extensions and must be empty. Unsupported argument",
+      if (length(labels) == 1L) ": " else "s: ",
+      paste0("`", labels, "`", collapse = ", "),
+      ".",
+      call. = FALSE
+    )
   }
   invisible(NULL)
 }
 
+#' Normalize one public logical control
+#'
+#' @param value Value supplied at the public boundary.
+#' @param argument Argument name without backticks.
+#' @return A length-one non-missing logical value.
+#' @keywords internal
+normalize_public_logical <- function(value, argument) {
+  if (!is.logical(value) || length(value) != 1L || is.na(value)) {
+    stop("`", argument, "` must be a single non-missing logical value.", call. = FALSE)
+  }
+  value
+}
+
+#' Internal normalize public score cuts helper
+#'
+#' Supports the api results implementation while preserving its internal contract.
+#' @param score_cuts Resolved total-score cut values.
+#' @param project Encoded gRm project.
+#' @param default Internal `default` value used by this helper.
+#' @param bundle Source-shaped analysis bundle.
+#' @return The normalized or validated internal value.
+#' @keywords internal
+#' @noRd
 normalize_public_score_cuts <- function(score_cuts, project, default = NULL, bundle = NULL) {
   if (is.null(score_cuts)) {
     score_cuts <- default %||% integer()

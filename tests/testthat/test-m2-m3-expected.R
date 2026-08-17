@@ -137,8 +137,9 @@ m2_m3_scalar_focus_probabilities <- function(context, state, focus_items, total_
 
 m2_m3_reference_item_exogenous <- function(context, state, spec) {
   out <- matrix(0, nrow = context$item_raw_max[[spec$item]], ncol = context$background_raw_max[[spec$exogenous]])
-  for (group_index in seq_len(nrow(context$score_exo_groups))) {
-    group <- context$score_exo_groups[group_index, , drop = FALSE]
+  groups <- m2_m3_source_score_background_groups(context)
+  for (group_index in seq_len(nrow(groups))) {
+    group <- groups[group_index, , drop = FALSE]
     background_values <- gllrm_group_background_values(context, group)
     probabilities <- gllrm_group_item_probabilities(
       context,
@@ -155,8 +156,9 @@ m2_m3_reference_item_exogenous <- function(context, state, spec) {
 
 m2_m3_reference_item_score_group <- function(context, state, spec, score_group_lookup) {
   out <- matrix(0, nrow = context$item_raw_max[[spec$item]], ncol = m2_m3_score_group_count(score_group_lookup))
-  for (group_index in seq_len(nrow(context$score_exo_groups))) {
-    group <- context$score_exo_groups[group_index, , drop = FALSE]
+  groups <- m2_m3_source_score_background_groups(context)
+  for (group_index in seq_len(nrow(groups))) {
+    group <- groups[group_index, , drop = FALSE]
     score_group <- global_homogeneity_lookup_score(score_group_lookup, group$score[[1L]])
     if (is.na(score_group)) {
       next
@@ -177,8 +179,9 @@ m2_m3_reference_item_score_group <- function(context, state, spec, score_group_l
 m2_m3_reference_focus_expected <- function(context, state, spec, focus_items, extra_index = NULL) {
   dims <- c(as.integer(context$item_raw_max[focus_items]), extra_index$size %||% integer())
   out <- array(0, dim = dims)
-  for (group_index in seq_len(nrow(context$score_exo_groups))) {
-    group <- context$score_exo_groups[group_index, , drop = FALSE]
+  groups <- m2_m3_source_score_background_groups(context)
+  for (group_index in seq_len(nrow(groups))) {
+    group <- groups[group_index, , drop = FALSE]
     background_values <- gllrm_group_background_values(context, group)
     suffix <- if (is.null(extra_index)) {
       integer()
@@ -299,7 +302,7 @@ test_that("item-exogenous expected tables keep non-DIF exogenous level totals", 
 
   actual <- m2_m3_expected_item_exogenous(context, exo_spec, NULL, cache)
   observed_exogenous_counts <- tabulate(
-    context$background_matrix[context$valid_rows, exo_spec$exogenous],
+    context$background_matrix[source_complete_item_exogenous_rows(context), exo_spec$exogenous],
     nbins = context$background_raw_max[[exo_spec$exogenous]]
   )
 
@@ -312,10 +315,11 @@ test_that("three-way expected tables have source-shaped dimensions and totals", 
   state <- fixture$state
   cache <- new_m2_m3_focus_probability_cache(context, state)
   score_group_lookup <- m2_m3_test_score_group_lookup(context)
-  total_n <- sum(context$score_exo_groups$count)
-  score_group_n <- sum(context$score_exo_groups$count[
+  diagnostic_groups <- m2_m3_source_score_background_groups(context)
+  total_n <- sum(diagnostic_groups$count)
+  score_group_n <- sum(diagnostic_groups$count[
     !is.na(vapply(
-      context$score_exo_groups$score,
+      diagnostic_groups$score,
       function(score) global_homogeneity_lookup_score(score_group_lookup, score),
       integer(1L)
     ))

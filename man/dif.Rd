@@ -17,7 +17,7 @@ models.}
 
 \item{jobs}{Number of parallel jobs. Defaults to source-stable serial work.}
 
-\item{...}{Reserved for S3 dispatch compatibility; ignored.}
+\item{...}{Reserved for S3 dispatch compatibility and must be empty.}
 }
 \value{
 A \code{gRm_dif} result object.

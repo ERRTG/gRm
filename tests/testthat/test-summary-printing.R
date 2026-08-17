@@ -1,11 +1,12 @@
 summary_print_data <- function() {
-  data.frame(
-    ID = seq_len(12L),
-    I1 = c(1L, 1L, 2L, 2L, 3L, 3L, 1L, 2L, 3L, 1L, 2L, 3L),
-    I2 = c(1L, 2L, 1L, 3L, 2L, 3L, 3L, 1L, 2L, 2L, 3L, 1L),
-    I3 = c(2L, 1L, 3L, 1L, 2L, 3L, 2L, 1L, 3L, 3L, 2L, 1L),
-    site = c(1L, 1L, 1L, 2L, 2L, 2L, 1L, 1L, 2L, 2L, 1L, 2L)
+  rows <- expand.grid(
+    I1 = 1:3,
+    I2 = 1:3,
+    I3 = 1:3,
+    site = 1:2,
+    KEEP.OUT.ATTRS = FALSE
   )
+  data.frame(ID = seq_len(nrow(rows)), rows)
 }
 
 summary_print_analysis <- function() {
@@ -15,7 +16,7 @@ summary_print_analysis <- function() {
     items = c("I1", "I2", "I3"),
     exogenous = "site",
     id = "ID",
-    score_cuts = "auto"
+    score_cuts = c(2L, 6L)
   )
 }
 
@@ -153,7 +154,7 @@ test_that("fit print method shows a compact status overview", {
         delta = 0.0000023
       ),
       values = list(
-        log_likelihood = -1234.56
+        log_likelihood = 1234.56
       )
     ),
     class = "gRm_fit"
@@ -165,7 +166,7 @@ test_that("fit print method shows a compact status overview", {
     "  Converged: yes",
     "  Iterations: 184",
     "  Delta: 2.3e-06",
-    "  Log likelihood: -1234.56",
+    "  Negative log likelihood (DIGRAM): 1234.56",
     "",
     "Use summary(x) to show the fitted-model details."
   ))
@@ -180,7 +181,7 @@ test_that("analysis summary prints a Graphical Log-Linear Rasch Model header", {
     "",
     "Data",
     "  Source: source_data",
-    "  Rows: 12",
+    "  Rows: 54",
     "  ID: ID",
     "",
     "Variables",
@@ -193,17 +194,17 @@ test_that("analysis summary prints a Graphical Log-Linear Rasch Model header", {
     "  Groups: 2 (0-2, 3-6)",
     "",
     "Score group distribution",
-    "Observed score range: 1-6"
+    "Observed score range: 0-6"
   ))
   expect_true("Score group distribution" %in% printed)
-  expect_true("Score-group cases: 12" %in% printed)
+  expect_true("Score-group cases: 54" %in% printed)
   expect_true("Missing item-score rows: 0" %in% printed)
   expect_false("data" %in% printed)
 
   summary_object <- summary(analysis)
   expect_equal(summary_object$data$items, "I1, I2, I3")
   expect_equal(summary_object$score_groups$score, c("0-2", "3-6", "Total"))
-  expect_equal(summary_object$score_groups$count, c(4L, 8L, 12L))
+  expect_equal(summary_object$score_groups$count, c(20L, 34L, 54L))
 })
 
 test_that("analysis print shows a compact status overview", {
@@ -213,7 +214,7 @@ test_that("analysis print shows a compact status overview", {
     "gRm: Graphical Log-Linear Rasch Model analysis",
     "",
     "  Source: source_data",
-    "  Rows: 12",
+    "  Rows: 54",
     "  ID: ID",
     "  Items: 3",
     "  Exogenous: 1",

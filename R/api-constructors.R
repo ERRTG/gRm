@@ -196,6 +196,18 @@ read_digram_project <- function(path,
   )
 }
 
+#' Internal normalize public integer like helper
+#'
+#' Supports the api constructors implementation while preserving its internal contract.
+#' @param value Value to validate or transform.
+#' @param message Internal `message` value used by this helper.
+#' @param min_length Internal `min_length` value used by this helper.
+#' @param scalar Internal `scalar` value used by this helper.
+#' @param lower Internal `lower` value used by this helper.
+#' @param upper Internal `upper` value used by this helper.
+#' @return The normalized or validated internal value.
+#' @keywords internal
+#' @noRd
 normalize_public_integer_like <- function(value,
                                           message,
                                           min_length = 1L,
@@ -234,6 +246,13 @@ normalize_public_integer_like <- function(value,
   as.integer(value)
 }
 
+#' Internal gRm data argument label helper
+#'
+#' Supports the api constructors implementation while preserving its internal contract.
+#' @param expr Internal `expr` value used by this helper.
+#' @return The internal `gRm_data_argument_label()` computation result.
+#' @keywords internal
+#' @noRd
 gRm_data_argument_label <- function(expr) {
   label <- paste(deparse(expr, width.cutoff = 60L), collapse = "")
   if (!nzchar(label)) {
@@ -242,7 +261,29 @@ gRm_data_argument_label <- function(expr) {
   label
 }
 
+#' Internal new gRm analysis helper
+#'
+#' Supports the api constructors implementation while preserving its internal contract.
+#' @param project Encoded gRm project.
+#' @param data Input data for the computation.
+#' @param id Internal `id` value used by this helper.
+#' @param data_name Internal `data_name` value used by this helper.
+#' @param score_cuts Resolved total-score cut values.
+#' @param name Internal name or label.
+#' @param call Captured R call.
+#' @return A newly assembled internal object or table.
+#' @keywords internal
+#' @noRd
 new_gRm_analysis <- function(project, data, id, data_name, score_cuts, name, call) {
+  score_groups <- normalize_gRm_score_cuts(score_cuts, project)
+  bundle <- build_item_parameters_bundle(project)
+  identity <- gRm_analysis_identity_fields(
+    project,
+    data,
+    id,
+    score_groups,
+    bundle = bundle
+  )
   out <- list(
     data = data,
     project = project,
@@ -251,7 +292,10 @@ new_gRm_analysis <- function(project, data, id, data_name, score_cuts, name, cal
     items = project$items$name,
     exogenous = project$backgrounds$name,
     id = id,
-    score_groups = normalize_gRm_score_cuts(score_cuts, project),
+    score_groups = score_groups,
+    analysis_identity = identity$identity,
+    analysis_fingerprint = identity$fingerprint,
+    likelihood_sample = identity$likelihood_sample,
     source_trace = c(project$source_trace %||% character(), api = "gRm_analysis"),
     validation = list(status = "not_validated", corpus = NA_character_),
     unmodeled = character(),
@@ -262,6 +306,14 @@ new_gRm_analysis <- function(project, data, id, data_name, score_cuts, name, cal
   out
 }
 
+#' Internal normalize gRm score cuts helper
+#'
+#' Supports the api constructors implementation while preserving its internal contract.
+#' @param score_cuts Resolved total-score cut values.
+#' @param project Encoded gRm project.
+#' @return The normalized or validated internal value.
+#' @keywords internal
+#' @noRd
 normalize_gRm_score_cuts <- function(score_cuts, project) {
   if (identical(score_cuts, "auto")) {
     return(resolve_auto_score_groups(project))
@@ -272,6 +324,13 @@ normalize_gRm_score_cuts <- function(score_cuts, project) {
   stop("`score_cuts` must be \"auto\" or an integer-like vector of score cuts.", call. = FALSE)
 }
 
+#' Internal resolve auto score groups helper
+#'
+#' Supports the api constructors implementation while preserving its internal contract.
+#' @param project Encoded gRm project.
+#' @return The normalized or validated internal value.
+#' @keywords internal
+#' @noRd
 resolve_auto_score_groups <- function(project) {
   values <- tryCatch(
     items_select_values(project),
@@ -291,6 +350,14 @@ resolve_auto_score_groups <- function(project) {
   )
 }
 
+#' Internal resolve explicit score groups helper
+#'
+#' Supports the api constructors implementation while preserving its internal contract.
+#' @param project Encoded gRm project.
+#' @param score_cuts Resolved total-score cut values.
+#' @return The normalized or validated internal value.
+#' @keywords internal
+#' @noRd
 resolve_explicit_score_groups <- function(project, score_cuts) {
   validate_gRm_constructor_score_cuts(
     project,
@@ -300,6 +367,16 @@ resolve_explicit_score_groups <- function(project, score_cuts) {
   )
 }
 
+#' Internal validate gRm constructor score cuts helper
+#'
+#' Supports the api constructors implementation while preserving its internal contract.
+#' @param project Encoded gRm project.
+#' @param score_cuts Resolved total-score cut values.
+#' @param what Internal `what` value used by this helper.
+#' @param require_multiple_groups Internal `require_multiple_groups` value used by this helper.
+#' @return The normalized or validated internal value.
+#' @keywords internal
+#' @noRd
 validate_gRm_constructor_score_cuts <- function(project,
                                                 score_cuts,
                                                 what,

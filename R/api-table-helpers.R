@@ -1,3 +1,10 @@
+#' Internal list to one row helper
+#'
+#' Supports the api table helpers implementation while preserving its internal contract.
+#' @param x Object or value to process.
+#' @return The internal `list_to_one_row()` computation result.
+#' @keywords internal
+#' @noRd
 list_to_one_row <- function(x) {
   if (is.data.frame(x)) {
     return(x)
@@ -8,6 +15,15 @@ list_to_one_row <- function(x) {
   data.frame(as.list(x), check.names = FALSE, stringsAsFactors = FALSE)
 }
 
+#' Internal result matrix table helper
+#'
+#' Supports the api table helpers implementation while preserving its internal contract.
+#' @param x Object or value to process.
+#' @param key_name Internal `key_name` value used by this helper.
+#' @param value_name Internal `value_name` value used by this helper.
+#' @return The internal `result_matrix_table()` computation result.
+#' @keywords internal
+#' @noRd
 result_matrix_table <- function(x, key_name, value_name) {
   if (!is.matrix(x) || !length(x)) {
     return(data.frame())
@@ -22,6 +38,15 @@ result_matrix_table <- function(x, key_name, value_name) {
   stats::setNames(out, c("item", key_name, value_name))
 }
 
+#' Internal result named numeric table helper
+#'
+#' Supports the api table helpers implementation while preserving its internal contract.
+#' @param x Object or value to process.
+#' @param name_col Internal `name_col` value used by this helper.
+#' @param value_col Internal `value_col` value used by this helper.
+#' @return The internal `result_named_numeric_table()` computation result.
+#' @keywords internal
+#' @noRd
 result_named_numeric_table <- function(x, name_col, value_col) {
   if (!length(x)) {
     return(data.frame())
@@ -34,6 +59,13 @@ result_named_numeric_table <- function(x, name_col, value_col) {
   stats::setNames(out, c(name_col, value_col))
 }
 
+#' Internal rbind fill typed na helper
+#'
+#' Supports the api table helpers implementation while preserving its internal contract.
+#' @param x Object or value to process.
+#' @return The internal `rbind_fill_typed_na()` computation result.
+#' @keywords internal
+#' @noRd
 rbind_fill_typed_na <- function(x) {
   if (is.integer(x)) {
     return(NA_integer_)
@@ -50,6 +82,13 @@ rbind_fill_typed_na <- function(x) {
   x[NA_integer_]
 }
 
+#' Internal rbind fill helper
+#'
+#' Supports the api table helpers implementation while preserving its internal contract.
+#' @param ... Additional internal arguments passed through this helper.
+#' @return The internal `rbind_fill()` computation result.
+#' @keywords internal
+#' @noRd
 rbind_fill <- function(...) {
   parts <- list(...)
   parts <- parts[vapply(parts, nrow, integer(1L)) > 0L]
@@ -75,6 +114,13 @@ rbind_fill <- function(...) {
   do.call(rbind, parts)
 }
 
+#' Internal normalize summary table helper
+#'
+#' Supports the api table helpers implementation while preserving its internal contract.
+#' @param x Object or value to process.
+#' @return The normalized or validated internal value.
+#' @keywords internal
+#' @noRd
 normalize_summary_table <- function(x) {
   if (!is.data.frame(x) || !nrow(x)) {
     return(data.frame())

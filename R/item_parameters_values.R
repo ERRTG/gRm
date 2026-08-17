@@ -1,11 +1,14 @@
-# Calculate a PCM threshold from adjacent gamma values
-#
-# @param gamma_values Numeric vector of item gamma values indexed by score plus
-#   one.
-# @param score Positive score category whose threshold is calculated against the
-#   previous category.
-# @return The log adjacent-category threshold, or the Pascal sentinel value for
-#   structural zero cases.
+#' Calculate a PCM threshold from adjacent gamma values
+#'
+#' Source trace: `source/PAS_skunits/skbias22.pas::GLLRM_output`.
+#' @param gamma_values Numeric vector of item gamma values indexed by score plus
+#'   one.
+#' @param score Positive score category whose threshold is calculated against the
+#'   previous category.
+#' @return The log adjacent-category threshold, or the Pascal sentinel value for
+#'   structural zero cases.
+#' @keywords internal
+#' @noRd
 source_threshold_from_gamma <- function(gamma_values, score) {
   # Source trace:
   # pascal_harness/SourceRaschCore.pas::SourceItemThresholdFromGamma.
@@ -20,12 +23,15 @@ source_threshold_from_gamma <- function(gamma_values, score) {
   }
 }
 
-# Calculate the source item location from gamma values
-#
-# @param gamma_values Numeric vector of item gamma values.
-# @param max_score Maximum score for the item.
-# @return Mean finite adjacent-category threshold, or zero if no finite
-#   threshold is available.
+#' Calculate the source item location from gamma values
+#'
+#' Source trace: `source/PAS_skunits/skbias22.pas::GLLRM_output`.
+#' @param gamma_values Numeric vector of item gamma values.
+#' @param max_score Maximum score for the item.
+#' @return Mean finite adjacent-category threshold, or zero if no finite
+#'   threshold is available.
+#' @keywords internal
+#' @noRd
 source_location_from_gamma <- function(gamma_values, max_score) {
   # Source trace:
   # pascal_harness/SourceRaschCore.pas::SourceItemLocationFromGamma.
@@ -46,10 +52,13 @@ source_location_from_gamma <- function(gamma_values, max_score) {
   }
 }
 
-# Source-compatible log with zero sentinel
-#
-# @param value Numeric scalar.
-# @return `log(value)`, or `-9999999` when `value` is zero.
+#' Source-compatible log with zero sentinel
+#'
+#' Source trace: `source/PAS_skunits/skbias22.pas::GLLRM_output`.
+#' @param value Numeric scalar.
+#' @return `log(value)`, or `-9999999` when `value` is zero.
+#' @keywords internal
+#' @noRd
 ln_zero <- function(value) {
   # Source trace: pascal_harness/SourceRaschCore.pas::LnZero.
   if (value == 0) {
@@ -59,12 +68,15 @@ ln_zero <- function(value) {
   }
 }
 
-# Calculate the expected item score at a theta value
-#
-# @param theta Positive person parameter on the multiplicative scale.
-# @param max_score Maximum score for the item.
-# @param gamma_values Numeric vector of item gamma values.
-# @return Expected item score.
+#' Calculate the expected item score at a theta value
+#'
+#' Source trace: `source/PAS_skunits/skbias22.pas::GLLRM_output`.
+#' @param theta Positive person parameter on the multiplicative scale.
+#' @param max_score Maximum score for the item.
+#' @param gamma_values Numeric vector of item gamma values.
+#' @return Expected item score.
+#' @keywords internal
+#' @noRd
 true_score_from_gamma <- function(theta, max_score, gamma_values) {
   # Source trace: pascal_harness/SourceRaschCore.pas::CalculateTrueScoreFromGamma.
   if (theta <= 0) {
@@ -91,12 +103,15 @@ true_score_from_gamma <- function(theta, max_score, gamma_values) {
   }
 }
 
-# Initialize a person parameter search
-#
-# @param target_score Target expected score.
-# @param max_score Maximum score for the item.
-# @param gamma_values Numeric vector of item gamma values.
-# @return Initial theta value on the multiplicative scale.
+#' Initialize a person parameter search
+#'
+#' Source trace: `source/PAS_skunits/skbias22.pas::GLLRM_output`.
+#' @param target_score Target expected score.
+#' @param max_score Maximum score for the item.
+#' @param gamma_values Numeric vector of item gamma values.
+#' @return Initial theta value on the multiplicative scale.
+#' @keywords internal
+#' @noRd
 initialize_person_parameter2 <- function(target_score, max_score, gamma_values) {
   # Source trace:
   # pascal_harness/SourceRaschCore.pas::InitializePersonParameter2.
@@ -115,15 +130,18 @@ initialize_person_parameter2 <- function(target_score, max_score, gamma_values) 
   theta
 }
 
-# Estimate a person parameter for a target score
-#
-# @param target_score Target expected score.
-# @param max_score Maximum score for the item.
-# @param gamma_values Numeric vector of item gamma values.
-# @param max_iterations Maximum Newton iterations.
-# @param max_delta Lower bound used when theta becomes non-positive.
-# @return Estimated theta on the multiplicative scale, using source sentinel
-#   behavior for boundary scores.
+#' Estimate a person parameter for a target score
+#'
+#' Source trace: `source/PAS_skunits/skbias22.pas::GLLRM_output`.
+#' @param target_score Target expected score.
+#' @param max_score Maximum score for the item.
+#' @param gamma_values Numeric vector of item gamma values.
+#' @param max_iterations Maximum Newton iterations.
+#' @param max_delta Lower bound used when theta becomes non-positive.
+#' @return Estimated theta on the multiplicative scale, using source sentinel
+#'   behavior for boundary scores.
+#' @keywords internal
+#' @noRd
 estimate_person_parameter <- function(target_score, max_score, gamma_values, max_iterations = 1000L, max_delta = 0.0001) {
   # Source trace: pascal_harness/SourceRaschCore.pas::EstimatePersonParameter.
   theta <- initialize_person_parameter2(target_score, max_score, gamma_values)
@@ -177,11 +195,14 @@ estimate_person_parameter <- function(target_score, max_score, gamma_values, max
   theta
 }
 
-# Calculate the item midpoint difficulty
-#
-# @param gamma_values Numeric vector of item gamma values.
-# @param max_score Maximum score for the item.
-# @return Source midpoint difficulty on the log scale.
+#' Calculate the item midpoint difficulty
+#'
+#' Source trace: `source/PAS_skunits/skbias22.pas::GLLRM_output`.
+#' @param gamma_values Numeric vector of item gamma values.
+#' @param max_score Maximum score for the item.
+#' @return Source midpoint difficulty on the log scale.
+#' @keywords internal
+#' @noRd
 source_difficulty_from_gamma <- function(gamma_values, max_score) {
   # Source trace:
   # pascal_harness/SourceRaschCore.pas::SourceItemDifficultyFromGamma.
@@ -194,13 +215,16 @@ source_difficulty_from_gamma <- function(gamma_values, max_score) {
   ln_zero(theta)
 }
 
-# Calculate score probabilities at a log-theta value
-#
-# @param log_theta Person parameter on the log scale.
-# @param max_score Maximum score for the item.
-# @param gamma_values Numeric vector of item gamma values.
-# @return A list containing score probabilities, mean score, and score
-#   variance.
+#' Calculate score probabilities at a log-theta value
+#'
+#' Source trace: `source/PAS_skunits/skbias22.pas::GLLRM_output`.
+#' @param log_theta Person parameter on the log scale.
+#' @param max_score Maximum score for the item.
+#' @param gamma_values Numeric vector of item gamma values.
+#' @return A list containing score probabilities, mean score, and score
+#'   variance.
+#' @keywords internal
+#' @noRd
 score_probabilities_for_log_theta <- function(log_theta, max_score, gamma_values) {
   # Source trace:
   # pascal_harness/SourceRaschCore.pas::ScoreProbabilitiesForLogTheta.
@@ -238,12 +262,15 @@ score_probabilities_for_log_theta <- function(log_theta, max_score, gamma_values
   )
 }
 
-# Find the item information target
-#
-# @param gamma_values Numeric vector of item gamma values.
-# @param max_score Maximum score for the item.
-# @return A list containing the log-theta target and information value where
-#   item information is maximized.
+#' Find the item information target
+#'
+#' Source trace: `source/PAS_skunits/skbias22.pas::GLLRM_output`.
+#' @param gamma_values Numeric vector of item gamma values.
+#' @param max_score Maximum score for the item.
+#' @return A list containing the log-theta target and information value where
+#'   item information is maximized.
+#' @keywords internal
+#' @noRd
 source_item_target <- function(gamma_values, max_score) {
   # Source trace:
   # pascal_harness/SourceRaschCore.pas::CalculateSourceItemTarget.
@@ -251,11 +278,14 @@ source_item_target <- function(gamma_values, max_score) {
   list(target = modes$target, info = modes$info)
 }
 
-# Find all source item-information modes
-#
-# @param gamma_values Numeric vector of item gamma values.
-# @param max_score Maximum score for the item.
-# @return A list with the global target and all coarse local modes.
+#' Find all source item-information modes
+#'
+#' Source trace: `source/PAS_skunits/skbias22.pas::GLLRM_output`.
+#' @param gamma_values Numeric vector of item gamma values.
+#' @param max_score Maximum score for the item.
+#' @return A list with the global target and all coarse local modes.
+#' @keywords internal
+#' @noRd
 source_item_target_modes <- function(gamma_values, max_score) {
   # Source trace:
   # pascal_harness/SourceRaschCore.pas::CalculateSourceItemTarget1Modes.
@@ -302,12 +332,15 @@ source_item_target_modes <- function(gamma_values, max_score) {
   )
 }
 
-# Calculate item information at a log-theta value
-#
-# @param gamma_values Numeric vector of item gamma values.
-# @param max_score Maximum score for the item.
-# @param log_theta Person parameter on the log scale.
-# @return Item information at `log_theta`.
+#' Calculate item information at a log-theta value
+#'
+#' Source trace: `source/PAS_skunits/skbias22.pas::GLLRM_output`.
+#' @param gamma_values Numeric vector of item gamma values.
+#' @param max_score Maximum score for the item.
+#' @param log_theta Person parameter on the log scale.
+#' @return Item information at `log_theta`.
+#' @keywords internal
+#' @noRd
 source_item_information_from_gamma <- function(gamma_values, max_score, log_theta) {
   # Source trace: pascal_harness/SourceRaschCore.pas::SourceItemInformation.
   fx <- numeric(max_score + 1L)
@@ -345,10 +378,13 @@ source_item_information_from_gamma <- function(gamma_values, max_score, log_thet
   result
 }
 
-# Preserve the source signed-zero display for top ICE cancellation
-#
-# @param value Numeric ICE value for the highest item category.
-# @return Numeric value with source-shaped signed zero when it formats to zero.
+#' Preserve the source signed-zero display for top ICE cancellation
+#'
+#' Source trace: `source/PAS_skunits/skbias22.pas::GLLRM_output`.
+#' @param value Numeric ICE value for the highest item category.
+#' @return Numeric value with source-shaped signed zero when it formats to zero.
+#' @keywords internal
+#' @noRd
 source_top_ice_cancellation_zero <- function(value) {
   # Source trace: source/GLLRM.txt::write_iteminformation1 writes the highest
   # ICE category as ln(x[i,k]) - k * (ln(x[i,k]) / k). The value is
@@ -365,14 +401,17 @@ source_top_ice_cancellation_zero <- function(value) {
   }
 }
 
-# Calculate the observed possible score range
-#
-# @param item_counts Item-by-score observed count matrix.
-# @return Integer vector of length two containing the summed observed minimum
-#   and maximum item scores.
+#' Calculate the observed possible score range
+#'
+#' Source trace: `source/PAS_skunits/skbias22.pas::GLLRM_output`.
+#' @param item_counts Item-by-score observed count matrix.
+#' @return Integer vector of length two containing the summed observed minimum
+#'   and maximum item scores.
+#' @keywords internal
+#' @noRd
 calculate_observed_score_range <- function(item_counts) {
   # Source trace:
-  # pascal_harness/item_parameters_report/example_ITEM_PARAMETERS_REPORT.pas::
+  # pascal_harness/item_parameters_report/BIRT_ITEM_PARAMETERS_REPORT.pas::
   # CalculateObservedScoreRange.
   score_min <- 0L
   score_max <- 0L
@@ -389,14 +428,17 @@ calculate_observed_score_range <- function(item_counts) {
   c(score_min, score_max)
 }
 
-# Count source-style estimated parameters
-#
-# @param item_counts Item-by-score observed count matrix.
-# @return Integer number of estimated parameters using the source report
-#   convention.
+#' Count source-style estimated parameters
+#'
+#' Source trace: `source/PAS_skunits/skbias22.pas::GLLRM_output`.
+#' @param item_counts Item-by-score observed count matrix.
+#' @return Integer number of estimated parameters using the source report
+#'   convention.
+#' @keywords internal
+#' @noRd
 calculate_source_n_parameters <- function(item_counts) {
   # Source trace:
-  # pascal_harness/item_parameters_report/example_ITEM_PARAMETERS_REPORT.pas::
+  # pascal_harness/item_parameters_report/BIRT_ITEM_PARAMETERS_REPORT.pas::
   # CalculateSourceNParameters.
   result <- -1L
   for (item_index in seq_len(nrow(item_counts))) {
@@ -407,29 +449,31 @@ calculate_source_n_parameters <- function(item_counts) {
   result
 }
 
-# Replay source Extended item-parameter ICE top fields
-#
-# @param fit A fitted model list returned by [fit_rasch_base()].
-# @param bundle The item-parameters bundle used to produce `fit`.
-# @return Named character vector of source-formatted highest-category ICE
-#   fields.
-source_item_parameters_top_ice_fields <- function(fit, bundle) {
-  .Call(
-    "gRm_item_parameters_extended_top_ice_fields",
-    fit$counts$item_counts,
-    fit$counts$score_counts,
-    as.integer(bundle$model$items$raw_max),
-    as.integer(fit$max_step %||% 5000L),
-    as.numeric(fit$max_delta %||% 0.0001),
-    PACKAGE = "gRm"
-  )
+#' Report native Pascal Extended compatibility
+#'
+#' The package can reproduce Pascal Extended fixed-field cancellation only
+#' when the compiled platform provides a 64-bit significand, the Extended
+#' exponent range, and the x87 control/logarithm path used by this native unit.
+#' Other platforms still return ordinary platform-long-double formatting, but
+#' this capability flag is false and exact Extended parity is not claimed.
+#'
+#' Source trace: `source/PAS_skunits/skbias22.pas::GLLRM_output`.
+#' @return A schema-versioned list containing long-double mantissa bits,
+#'   maximum exponent, storage size, x87 feature flags, and the final
+#'   `pascal_extended_fixed_field_supported` flag.
+#' @keywords internal
+source_extended_native_capability <- function() {
+  .Call("gRm_item_parameters_extended_capabilities", PACKAGE = "gRm")
 }
 
-# Replay one source Extended top-category ICE field
-#
-# @param gamma_top Numeric highest-category item gamma.
-# @param max_score Integer highest item score.
-# @return Character scalar formatted as a nine-character source field.
+#' Replay one source Extended top-category ICE field
+#'
+#' Source trace: `source/PAS_skunits/skbias22.pas::GLLRM_output`.
+#' @param gamma_top Numeric highest-category item gamma.
+#' @param max_score Integer highest item score.
+#' @return Character scalar formatted as a nine-character source field.
+#' @keywords internal
+#' @noRd
 source_extended_top_ice_cancellation_field <- function(gamma_top, max_score) {
   .Call(
     "gRm_item_parameters_top_ice_field",
@@ -439,30 +483,15 @@ source_extended_top_ice_cancellation_field <- function(gamma_top, max_score) {
   )
 }
 
-# Replay source Extended item-parameter gamma values
-#
-# @param fit A fitted model list returned by [fit_rasch_base()].
-# @param bundle The item-parameters bundle used to produce `fit`.
-# @return Numeric matrix of item gamma values from the native source-shaped
-#   Extended arithmetic replay.
-source_item_parameters_extended_gamma <- function(fit, bundle) {
-  .Call(
-    "gRm_item_parameters_extended_gamma",
-    fit$counts$item_counts,
-    fit$counts$score_counts,
-    as.integer(bundle$model$items$raw_max),
-    as.integer(fit$max_step %||% 5000L),
-    as.numeric(fit$max_delta %||% 0.0001),
-    PACKAGE = "gRm"
-  )
-}
-
-# Replay source Extended item-parameter ICE fields
-#
-# @param fit A fitted model list returned by [fit_rasch_base()].
-# @param bundle The item-parameters bundle used to produce `fit`.
-# @return Character matrix of fixed-width ICE fields from the native
-#   `skbias12.pas` `CalculateICEandMICE` arithmetic path.
+#' Replay source Extended item-parameter ICE fields
+#'
+#' Source trace: `source/PAS_skunits/skbias22.pas::GLLRM_output`.
+#' @param fit A fitted model list returned by `fit_rasch_base()`.
+#' @param bundle The item-parameters bundle used to produce `fit`.
+#' @return Character matrix of fixed-width ICE fields from the native
+#'   `skbias12.pas` `CalculateICEandMICE` arithmetic path.
+#' @keywords internal
+#' @noRd
 source_item_parameters_extended_ice_fields <- function(fit, bundle) {
   .Call(
     "gRm_item_parameters_ice_fields_from_gamma",
@@ -472,10 +501,14 @@ source_item_parameters_extended_ice_fields <- function(fit, bundle) {
   )
 }
 
-# Calculate source-shaped item-parameters input statistics
-#
-# @param bundle Source-shaped source item-parameters bundle.
-# @return A list with the input counters printed by the DIGRAM report.
+#' Calculate source-shaped item-parameters input statistics
+#'
+#' Source trace: `source/PAS_skunits/skbias22.pas::GLLRM_output`.
+#' @param bundle Source-shaped source item-parameters bundle.
+#' @return A list with the input counters printed by the DIGRAM report.
+#' @param gllrm_context Internal `gllrm_context` value used by this helper.
+#' @keywords internal
+#' @noRd
 item_parameters_input_stats <- function(bundle, gllrm_context = NULL) {
   # Source trace:
   # source/PAS_skunits/skbias12b.pas::Count_Margins, with report counters
@@ -552,30 +585,33 @@ item_parameters_input_stats <- function(bundle, gllrm_context = NULL) {
   )
 }
 
-# Derive item-parameters report values
-#
-# Calculates the derived values rendered in the DIGRAM `ItemParameters.txt`
-# report from a fitted base Rasch model. This includes PCM thresholds and
-# locations, ICE/MICE effects, item effect terms, midpoint difficulties,
-# information targets, observed score range, and source-style parameter counts.
-#
-# @param fit A fitted model list returned by [fit_rasch_base()].
-# @param bundle The item-parameters bundle used to produce `fit`.
-# @return A list containing report-ready item names, labels, fitted gamma
-#   parameters, threshold/location matrices, ICE/MICE effects, item statistics,
-#   convergence diagnostics, observed score range, and parameter count.
-# @examples
-# \dontrun{
-# project <- read_digram_project("path/to/DIGRAM")
-# bundle <- build_item_parameters_bundle(project)
-# fit <- fit_rasch_base(bundle)
-# values <- item_parameters_values(fit, bundle)
-# values$item_statistics
-# }
+#' Derive item-parameters report values
+#'
+#' Calculates the derived values rendered in the DIGRAM `ItemParameters.txt`
+#' report from a fitted base Rasch model. This includes PCM thresholds and
+#' locations, ICE/MICE effects, item effect terms, midpoint difficulties,
+#' information targets, observed score range, and source-style parameter counts.
+#'
+#' Source trace: `source/PAS_skunits/skbias22.pas::GLLRM_output`.
+#' @param fit A fitted model list returned by `fit_rasch_base()`.
+#' @param bundle The item-parameters bundle used to produce `fit`.
+#' @return A list containing report-ready item names, labels, fitted gamma
+#'   parameters, threshold/location matrices, ICE/MICE effects, item statistics,
+#'   convergence diagnostics, observed score range, and parameter count.
+#' @examples
+#' \dontrun{
+#' project <- read_digram_project("path/to/DIGRAM")
+#' bundle <- build_item_parameters_bundle(project)
+#' fit <- fit_rasch_base(bundle)
+#' values <- item_parameters_values(fit, bundle)
+#' values$item_statistics
+#' }
+#' @keywords internal
+#' @noRd
 item_parameters_values <- function(fit, bundle) {
   # Source trace:
   # pascal_harness/SourceRaschCore.pas::EmitGLLRMOutputRows output(4) item
-  # parameter/PCM/statistics rows, plus example_ITEM_PARAMETERS_REPORT.pas footer
+  # parameter/PCM/statistics rows, plus BIRT_ITEM_PARAMETERS_REPORT.pas footer
   # helpers for observed score range and parameter count.
   items <- bundle$model$items
   max_category_count <- ncol(fit$item_gamma)
@@ -637,6 +673,7 @@ item_parameters_values <- function(fit, bundle) {
     }
   }
 
+  extended_capability <- source_extended_native_capability()
   result <- list(
     n_step = fit$n_step,
     delta = fit$report_delta,
@@ -651,6 +688,7 @@ item_parameters_values <- function(fit, bundle) {
     observed_score_range = calculate_observed_score_range(fit$counts$item_counts),
     item_gamma = fit$item_gamma,
     ice_fields = source_item_parameters_extended_ice_fields(fit, bundle),
+    extended_capability = extended_capability,
     thresholds = thresholds,
     locations = locations,
     ice = ice,

@@ -3,6 +3,8 @@
 \name{screen}
 \alias{screen}
 \alias{screen.gRm_analysis}
+\alias{screen.gRm_project}
+\alias{screen.default}
 \title{Run source-faithful DIGRAM SCREEN J}
 \usage{
 screen(project, ...)

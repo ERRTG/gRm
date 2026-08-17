@@ -4,6 +4,22 @@
 # the one-based internal project representation used by the source-faithful
 # estimation code. DIGRAM file reading and writing lives in digram_project_io.R.
 
+#' Internal build gRm internal project helper
+#'
+#' Supports the project input implementation while preserving its internal contract.
+#' @param data Input data for the computation.
+#' @param items Item selection or item metadata.
+#' @param exo Internal `exo` value used by this helper.
+#' @param item_labels Internal `item_labels` value used by this helper.
+#' @param exo_labels Internal `exo_labels` value used by this helper.
+#' @param item_max Internal `item_max` value used by this helper.
+#' @param exo_max Internal `exo_max` value used by this helper.
+#' @param item_levels Internal `item_levels` value used by this helper.
+#' @param exo_levels Internal `exo_levels` value used by this helper.
+#' @param paths Internal `paths` value used by this helper.
+#' @return A newly assembled internal object or table.
+#' @keywords internal
+#' @noRd
 build_gRm_internal_project <- function(data,
                                        items,
                                        exo,
@@ -66,16 +82,35 @@ build_gRm_internal_project <- function(data,
     variables = specs,
     items = specs[specs$is_item, , drop = FALSE],
     backgrounds = specs[!specs$is_item, , drop = FALSE],
+    category_levels = list(
+      items = item_levels,
+      backgrounds = exo_levels
+    ),
     raw_data = raw_data
   )
   class(project) <- c("gRm_data", "gRm_project", "list")
   project
 }
 
+#' Internal gRm entry aliases helper
+#'
+#' Supports the project input implementation while preserving its internal contract.
+#' @return The internal `gRm_entry_aliases()` computation result.
+#' @keywords internal
+#' @noRd
 gRm_entry_aliases <- function() {
   c(letters, LETTERS[1:24])
 }
 
+#' Internal check gRm entry labels helper
+#'
+#' Supports the project input implementation while preserving its internal contract.
+#' @param labels Source-facing labels.
+#' @param expected Internal `expected` value used by this helper.
+#' @param name Internal name or label.
+#' @return The internal `check_gRm_entry_labels()` computation result.
+#' @keywords internal
+#' @noRd
 check_gRm_entry_labels <- function(labels, expected, name) {
   if (length(labels) != expected) {
     stop(name, " must have length ", expected, ".", call. = FALSE)
@@ -86,6 +121,16 @@ check_gRm_entry_labels <- function(labels, expected, name) {
   invisible(NULL)
 }
 
+#' Internal resolve gRm entry levels helper
+#'
+#' Supports the project input implementation while preserving its internal contract.
+#' @param data Input data for the computation.
+#' @param explicit Internal `explicit` value used by this helper.
+#' @param maxima Internal `maxima` value used by this helper.
+#' @param name Internal name or label.
+#' @return The normalized or validated internal value.
+#' @keywords internal
+#' @noRd
 resolve_gRm_entry_levels <- function(data, explicit, maxima, name) {
   n <- ncol(data)
   if (n == 0L) {
@@ -118,6 +163,16 @@ resolve_gRm_entry_levels <- function(data, explicit, maxima, name) {
   levels
 }
 
+#' Internal recycle gRm entry integer helper
+#'
+#' Supports the project input implementation while preserving its internal contract.
+#' @param x Object or value to process.
+#' @param n Internal `n` value used by this helper.
+#' @param name Internal name or label.
+#' @param variable_names Internal `variable_names` value used by this helper.
+#' @return The internal `recycle_gRm_entry_integer()` computation result.
+#' @keywords internal
+#' @noRd
 recycle_gRm_entry_integer <- function(x, n, name, variable_names = NULL) {
   if (n == 0L) {
     return(integer())
@@ -139,6 +194,16 @@ recycle_gRm_entry_integer <- function(x, n, name, variable_names = NULL) {
   as.integer(x)
 }
 
+#' Internal recycle gRm entry levels helper
+#'
+#' Supports the project input implementation while preserving its internal contract.
+#' @param x Object or value to process.
+#' @param n Internal `n` value used by this helper.
+#' @param name Internal name or label.
+#' @param variable_names Internal `variable_names` value used by this helper.
+#' @return The internal `recycle_gRm_entry_levels()` computation result.
+#' @keywords internal
+#' @noRd
 recycle_gRm_entry_levels <- function(x, n, name, variable_names) {
   if (n == 0L) {
     return(list())
@@ -165,6 +230,15 @@ recycle_gRm_entry_levels <- function(x, n, name, variable_names) {
   rep(list(x), n)
 }
 
+#' Internal observed gRm entry levels helper
+#'
+#' Supports the project input implementation while preserving its internal contract.
+#' @param column Internal `column` value used by this helper.
+#' @param name Internal name or label.
+#' @param variable_name Internal `variable_name` value used by this helper.
+#' @return The internal `observed_gRm_entry_levels()` computation result.
+#' @keywords internal
+#' @noRd
 observed_gRm_entry_levels <- function(column, name, variable_name) {
   values <- column[!is.na(column)]
   if (length(values) == 0L) {
@@ -183,6 +257,15 @@ observed_gRm_entry_levels <- function(column, name, variable_name) {
   validate_gRm_entry_level_vector(levels, name, variable_name)
 }
 
+#' Internal validate gRm entry level vector helper
+#'
+#' Supports the project input implementation while preserving its internal contract.
+#' @param levels Internal `levels` value used by this helper.
+#' @param name Internal name or label.
+#' @param variable_name Internal `variable_name` value used by this helper.
+#' @return The normalized or validated internal value.
+#' @keywords internal
+#' @noRd
 validate_gRm_entry_level_vector <- function(levels, name, variable_name) {
   if (length(levels) == 0L) {
     stop(name, " for ", variable_name, " must contain at least one level.", call. = FALSE)
@@ -197,6 +280,13 @@ validate_gRm_entry_level_vector <- function(levels, name, variable_name) {
   levels
 }
 
+#' Internal gRm entry level key helper
+#'
+#' Supports the project input implementation while preserving its internal contract.
+#' @param x Object or value to process.
+#' @return The internal `gRm_entry_level_key()` computation result.
+#' @keywords internal
+#' @noRd
 gRm_entry_level_key <- function(x) {
   if (is.factor(x)) {
     x <- as.character(x)
@@ -204,6 +294,15 @@ gRm_entry_level_key <- function(x) {
   as.character(x)
 }
 
+#' Internal validate gRm entry levels observed helper
+#'
+#' Supports the project input implementation while preserving its internal contract.
+#' @param data Input data for the computation.
+#' @param levels Internal `levels` value used by this helper.
+#' @param name Internal name or label.
+#' @return The normalized or validated internal value.
+#' @keywords internal
+#' @noRd
 validate_gRm_entry_levels_observed <- function(data, levels, name) {
   for (index in seq_along(data)) {
     values <- data[[index]][!is.na(data[[index]])]
@@ -227,6 +326,15 @@ validate_gRm_entry_levels_observed <- function(data, levels, name) {
   invisible(NULL)
 }
 
+#' Internal encode gRm entry data helper
+#'
+#' Supports the project input implementation while preserving its internal contract.
+#' @param data Input data for the computation.
+#' @param levels Internal `levels` value used by this helper.
+#' @param name Internal name or label.
+#' @return The internal `encode_gRm_entry_data()` computation result.
+#' @keywords internal
+#' @noRd
 encode_gRm_entry_data <- function(data, levels, name) {
   raw_data <- matrix(-999L, nrow = nrow(data), ncol = ncol(data))
   for (index in seq_along(data)) {

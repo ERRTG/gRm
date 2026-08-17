@@ -35,6 +35,7 @@
 #' @param ylim Optional y-axis limits.
 #' @return `plot()` methods draw the graph and return the `igraph` object
 #'   invisibly.
+#' @aliases plot.gRm_model plot.gRm_fit
 #' @export
 plot.gRm_model <- function(x,
                            ...,
@@ -82,6 +83,7 @@ plot.gRm_model <- function(x,
   invisible(graph)
 }
 
+#' @rdname model_graph
 #' @export
 plot.gRm_fit <- function(x,
                          ...,
@@ -129,6 +131,32 @@ plot.gRm_fit <- function(x,
   invisible(graph)
 }
 
+#' Internal plot gRm model graph helper
+#'
+#' Supports the api model plot implementation while preserving its internal contract.
+#' @param graph Internal `graph` value used by this helper.
+#' @param ... Additional internal arguments passed through this helper.
+#' @param layout Internal `layout` value used by this helper.
+#' @param x_spacing Internal `x_spacing` value used by this helper.
+#' @param y_spacing Internal `y_spacing` value used by this helper.
+#' @param item_spacing Internal `item_spacing` value used by this helper.
+#' @param vertex.label Internal `vertex.label` value used by this helper.
+#' @param vertex.color Internal `vertex.color` value used by this helper.
+#' @param vertex.shape Internal `vertex.shape` value used by this helper.
+#' @param vertex.size Internal `vertex.size` value used by this helper.
+#' @param vertex.label.cex Internal `vertex.label.cex` value used by this helper.
+#' @param vertex.label.dist Internal `vertex.label.dist` value used by this helper.
+#' @param vertex.label.degree Internal `vertex.label.degree` value used by this helper.
+#' @param edge.color Internal `edge.color` value used by this helper.
+#' @param edge.lty Internal `edge.lty` value used by this helper.
+#' @param edge.width Internal `edge.width` value used by this helper.
+#' @param margin Internal `margin` value used by this helper.
+#' @param rescale Internal `rescale` value used by this helper.
+#' @param xlim Internal `xlim` value used by this helper.
+#' @param ylim Internal `ylim` value used by this helper.
+#' @return The internal `plot_gRm_model_graph()` computation result.
+#' @keywords internal
+#' @noRd
 plot_gRm_model_graph <- function(graph,
                                  ...,
                                  layout = c("score_left", "fr", "kk", "nicely"),
@@ -150,6 +178,7 @@ plot_gRm_model_graph <- function(graph,
                                  xlim = NULL,
                                  ylim = NULL) {
   layout <- match.arg(layout)
+  rescale <- normalize_public_logical(rescale, "rescale")
   if (identical(layout, "score_left")) {
     layers <- gRm_graph_score_left_plot_layers(
       graph,
@@ -279,6 +308,28 @@ plot_gRm_model_graph <- function(graph,
   )
 }
 
+#' Internal gRm graph score left plot layers helper
+#'
+#' Supports the api model plot implementation while preserving its internal contract.
+#' @param graph Internal `graph` value used by this helper.
+#' @param x_spacing Internal `x_spacing` value used by this helper.
+#' @param y_spacing Internal `y_spacing` value used by this helper.
+#' @param item_spacing Internal `item_spacing` value used by this helper.
+#' @param vertex.label Internal `vertex.label` value used by this helper.
+#' @param vertex.color Internal `vertex.color` value used by this helper.
+#' @param vertex.shape Internal `vertex.shape` value used by this helper.
+#' @param vertex.size Internal `vertex.size` value used by this helper.
+#' @param vertex.label.cex Internal `vertex.label.cex` value used by this helper.
+#' @param vertex.label.dist Internal `vertex.label.dist` value used by this helper.
+#' @param edge.color Internal `edge.color` value used by this helper.
+#' @param edge.lty Internal `edge.lty` value used by this helper.
+#' @param edge.width Internal `edge.width` value used by this helper.
+#' @param margin Internal `margin` value used by this helper.
+#' @param xlim Internal `xlim` value used by this helper.
+#' @param ylim Internal `ylim` value used by this helper.
+#' @return The internal `gRm_graph_score_left_plot_layers()` computation result.
+#' @keywords internal
+#' @noRd
 gRm_graph_score_left_plot_layers <- function(graph,
                                              x_spacing = 2.5,
                                              y_spacing = 1.4,
@@ -426,6 +477,13 @@ gRm_graph_score_left_plot_layers <- function(graph,
   )
 }
 
+#' Internal gRm graph item plot rows helper
+#'
+#' Supports the api model plot implementation while preserving its internal contract.
+#' @param vertices Internal `vertices` value used by this helper.
+#' @return The internal `gRm_graph_item_plot_rows()` computation result.
+#' @keywords internal
+#' @noRd
 gRm_graph_item_plot_rows <- function(vertices) {
   plot_row <- rep(NA_integer_, nrow(vertices))
   item_index <- which(vertices$type == "item")
@@ -437,6 +495,14 @@ gRm_graph_item_plot_rows <- function(vertices) {
   plot_row
 }
 
+#' Internal gRm draw score left graph helper
+#'
+#' Supports the api model plot implementation while preserving its internal contract.
+#' @param layers Internal `layers` value used by this helper.
+#' @param ... Additional internal arguments passed through this helper.
+#' @return The internal `gRm_draw_score_left_graph()` computation result.
+#' @keywords internal
+#' @noRd
 gRm_draw_score_left_graph <- function(layers, ...) {
   dots <- list(...)
   plot_args <- dots[names(dots) %in% c("main", "sub", "xlab", "ylab", "axes", "frame.plot")]
@@ -528,6 +594,19 @@ gRm_draw_score_left_graph <- function(layers, ...) {
   }
 }
 
+#' Internal gRm quadratic edge path helper
+#'
+#' Supports the api model plot implementation while preserving its internal contract.
+#' @param x0 Internal `x0` value used by this helper.
+#' @param y0 Internal `y0` value used by this helper.
+#' @param control_x Internal `control_x` value used by this helper.
+#' @param control_y Internal `control_y` value used by this helper.
+#' @param x1 Internal `x1` value used by this helper.
+#' @param y1 Internal `y1` value used by this helper.
+#' @param n Internal `n` value used by this helper.
+#' @return The internal `gRm_quadratic_edge_path()` computation result.
+#' @keywords internal
+#' @noRd
 gRm_quadratic_edge_path <- function(x0,
                                     y0,
                                     control_x,
@@ -542,6 +621,13 @@ gRm_quadratic_edge_path <- function(x0,
   )
 }
 
+#' Internal gRm graph base pch helper
+#'
+#' Supports the api model plot implementation while preserving its internal contract.
+#' @param shape Internal `shape` value used by this helper.
+#' @return The internal `gRm_graph_base_pch()` computation result.
+#' @keywords internal
+#' @noRd
 gRm_graph_base_pch <- function(shape) {
   shape <- as.character(shape)
   pch <- rep(21L, length(shape))
@@ -551,6 +637,17 @@ gRm_graph_base_pch <- function(shape) {
   pch
 }
 
+#' Internal gRm score left plot limits helper
+#'
+#' Supports the api model plot implementation while preserving its internal contract.
+#' @param vertices Internal `vertices` value used by this helper.
+#' @param x_spacing Internal `x_spacing` value used by this helper.
+#' @param margin Internal `margin` value used by this helper.
+#' @param xlim Internal `xlim` value used by this helper.
+#' @param ylim Internal `ylim` value used by this helper.
+#' @return The internal `gRm_score_left_plot_limits()` computation result.
+#' @keywords internal
+#' @noRd
 gRm_score_left_plot_limits <- function(vertices,
                                        x_spacing,
                                        margin,
@@ -576,6 +673,14 @@ gRm_score_left_plot_limits <- function(vertices,
   list(xlim = xlim, ylim = ylim)
 }
 
+#' Internal gRm recycle plot value helper
+#'
+#' Supports the api model plot implementation while preserving its internal contract.
+#' @param value Value to validate or transform.
+#' @param n Internal `n` value used by this helper.
+#' @return The internal `gRm_recycle_plot_value()` computation result.
+#' @keywords internal
+#' @noRd
 gRm_recycle_plot_value <- function(value, n) {
   if (n == 0L) {
     return(value[FALSE])
@@ -583,6 +688,16 @@ gRm_recycle_plot_value <- function(value, n) {
   rep(value, length.out = n)
 }
 
+#' Internal gRm graph plot limits helper
+#'
+#' Supports the api model plot implementation while preserving its internal contract.
+#' @param graph_layout Internal `graph_layout` value used by this helper.
+#' @param vertex.size Internal `vertex.size` value used by this helper.
+#' @param vertex.label.dist Internal `vertex.label.dist` value used by this helper.
+#' @param margin Internal `margin` value used by this helper.
+#' @return The internal `gRm_graph_plot_limits()` computation result.
+#' @keywords internal
+#' @noRd
 gRm_graph_plot_limits <- function(graph_layout,
                                   vertex.size,
                                   vertex.label.dist,
@@ -610,6 +725,17 @@ gRm_graph_plot_limits <- function(graph_layout,
   )
 }
 
+#' Internal gRm graph plot layout helper
+#'
+#' Supports the api model plot implementation while preserving its internal contract.
+#' @param graph Internal `graph` value used by this helper.
+#' @param layout Internal `layout` value used by this helper.
+#' @param x_spacing Internal `x_spacing` value used by this helper.
+#' @param y_spacing Internal `y_spacing` value used by this helper.
+#' @param item_spacing Internal `item_spacing` value used by this helper.
+#' @return The internal `gRm_graph_plot_layout()` computation result.
+#' @keywords internal
+#' @noRd
 gRm_graph_plot_layout <- function(graph,
                                   layout = c("score_left", "fr", "kk", "nicely"),
                                   x_spacing = 2.5,

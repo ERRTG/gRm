@@ -32,7 +32,7 @@ iterations for group models.}
 \item{max_delta}{Single positive finite convergence threshold for group
 models.}
 
-\item{...}{Reserved for S3 dispatch compatibility; ignored.}
+\item{...}{Reserved for S3 dispatch compatibility and must be empty.}
 }
 \value{
 A \code{gRm_global_homogeneity} result object.

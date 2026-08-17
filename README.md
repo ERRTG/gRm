@@ -40,8 +40,9 @@ summary(global)
 
 score_effects(analysis)
 
-m2(fit0) # experimental
-m3(fit0) # experimental
+m2(fit0)
+m3(fit0)
+m3(fit0, bootstrap = TRUE, nsim = 100, seed = 47)
 ```
 
 The installed package computes numeric results from data and model objects
@@ -58,7 +59,8 @@ The exported functions are:
   diagnostics;
 - `item_fit()`, `local_dependence()`, `dif()`, `global_homogeneity()`, and
   `ari()` for post-fit numeric results;
-- experimental `m2()` and `m3()` fit diagnostics.
+- source-backed `m2()` and `m3()` fit diagnostics, with opt-in parametric
+  bootstrap calibration.
 
 Fitted item parameters and thresholds are reported through `summary(fit)` and
 `summary(fit, which = "parameters" / "thresholds")`. Some diagnostics, such as

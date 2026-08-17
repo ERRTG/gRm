@@ -1,12 +1,13 @@
 graph_api_data <- function() {
-  data.frame(
-    ID = seq_len(12L),
-    I1 = c(0L, 1L, 0L, 1L, 0L, 1L, 1L, 0L, 1L, 0L, 1L, 0L),
-    I2 = c(1L, 0L, 1L, 0L, 1L, 0L, 1L, 0L, 1L, 0L, 1L, 0L),
-    I3 = c(0L, 0L, 1L, 1L, 0L, 0L, 1L, 1L, 0L, 0L, 1L, 1L),
-    site = c(0L, 0L, 1L, 1L, 0L, 1L, 0L, 1L, 0L, 1L, 0L, 1L),
-    age = c(1L, 2L, 1L, 2L, 1L, 2L, 1L, 2L, 1L, 2L, 1L, 2L)
+  rows <- expand.grid(
+    I1 = 0:1,
+    I2 = 0:1,
+    I3 = 0:1,
+    site = 0:1,
+    age = 1:2,
+    KEEP.OUT.ATTRS = FALSE
   )
+  data.frame(ID = seq_len(nrow(rows)), rows)
 }
 
 graph_api_analysis <- function() {

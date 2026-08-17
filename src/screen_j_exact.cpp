@@ -9,7 +9,6 @@
 #include <vector>
 
 #include <R.h>
-#include <R_ext/Rdynload.h>
 #include <Rinternals.h>
 
 namespace {
@@ -19,12 +18,18 @@ struct ExactError : public std::runtime_error {
 };
 
 struct SourceLcg {
+  // Source trace: source/PAS_skunits/SKrandom.pas::GENTAB1 consumes Pascal
+  // Random values while traversing free cells. The Delphi-LCG recurrence is
+  // the audited runtime compatibility stream pinned by
+  // pascal_harness/SCREEN_EXACT_TRAJECTORY.pas::DelphiRandom.
   explicit SourceLcg(int seed) : state(static_cast<std::uint32_t>(clamp_seed(seed))), draws(0) {}
 
   double next() {
     state = static_cast<std::uint32_t>(static_cast<std::uint64_t>(state) * 134775813ULL + 1ULL);
     ++draws;
-    return static_cast<double>(state) / 4294967296.0;
+    const double value = static_cast<double>(state) / 4294967296.0;
+    if (record_draws) draw_values.push_back(value);
+    return value;
   }
 
   static int clamp_seed(int seed) {
@@ -35,6 +40,8 @@ struct SourceLcg {
 
   std::uint32_t state;
   std::uint64_t draws;
+  bool record_draws = false;
+  std::vector<double> draw_values;
 };
 
 struct PreparedSlice {
@@ -97,32 +104,6 @@ bool as_single_bool(SEXP value, const char *name) {
   return out == TRUE;
 }
 
-SEXP list_element(SEXP list, const char *name) {
-  SEXP names = Rf_getAttrib(list, R_NamesSymbol);
-  if (Rf_length(names) != Rf_length(list)) {
-    throw ExactError("Prepared slices must be named lists.");
-  }
-  for (R_xlen_t i = 0; i < XLENGTH(list); ++i) {
-    if (std::strcmp(CHAR(STRING_ELT(names, i)), name) == 0) {
-      return VECTOR_ELT(list, i);
-    }
-  }
-  throw ExactError(std::string("Prepared slice is missing `") + name + "`.");
-}
-
-SEXP optional_list_element(SEXP list, const char *name) {
-  SEXP names = Rf_getAttrib(list, R_NamesSymbol);
-  if (Rf_length(names) != Rf_length(list)) {
-    throw ExactError("Prepared slices must be named lists.");
-  }
-  for (R_xlen_t i = 0; i < XLENGTH(list); ++i) {
-    if (std::strcmp(CHAR(STRING_ELT(names, i)), name) == 0) {
-      return VECTOR_ELT(list, i);
-    }
-  }
-  return R_NilValue;
-}
-
 std::vector<int> integer_vector(SEXP value, int expected_length, const char *name) {
   if (Rf_length(value) != expected_length) {
     throw ExactError(std::string("Prepared `") + name + "` has the wrong length.");
@@ -142,19 +123,6 @@ std::vector<int> integer_vector(SEXP value, int expected_length, const char *nam
     }
   } else {
     throw ExactError(std::string("Prepared `") + name + "` must be numeric.");
-  }
-  return out;
-}
-
-std::vector<double> double_vector(SEXP value, int expected_length, const char *name) {
-  if (TYPEOF(value) != REALSXP || Rf_length(value) != expected_length) {
-    throw ExactError(std::string("Prepared `") + name + "` must be a numeric vector with the expected length.");
-  }
-  std::vector<double> out(static_cast<std::size_t>(expected_length));
-  for (int i = 0; i < expected_length; ++i) {
-    double cell = REAL(value)[i];
-    if (!R_FINITE(cell)) throw ExactError(std::string("Prepared `") + name + "` must be finite.");
-    out[static_cast<std::size_t>(i)] = cell;
   }
   return out;
 }
@@ -194,6 +162,7 @@ inline int index2(int row, int col, int nrow) {
 
 void fill_expected(PreparedSlice &prepared);
 void fill_slice_metadata(PreparedSlice &prepared);
+void fill_log_factorial(PreparedSlice &prepared);
 
 PreparedSlice prepare_slice(SEXP matrix) {
   SEXP dim = Rf_getAttrib(matrix, R_DimSymbol);
@@ -216,26 +185,17 @@ PreparedSlice prepare_slice(SEXP matrix) {
       prepared.total += cell;
     }
   }
-  prepared.log_factorial.resize(static_cast<std::size_t>(prepared.total) + 1U);
-  if (prepared.total >= 0) prepared.log_factorial[0] = 0.0L;
-  for (int i = 1; i <= prepared.total; ++i) {
-    if (i < 1001) {
-      prepared.log_factorial[static_cast<std::size_t>(i)] =
-        prepared.log_factorial[static_cast<std::size_t>(i - 1)] + std::log(static_cast<double>(i));
-    } else {
-      double n = static_cast<double>(i);
-      double ln_sqr_2pi = std::log((2.0 * 3.141592653589793238462643383279502884) *
-                                   (2.0 * 3.141592653589793238462643383279502884));
-      prepared.log_factorial[static_cast<std::size_t>(i)] =
-        ln_sqr_2pi + (n + 0.5) * std::log(n) - n + 1.0 / (24.0 * n) - 2.756;
-    }
-  }
+  fill_log_factorial(prepared);
   fill_expected(prepared);
   fill_slice_metadata(prepared);
   return prepared;
 }
 
 void fill_log_factorial(PreparedSlice &prepared) {
+  // Source trace: source/PAS_skunits/SKrandom.pas::GENTAB1 builds the
+  // log-factorial table recursively through 1000 and then uses its preserved
+  // large-n approximation. Both R-facing prepared-slice routes share this one
+  // implementation so their probability trajectory cannot drift.
   prepared.log_factorial.resize(static_cast<std::size_t>(prepared.total) + 1U);
   if (prepared.total >= 0) prepared.log_factorial[0] = 0.0L;
   for (int i = 1; i <= prepared.total; ++i) {
@@ -258,9 +218,11 @@ void fill_expected(PreparedSlice &prepared) {
   for (int col = 0; col < prepared.ncol; ++col) {
     double col_share = static_cast<double>(prepared.col_total[col]) / prepared.total;
     for (int row = 0; row < prepared.nrow; ++row) {
-      // Source trace: SKbigtab.Transfer_BT_to_XYZ_TABLE fills RTAB2 once as
-      // row margin * (column margin / total). SKrandom.GENTAB1 then passes
-      // that stored expected table to SkStat.RCCHI for every generated table.
+      // Source trace:
+      // source/PAS_skunits/SKbigtab.pas::Transfer_BT_to_XYZ_TABLE fills RTAB2
+      // once as row margin * (column margin / total).
+      // source/PAS_skunits/SKrandom.pas::GENTAB1 then passes that stored
+      // expected table to source/PAS_skunits/SkStat.pas::RCCHI.
       prepared.expected[index2(row, col, prepared.nrow)] =
         static_cast<double>(prepared.row_total[row]) * col_share;
     }
@@ -279,11 +241,11 @@ void fill_slice_metadata(PreparedSlice &prepared) {
   }
   prepared.positive_expected_index.clear();
   prepared.positive_expected_index.reserve(static_cast<std::size_t>(prepared.ncell));
-  // Source trace: SkStat.RCCHI accumulates cells as `FOR I:=1 TO C DO FOR
-  // J:=1 TO R DO`, i.e. row/category of the first variable first and then the
-  // second variable. Preserve that order because exact tests compare generated
-  // chi-square totals with `>=`, so source-tied tables can move by a few ulps if
-  // the native cache iterates in R/C column-major order instead.
+  // Source trace: source/PAS_skunits/SkStat.pas::RCCHI accumulates cells as
+  // `FOR I:=1 TO C DO FOR J:=1 TO R DO`, i.e. row/category of the first
+  // variable first and then the second variable. Preserve that order because
+  // exact tests compare generated chi-square totals with `>=`, so source-tied
+  // tables can move by a few ulps under R/C column-major iteration.
   for (int row = 0; row < prepared.nrow; ++row) {
     for (int col = 0; col < prepared.ncol; ++col) {
       int index = index2(row, col, prepared.nrow);
@@ -326,34 +288,6 @@ std::vector<PreparedSlice> prepare_slices(SEXP slices) {
   return prepared;
 }
 
-PreparedSlice prepared_slice_from_list(SEXP value) {
-  if (!Rf_isNewList(value)) {
-    throw ExactError("Each prepared slice must be a list.");
-  }
-  PreparedSlice prepared;
-  prepared.nrow = as_single_int(list_element(value, "cdim"), "cdim");
-  prepared.ncol = as_single_int(list_element(value, "rdim"), "rdim");
-  prepared.total = as_single_int(list_element(value, "grand_total"), "grand_total");
-  if (prepared.nrow < 1 || prepared.ncol < 1 || prepared.total < 0) {
-    throw ExactError("Prepared slice dimensions and total must be valid.");
-  }
-  prepared.row_total = integer_vector(list_element(value, "row_total"), prepared.nrow, "row_total");
-  prepared.col_total = integer_vector(list_element(value, "col_total"), prepared.ncol, "col_total");
-  {
-    std::vector<double> log_factorial = double_vector(list_element(value, "log_factorial"), prepared.total + 1, "log_factorial");
-    prepared.log_factorial.assign(log_factorial.begin(), log_factorial.end());
-  }
-  SEXP expected = optional_list_element(value, "expected");
-  if (expected != R_NilValue) {
-    std::vector<double> expected_values = double_vector(expected, prepared.nrow * prepared.ncol, "expected");
-    prepared.expected.assign(expected_values.begin(), expected_values.end());
-  } else {
-    fill_expected(prepared);
-  }
-  fill_slice_metadata(prepared);
-  return prepared;
-}
-
 int source_round(double value) {
   return static_cast<int>(std::nearbyint(value));
 }
@@ -365,6 +299,10 @@ double cell_probability(const PreparedSlice &prepared,
                         int row1,
                         int row2,
                         int t11) {
+  // Source trace: source/PAS_skunits/SKrandom.pas::GENTAB1 evaluates each
+  // feasible free-cell count from the same log-factorial hypergeometric term.
+  // Mathematical step: exponentiate the four margin factorials minus the four
+  // cell factorials and the free-total factorial in the preserved order.
   int t12 = column1 - t11;
   int t21 = row1 - t11;
   int t22 = free_n - row1 - t12;
@@ -399,6 +337,9 @@ struct SliceScratch {
 };
 
 void gentab1_into(const PreparedSlice &prepared, SourceLcg &rng, SliceScratch &scratch) {
+  // Source trace: source/PAS_skunits/SKrandom.pas::GENTAB1 visits every free
+  // cell in source order, starts at the rounded expected count, alternates up
+  // and down, then fills the final row/column deterministically.
   scratch.reset_for(prepared);
   std::vector<int> &generated = scratch.generated;
   std::vector<int> &generated_rows = scratch.generated_rows;
@@ -487,68 +428,6 @@ void gentab1_into(const PreparedSlice &prepared, SourceLcg &rng, SliceScratch &s
   }
 }
 
-std::vector<int> gentab1(const PreparedSlice &prepared, SourceLcg &rng) {
-  SliceScratch scratch;
-  gentab1_into(prepared, rng, scratch);
-  return scratch.generated;
-}
-
-double chi_square(const PreparedSlice &prepared, const std::vector<int> &tab) {
-  if (prepared.total <= 0) return 0.0;
-  double chi = 0.0;
-  for (int index : prepared.positive_expected_index) {
-    double expected = prepared.expected[static_cast<std::size_t>(index)];
-    double residual = static_cast<double>(tab[static_cast<std::size_t>(index)]) - expected;
-    chi += residual * (residual / expected);
-  }
-  return chi;
-}
-
-struct GammaCounts {
-  double ppq = 0.0;
-  double pmq = 0.0;
-};
-
-GammaCounts gamma_counts(const PreparedSlice &prepared, const std::vector<int> &tab) {
-  std::vector<double> cumulative(static_cast<std::size_t>(prepared.nrow) * prepared.ncol, 0.0);
-  for (int col = 0; col < prepared.ncol; ++col) {
-    for (int row = 0; row < prepared.nrow; ++row) {
-      double value = static_cast<double>(tab[index2(row, col, prepared.nrow)]);
-      double up = row > 0 ? cumulative[index2(row - 1, col, prepared.nrow)] : 0.0;
-      double left = col > 0 ? cumulative[index2(row, col - 1, prepared.nrow)] : 0.0;
-      double diag = (row > 0 && col > 0) ? cumulative[index2(row - 1, col - 1, prepared.nrow)] : 0.0;
-      cumulative[index2(row, col, prepared.nrow)] = value + up + left - diag;
-    }
-  }
-
-  auto cell_sum = [&](int row_to, int col_to) -> double {
-    if (row_to < 0 || col_to < 0) return 0.0;
-    return cumulative[index2(row_to, col_to, prepared.nrow)];
-  };
-
-  float p = 0.0F;
-  float q = 0.0F;
-  for (int col = 0; col < prepared.ncol; ++col) {
-    for (int row = 0; row < prepared.nrow; ++row) {
-      double n = static_cast<double>(tab[index2(row, col, prepared.nrow)]);
-      double less_less = cell_sum(row - 1, col - 1);
-      double greater_greater = prepared.total -
-        cell_sum(row, prepared.ncol - 1) -
-        cell_sum(prepared.nrow - 1, col) +
-        cell_sum(row, col);
-      double less_greater = cell_sum(row - 1, prepared.ncol - 1) - cell_sum(row - 1, col);
-      double greater_less = cell_sum(prepared.nrow - 1, col - 1) - cell_sum(row, col - 1);
-      p = static_cast<float>(p + static_cast<float>(n * (less_less + greater_greater)));
-      q = static_cast<float>(q + static_cast<float>(n * (less_greater + greater_less)));
-    }
-  }
-
-  GammaCounts out;
-  out.ppq = static_cast<double>(static_cast<float>(p + q));
-  out.pmq = static_cast<double>(static_cast<float>(p - q));
-  return out;
-}
-
 struct GeneratedStats {
   double chi_square = 0.0;
   double ppq = 0.0;
@@ -591,8 +470,8 @@ GeneratedStats generated_stats(const PreparedSlice &prepared,
     return cumulative[index2(row_to, col_to, prepared.nrow)];
   };
 
-  float p = 0.0F;
-  float q = 0.0F;
+  double p = 0.0;
+  double q = 0.0;
   for (int col = 0; col < prepared.ncol; ++col) {
     for (int row = 0; row < prepared.nrow; ++row) {
       double n = static_cast<double>(tab[index2(row, col, prepared.nrow)]);
@@ -603,13 +482,13 @@ GeneratedStats generated_stats(const PreparedSlice &prepared,
         cell_sum(row, col);
       double less_greater = cell_sum(row - 1, prepared.ncol - 1) - cell_sum(row - 1, col);
       double greater_less = cell_sum(prepared.nrow - 1, col - 1) - cell_sum(row, col - 1);
-      p = static_cast<float>(p + static_cast<float>(n * (less_less + greater_greater)));
-      q = static_cast<float>(q + static_cast<float>(n * (less_greater + greater_less)));
+      p += n * (less_less + greater_greater);
+      q += n * (less_greater + greater_less);
     }
   }
 
-  out.ppq = static_cast<double>(static_cast<float>(p + q));
-  out.pmq = static_cast<double>(static_cast<float>(p - q));
+  out.ppq = p + q;
+  out.pmq = p - q;
   return out;
 }
 
@@ -688,6 +567,37 @@ bool informative_slice(const PreparedSlice &prepared) {
   return prepared.positive_rows >= 2 && prepared.positive_cols >= 2;
 }
 
+struct ExactSliceTrace {
+  int simulation = 0;
+  int slice = 0;
+  int nrow = 0;
+  int ncol = 0;
+  std::vector<int> table;
+  std::vector<double> random_draws;
+  double chi_square = 0.0;
+  double ppq = 0.0;
+  double pmq = 0.0;
+  std::uint64_t draw_count = 0;
+  std::uint32_t final_seed = 0;
+};
+
+struct ExactSimulationTrace {
+  int simulation = 0;
+  double chi_square = 0.0;
+  double ppq = 0.0;
+  double pmq = 0.0;
+  double gamma = 0.0;
+  bool chi_ge_observed = false;
+  bool gamma_ge_observed = false;
+  int chi_exceed = 0;
+  int gamma_exceed = 0;
+  bool chi_status = false;
+  bool gamma_status = false;
+  bool stop = false;
+  std::uint64_t draw_count = 0;
+  std::uint32_t final_seed = 0;
+};
+
 struct SimulationResult {
   int chi_exceed = 0;
   int gamma_exceed = 0;
@@ -695,6 +605,8 @@ struct SimulationResult {
   int nsim = 0;
   std::uint64_t draw_count = 0;
   std::uint32_t final_seed = 0;
+  std::vector<ExactSliceTrace> slice_trace;
+  std::vector<ExactSimulationTrace> simulation_trace;
 };
 
 double seq_t(int exceed, int sim, double p0) {
@@ -711,9 +623,11 @@ SimulationResult simulate_chi_gamma(const std::vector<PreparedSlice> &slices,
                                     bool do_chi,
                                     bool do_gamma,
                                     bool sequential,
-                                    int seq_limit) {
+                                    int seq_limit,
+                                    bool record_trace = false) {
   if (nsim < 1) throw ExactError("`nsim` must be a positive integer.");
   SourceLcg rng(seed);
+  rng.record_draws = record_trace;
   SimulationResult result;
   result.nsim = nsim;
   bool chi_status = !do_chi;
@@ -721,7 +635,13 @@ SimulationResult simulate_chi_gamma(const std::vector<PreparedSlice> &slices,
   const double seq_p0 = 0.05;
   const double seq_boundary = 1.058;
   if (seq_limit < 1) seq_limit = nsim;
-  const double observed_chi_source = observed_chi;
+  // Source trace: source/PAS_skunits/SKbias3.pas::XYZ_bias_ANALYSE stores
+  // observed CHITOT in RESULTS[1,1], and source/PAS_skunits/SKTypes.pas::
+  // RESARRAY is explicitly SINGLE. GENTAB1's simulated CHI/PPQ/PMQ and
+  // AbsGammaTot remain Pascal REAL (8-byte Double in the historical Delphi
+  // target). Only the observed chi threshold is therefore quantized before
+  // Evaluate_simulated_biasresults uses >=.
+  const float observed_chi_source = static_cast<float>(observed_chi);
   const double observed_gamma_source = observed_gamma;
   std::vector<SliceScratch> scratch;
   scratch.resize(slices.size());
@@ -736,6 +656,7 @@ SimulationResult simulate_chi_gamma(const std::vector<PreparedSlice> &slices,
     for (std::size_t slice_index = 0; slice_index < slices.size(); ++slice_index) {
       const PreparedSlice &slice = slices[slice_index];
       SliceScratch &slice_scratch = scratch[slice_index];
+      const std::size_t draw_start = rng.draw_values.size();
       gentab1_into(slice, rng, slice_scratch);
       const std::vector<int> &generated = slice_scratch.generated;
       GeneratedStats stats = generated_stats(slice, generated, slice_scratch, do_chi, do_gamma);
@@ -746,18 +667,40 @@ SimulationResult simulate_chi_gamma(const std::vector<PreparedSlice> &slices,
         ppq_total += stats.ppq;
         pmq_total += stats.pmq;
       }
+      if (record_trace) {
+        ExactSliceTrace trace;
+        trace.simulation = sim + 1;
+        trace.slice = static_cast<int>(slice_index) + 1;
+        trace.nrow = slice.nrow;
+        trace.ncol = slice.ncol;
+        trace.table = generated;
+        trace.random_draws.assign(
+          rng.draw_values.begin() + static_cast<std::ptrdiff_t>(draw_start),
+          rng.draw_values.end()
+        );
+        trace.chi_square = stats.chi_square;
+        trace.ppq = stats.ppq;
+        trace.pmq = stats.pmq;
+        trace.draw_count = rng.draws;
+        trace.final_seed = rng.state;
+        result.slice_trace.push_back(std::move(trace));
+      }
     }
-    if (do_chi && chi_total >= observed_chi_source) {
+    const bool chi_ge_observed = do_chi && chi_total >= observed_chi_source;
+    if (chi_ge_observed) {
       ++result.chi_exceed;
     }
+    double simulated_gamma = 0.0;
+    bool gamma_ge_observed = false;
     if (do_gamma) {
-      double simulated_gamma = ppq_total > 0.0 ? pmq_total / ppq_total : 0.0;
+      simulated_gamma = ppq_total > 0.0 ? pmq_total / ppq_total : 0.0;
       if ((observed_gamma_source > 0.0 && simulated_gamma >= observed_gamma_source) ||
           (observed_gamma_source < 0.0 && simulated_gamma <= observed_gamma_source) ||
           observed_gamma_source == 0.0) {
         ++result.gamma_directional_exceed;
       }
-      if (std::fabs(simulated_gamma) >= std::fabs(observed_gamma_source)) {
+      gamma_ge_observed = std::fabs(simulated_gamma) >= std::fabs(observed_gamma_source);
+      if (gamma_ge_observed) {
         ++result.gamma_exceed;
       }
     }
@@ -774,7 +717,26 @@ SimulationResult simulate_chi_gamma(const std::vector<PreparedSlice> &slices,
         gamma_status = true;
       }
     }
-    if (sequential && chi_status && gamma_status) {
+    const bool stop_now = sequential && chi_status && gamma_status;
+    if (record_trace) {
+      ExactSimulationTrace trace;
+      trace.simulation = completed;
+      trace.chi_square = chi_total;
+      trace.ppq = ppq_total;
+      trace.pmq = pmq_total;
+      trace.gamma = simulated_gamma;
+      trace.chi_ge_observed = chi_ge_observed;
+      trace.gamma_ge_observed = gamma_ge_observed;
+      trace.chi_exceed = result.chi_exceed;
+      trace.gamma_exceed = result.gamma_exceed;
+      trace.chi_status = chi_status;
+      trace.gamma_status = gamma_status;
+      trace.stop = stop_now;
+      trace.draw_count = rng.draws;
+      trace.final_seed = rng.state;
+      result.simulation_trace.push_back(trace);
+    }
+    if (stop_now) {
       result.nsim = completed;
       break;
     }
@@ -803,10 +765,10 @@ SEXP scalar_with_attrs(double value, int exceed, const SimulationResult &result)
 }
 
 double source_p_value(int exceed, int nsim) {
-  // Source trace: SKexa2.XYZ_TEST and SKexa1.EXA_SUMMARY1_2 store exact
-  // p-values as real RESULTS entries from count / NSIM. Keep this in double
-  // precision so the native path is bit-for-bit aligned with the R source
-  // reference used by the parity gate.
+  // Source trace: source/PAS_skunits/SKexa2.pas::XYZ_TEST and
+  // source/PAS_skunits/SKexa1.pas::EXA_SUMMARY1_2 store exact p-values as REAL
+  // RESULTS entries from count / NSIM. Keep this in double precision so the
+  // native path is bit-for-bit aligned with the R parity reference.
   return static_cast<double>(exceed) / static_cast<double>(nsim);
 }
 
@@ -835,6 +797,186 @@ SEXP result_list(const SimulationResult &result) {
   SET_VECTOR_ELT(out, 9, Rf_ScalarInteger(result.gamma_directional_exceed));
   Rf_setAttrib(out, R_NamesSymbol, names);
   UNPROTECT(2);
+  return out;
+}
+
+SEXP trace_tables(const SimulationResult &result) {
+  const R_xlen_t n = static_cast<R_xlen_t>(result.slice_trace.size());
+  SEXP out = PROTECT(Rf_allocVector(VECSXP, n));
+  for (R_xlen_t index = 0; index < n; ++index) {
+    const ExactSliceTrace &trace = result.slice_trace[static_cast<std::size_t>(index)];
+    SEXP table = PROTECT(Rf_allocMatrix(INTSXP, trace.nrow, trace.ncol));
+    for (R_xlen_t cell = 0; cell < XLENGTH(table); ++cell) {
+      INTEGER(table)[cell] = trace.table[static_cast<std::size_t>(cell)];
+    }
+    SET_VECTOR_ELT(out, index, table);
+    UNPROTECT(1);
+  }
+  UNPROTECT(1);
+  return out;
+}
+
+SEXP trace_random_draws(const SimulationResult &result) {
+  const R_xlen_t n = static_cast<R_xlen_t>(result.slice_trace.size());
+  SEXP out = PROTECT(Rf_allocVector(VECSXP, n));
+  for (R_xlen_t index = 0; index < n; ++index) {
+    const std::vector<double> &draws =
+      result.slice_trace[static_cast<std::size_t>(index)].random_draws;
+    SEXP values = PROTECT(Rf_allocVector(REALSXP, static_cast<R_xlen_t>(draws.size())));
+    for (R_xlen_t draw = 0; draw < XLENGTH(values); ++draw) {
+      REAL(values)[draw] = draws[static_cast<std::size_t>(draw)];
+    }
+    SET_VECTOR_ELT(out, index, values);
+    UNPROTECT(1);
+  }
+  UNPROTECT(1);
+  return out;
+}
+
+SEXP trace_table_state(const SimulationResult &result) {
+  const R_xlen_t n = static_cast<R_xlen_t>(result.slice_trace.size());
+  SEXP out = PROTECT(Rf_allocVector(VECSXP, 7));
+  SEXP names = PROTECT(Rf_allocVector(STRSXP, 7));
+  const char *column_names[] = {
+    "sim", "slice", "chi_square", "ppq", "pmq", "draw_count", "final_seed"
+  };
+  for (int column = 0; column < 7; ++column) {
+    SET_STRING_ELT(names, column, Rf_mkChar(column_names[column]));
+  }
+  SEXP simulation = PROTECT(Rf_allocVector(INTSXP, n));
+  SEXP slice = PROTECT(Rf_allocVector(INTSXP, n));
+  SEXP chi_square_values = PROTECT(Rf_allocVector(REALSXP, n));
+  SEXP ppq = PROTECT(Rf_allocVector(REALSXP, n));
+  SEXP pmq = PROTECT(Rf_allocVector(REALSXP, n));
+  SEXP draw_count = PROTECT(Rf_allocVector(REALSXP, n));
+  SEXP final_seed = PROTECT(Rf_allocVector(REALSXP, n));
+  for (R_xlen_t index = 0; index < n; ++index) {
+    const ExactSliceTrace &trace = result.slice_trace[static_cast<std::size_t>(index)];
+    INTEGER(simulation)[index] = trace.simulation;
+    INTEGER(slice)[index] = trace.slice;
+    REAL(chi_square_values)[index] = trace.chi_square;
+    REAL(ppq)[index] = trace.ppq;
+    REAL(pmq)[index] = trace.pmq;
+    REAL(draw_count)[index] = static_cast<double>(trace.draw_count);
+    REAL(final_seed)[index] = static_cast<double>(trace.final_seed);
+  }
+  SET_VECTOR_ELT(out, 0, simulation);
+  SET_VECTOR_ELT(out, 1, slice);
+  SET_VECTOR_ELT(out, 2, chi_square_values);
+  SET_VECTOR_ELT(out, 3, ppq);
+  SET_VECTOR_ELT(out, 4, pmq);
+  SET_VECTOR_ELT(out, 5, draw_count);
+  SET_VECTOR_ELT(out, 6, final_seed);
+  Rf_setAttrib(out, R_NamesSymbol, names);
+  UNPROTECT(9);
+  return out;
+}
+
+SEXP trace_simulation_state(const SimulationResult &result) {
+  const R_xlen_t n = static_cast<R_xlen_t>(result.simulation_trace.size());
+  SEXP out = PROTECT(Rf_allocVector(VECSXP, 14));
+  SEXP names = PROTECT(Rf_allocVector(STRSXP, 14));
+  const char *column_names[] = {
+    "sim", "chi_square", "ppq", "pmq", "gamma",
+    "chi_ge_observed", "gamma_ge_observed", "chi_exceed", "gamma_exceed",
+    "chi_status", "gamma_status", "stop", "draw_count", "final_seed"
+  };
+  for (int column = 0; column < 14; ++column) {
+    SET_STRING_ELT(names, column, Rf_mkChar(column_names[column]));
+  }
+  SEXP simulation = PROTECT(Rf_allocVector(INTSXP, n));
+  SEXP chi_square_values = PROTECT(Rf_allocVector(REALSXP, n));
+  SEXP ppq = PROTECT(Rf_allocVector(REALSXP, n));
+  SEXP pmq = PROTECT(Rf_allocVector(REALSXP, n));
+  SEXP gamma = PROTECT(Rf_allocVector(REALSXP, n));
+  SEXP chi_ge = PROTECT(Rf_allocVector(LGLSXP, n));
+  SEXP gamma_ge = PROTECT(Rf_allocVector(LGLSXP, n));
+  SEXP chi_exceed = PROTECT(Rf_allocVector(INTSXP, n));
+  SEXP gamma_exceed = PROTECT(Rf_allocVector(INTSXP, n));
+  SEXP chi_status = PROTECT(Rf_allocVector(LGLSXP, n));
+  SEXP gamma_status = PROTECT(Rf_allocVector(LGLSXP, n));
+  SEXP stop = PROTECT(Rf_allocVector(LGLSXP, n));
+  SEXP draw_count = PROTECT(Rf_allocVector(REALSXP, n));
+  SEXP final_seed = PROTECT(Rf_allocVector(REALSXP, n));
+  for (R_xlen_t index = 0; index < n; ++index) {
+    const ExactSimulationTrace &trace =
+      result.simulation_trace[static_cast<std::size_t>(index)];
+    INTEGER(simulation)[index] = trace.simulation;
+    REAL(chi_square_values)[index] = trace.chi_square;
+    REAL(ppq)[index] = trace.ppq;
+    REAL(pmq)[index] = trace.pmq;
+    REAL(gamma)[index] = trace.gamma;
+    LOGICAL(chi_ge)[index] = trace.chi_ge_observed ? TRUE : FALSE;
+    LOGICAL(gamma_ge)[index] = trace.gamma_ge_observed ? TRUE : FALSE;
+    INTEGER(chi_exceed)[index] = trace.chi_exceed;
+    INTEGER(gamma_exceed)[index] = trace.gamma_exceed;
+    LOGICAL(chi_status)[index] = trace.chi_status ? TRUE : FALSE;
+    LOGICAL(gamma_status)[index] = trace.gamma_status ? TRUE : FALSE;
+    LOGICAL(stop)[index] = trace.stop ? TRUE : FALSE;
+    REAL(draw_count)[index] = static_cast<double>(trace.draw_count);
+    REAL(final_seed)[index] = static_cast<double>(trace.final_seed);
+  }
+  SET_VECTOR_ELT(out, 0, simulation);
+  SET_VECTOR_ELT(out, 1, chi_square_values);
+  SET_VECTOR_ELT(out, 2, ppq);
+  SET_VECTOR_ELT(out, 3, pmq);
+  SET_VECTOR_ELT(out, 4, gamma);
+  SET_VECTOR_ELT(out, 5, chi_ge);
+  SET_VECTOR_ELT(out, 6, gamma_ge);
+  SET_VECTOR_ELT(out, 7, chi_exceed);
+  SET_VECTOR_ELT(out, 8, gamma_exceed);
+  SET_VECTOR_ELT(out, 9, chi_status);
+  SET_VECTOR_ELT(out, 10, gamma_status);
+  SET_VECTOR_ELT(out, 11, stop);
+  SET_VECTOR_ELT(out, 12, draw_count);
+  SET_VECTOR_ELT(out, 13, final_seed);
+  Rf_setAttrib(out, R_NamesSymbol, names);
+  UNPROTECT(16);
+  return out;
+}
+
+SEXP trace_result_list(const SimulationResult &result) {
+  SEXP out = PROTECT(Rf_allocVector(VECSXP, 11));
+  SEXP names = PROTECT(Rf_allocVector(STRSXP, 11));
+  const char *out_names[] = {
+    "p_chi", "p_gamma", "chi_exceed", "gamma_exceed", "nsim",
+    "draw_count", "rng_draws", "final_seed", "p_gamma_directional",
+    "gamma_directional_exceed", "trajectory"
+  };
+  for (int index = 0; index < 11; ++index) {
+    SET_STRING_ELT(names, index, Rf_mkChar(out_names[index]));
+  }
+  SET_VECTOR_ELT(out, 0, Rf_ScalarReal(source_p_value(result.chi_exceed, result.nsim)));
+  SET_VECTOR_ELT(out, 1, Rf_ScalarReal(source_p_value(result.gamma_exceed, result.nsim)));
+  SET_VECTOR_ELT(out, 2, Rf_ScalarInteger(result.chi_exceed));
+  SET_VECTOR_ELT(out, 3, Rf_ScalarInteger(result.gamma_exceed));
+  SET_VECTOR_ELT(out, 4, Rf_ScalarInteger(result.nsim));
+  SET_VECTOR_ELT(out, 5, Rf_ScalarReal(static_cast<double>(result.draw_count)));
+  SET_VECTOR_ELT(out, 6, Rf_ScalarReal(static_cast<double>(result.draw_count)));
+  SET_VECTOR_ELT(out, 7, Rf_ScalarReal(static_cast<double>(result.final_seed)));
+  SET_VECTOR_ELT(out, 8, Rf_ScalarReal(source_p_value(
+    result.gamma_directional_exceed, result.nsim
+  )));
+  SET_VECTOR_ELT(out, 9, Rf_ScalarInteger(result.gamma_directional_exceed));
+
+  SEXP trajectory = PROTECT(Rf_allocVector(VECSXP, 4));
+  SEXP trajectory_names = PROTECT(Rf_allocVector(STRSXP, 4));
+  SET_STRING_ELT(trajectory_names, 0, Rf_mkChar("tables"));
+  SET_STRING_ELT(trajectory_names, 1, Rf_mkChar("random_draws"));
+  SET_STRING_ELT(trajectory_names, 2, Rf_mkChar("table_state"));
+  SET_STRING_ELT(trajectory_names, 3, Rf_mkChar("simulations"));
+  SEXP tables = PROTECT(trace_tables(result));
+  SEXP random_draws = PROTECT(trace_random_draws(result));
+  SEXP table_state = PROTECT(trace_table_state(result));
+  SEXP simulations = PROTECT(trace_simulation_state(result));
+  SET_VECTOR_ELT(trajectory, 0, tables);
+  SET_VECTOR_ELT(trajectory, 1, random_draws);
+  SET_VECTOR_ELT(trajectory, 2, table_state);
+  SET_VECTOR_ELT(trajectory, 3, simulations);
+  Rf_setAttrib(trajectory, R_NamesSymbol, trajectory_names);
+  SET_VECTOR_ELT(out, 10, trajectory);
+  Rf_setAttrib(out, R_NamesSymbol, names);
+  UNPROTECT(8);
   return out;
 }
 
@@ -957,6 +1099,33 @@ extern "C" SEXP gRm_screen_j_exact_chi_gamma_slices(SEXP slices,
       as_single_int(seq_limit, "seq_limit")
     );
     return result_list(result);
+  } catch (const std::exception &err) {
+    Rf_error("%s", err.what());
+  }
+}
+
+extern "C" SEXP gRm_screen_j_exact_chi_gamma_trace_slices(SEXP slices,
+                                                              SEXP observed_chi,
+                                                              SEXP observed_gamma,
+                                                              SEXP nsim,
+                                                              SEXP seed,
+                                                              SEXP sequential,
+                                                              SEXP seq_limit) {
+  try {
+    std::vector<PreparedSlice> prepared = prepare_slices(slices);
+    SimulationResult result = simulate_chi_gamma(
+      prepared,
+      as_single_double(observed_chi, "observed_chi"),
+      as_single_double(observed_gamma, "observed_gamma"),
+      as_single_int(nsim, "nsim"),
+      as_single_int(seed, "seed"),
+      true,
+      true,
+      as_single_bool(sequential, "sequential"),
+      as_single_int(seq_limit, "seq_limit"),
+      true
+    );
+    return trace_result_list(result);
   } catch (const std::exception &err) {
     Rf_error("%s", err.what());
   }
@@ -1159,45 +1328,4 @@ extern "C" SEXP gRm_screen_j_source_random_draws(SEXP seed, SEXP n) {
   } catch (const std::exception &err) {
     Rf_error("%s", err.what());
   }
-}
-
-extern "C" SEXP gRm_item_parameters_top_ice_field(SEXP gamma_top, SEXP max_score);
-extern "C" SEXP gRm_item_parameters_extended_top_ice_fields(SEXP item_counts,
-                                                                SEXP score_counts,
-                                                                SEXP raw_max,
-                                                                SEXP max_step,
-                                                                SEXP max_delta);
-extern "C" SEXP gRm_item_parameters_extended_gamma(SEXP item_counts,
-                                                       SEXP score_counts,
-                                                       SEXP raw_max,
-                                                       SEXP max_step,
-                                                       SEXP max_delta);
-extern "C" SEXP gRm_item_parameters_ice_fields_from_gamma(SEXP item_gamma,
-                                                              SEXP raw_max);
-extern "C" SEXP gRm_gllrm_expected_margins(SEXP native_input,
-                                            SEXP item_gamma,
-                                            SEXP ld_parameters,
-                                            SEXP dif_parameters);
-
-static const R_CallMethodDef CallEntries[] = {
-  {"gRm_screen_j_exact_chi_gamma_slices", reinterpret_cast<DL_FUNC>(&gRm_screen_j_exact_chi_gamma_slices), 7},
-  {"gRm_screen_j_exact_chi_slices", reinterpret_cast<DL_FUNC>(&gRm_screen_j_exact_chi_slices), 6},
-  {"gRm_screen_j_exact_gamma_slices", reinterpret_cast<DL_FUNC>(&gRm_screen_j_exact_gamma_slices), 4},
-  {"gRm_screen_j_conditional_bias_test", reinterpret_cast<DL_FUNC>(&gRm_screen_j_conditional_bias_test), 12},
-  {"gRm_screen_j_item_pair_conditional_exact", reinterpret_cast<DL_FUNC>(&gRm_screen_j_item_pair_conditional_exact), 11},
-  {"gRm_item_parameters_top_ice_field", reinterpret_cast<DL_FUNC>(&gRm_item_parameters_top_ice_field), 2},
-  {"gRm_item_parameters_extended_top_ice_fields", reinterpret_cast<DL_FUNC>(&gRm_item_parameters_extended_top_ice_fields), 5},
-  {"gRm_item_parameters_extended_gamma", reinterpret_cast<DL_FUNC>(&gRm_item_parameters_extended_gamma), 5},
-  {"gRm_item_parameters_ice_fields_from_gamma", reinterpret_cast<DL_FUNC>(&gRm_item_parameters_ice_fields_from_gamma), 2},
-  {"gRm_gllrm_expected_margins", reinterpret_cast<DL_FUNC>(&gRm_gllrm_expected_margins), 4},
-  // Keep the underscore compatibility alias for older validation callers; the
-  // R package itself uses the non-underscored registration below.
-  {"_gRm_screen_j_source_random_draws", reinterpret_cast<DL_FUNC>(&gRm_screen_j_source_random_draws), 2},
-  {"gRm_screen_j_source_random_draws", reinterpret_cast<DL_FUNC>(&gRm_screen_j_source_random_draws), 2},
-  {nullptr, nullptr, 0}
-};
-
-extern "C" void R_init_gRm(DllInfo *dll) {
-  R_registerRoutines(dll, nullptr, CallEntries, nullptr, nullptr);
-  R_useDynamicSymbols(dll, FALSE);
 }

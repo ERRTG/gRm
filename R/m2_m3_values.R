@@ -1,14 +1,70 @@
 # M2/M3 value orchestration.
 
-m2_values <- function(fit, items = NULL, score_cuts = NULL) {
-  m2_m3_values(fit, items = items, score_cuts = score_cuts, include_three_way = FALSE)
+#' Internal m2 values helper
+#'
+#' Supports the m2 m3 values implementation while preserving its internal contract.
+#' Source trace: `source/PAS_skunits/skbias14.pas::CM3_analysis`.
+#' @param fit Fitted gRm model.
+#' @param items Item selection or item metadata.
+#' @param score_cuts Resolved total-score cut values.
+#' @param bootstrap_control Internal `bootstrap_control` value used by this helper.
+#' @return The internal `m2_values()` computation result.
+#' @keywords internal
+#' @noRd
+m2_values <- function(fit,
+                      items = NULL,
+                      score_cuts = NULL,
+                      bootstrap_control = list(enabled = FALSE)) {
+  m2_m3_values(
+    fit,
+    items = items,
+    score_cuts = score_cuts,
+    include_three_way = FALSE,
+    bootstrap_control = bootstrap_control
+  )
 }
 
-m3_values <- function(fit, items = NULL, score_cuts = NULL) {
-  m2_m3_values(fit, items = items, score_cuts = score_cuts, include_three_way = TRUE)
+#' Internal m3 values helper
+#'
+#' Supports the m2 m3 values implementation while preserving its internal contract.
+#' Source trace: `source/PAS_skunits/skbias14.pas::CM3_analysis`.
+#' @param fit Fitted gRm model.
+#' @param items Item selection or item metadata.
+#' @param score_cuts Resolved total-score cut values.
+#' @param bootstrap_control Internal `bootstrap_control` value used by this helper.
+#' @return The internal `m3_values()` computation result.
+#' @keywords internal
+#' @noRd
+m3_values <- function(fit,
+                      items = NULL,
+                      score_cuts = NULL,
+                      bootstrap_control = list(enabled = FALSE)) {
+  m2_m3_values(
+    fit,
+    items = items,
+    score_cuts = score_cuts,
+    include_three_way = TRUE,
+    bootstrap_control = bootstrap_control
+  )
 }
 
-m2_m3_values <- function(fit, items = NULL, score_cuts = NULL, include_three_way) {
+#' Internal m2 m3 values helper
+#'
+#' Supports the m2 m3 values implementation while preserving its internal contract.
+#' Source trace: `source/PAS_skunits/skbias14.pas::CM3_analysis`.
+#' @param fit Fitted gRm model.
+#' @param items Item selection or item metadata.
+#' @param score_cuts Resolved total-score cut values.
+#' @param include_three_way Whether to include three-way CM3 margins.
+#' @param bootstrap_control Internal `bootstrap_control` value used by this helper.
+#' @return The internal `m2_m3_values()` computation result.
+#' @keywords internal
+#' @noRd
+m2_m3_values <- function(fit,
+                         items = NULL,
+                         score_cuts = NULL,
+                         include_three_way,
+                         bootstrap_control = list(enabled = FALSE)) {
   # Source trace: source/PAS_skunits/skbias14.pas::CM3_analysis
   # (7289-7587) uses the current fitted GLLRM, prepares one margin list, and
   # runs CM3_tests once; R shares this engine for m2() and m3().
@@ -54,6 +110,14 @@ m2_m3_values <- function(fit, items = NULL, score_cuts = NULL, include_three_way
       n_three_way_margins = sum(!(tests$is_m2 %||% logical())),
       source_status = "m3_values"
     )
+    out <- m2_m3_apply_parametric_bootstrap(
+      fit,
+      out,
+      context,
+      state,
+      include_three_way = TRUE,
+      control = bootstrap_control
+    )
     class(out) <- c("gRm_m3_values", "list")
     out
   } else {
@@ -71,11 +135,27 @@ m2_m3_values <- function(fit, items = NULL, score_cuts = NULL, include_three_way
       n_three_way_margins = 0L,
       source_status = "m2_values"
     )
+    out <- m2_m3_apply_parametric_bootstrap(
+      fit,
+      out,
+      context,
+      state,
+      include_three_way = FALSE,
+      control = bootstrap_control
+    )
     class(out) <- c("gRm_m2_values", "list")
     out
   }
 }
 
+#' Internal m2 m3 fit context state helper
+#'
+#' Supports the m2 m3 values implementation while preserving its internal contract.
+#' Source trace: `source/PAS_skunits/skbias14.pas::CM3_analysis`.
+#' @param fit Fitted gRm model.
+#' @return The internal `m2_m3_fit_context_state()` computation result.
+#' @keywords internal
+#' @noRd
 m2_m3_fit_context_state <- function(fit) {
   if (!is.null(fit$fit$context)) {
     return(list(context = fit$fit$context, state = fit$fit))
@@ -93,6 +173,15 @@ m2_m3_fit_context_state <- function(fit) {
   list(context = context, state = state)
 }
 
+#' Internal m2 m3 selected item table helper
+#'
+#' Supports the m2 m3 values implementation while preserving its internal contract.
+#' Source trace: `source/PAS_skunits/skbias14.pas::CM3_analysis`.
+#' @param context Prepared GLLRM computation context.
+#' @param selected_indices Internal `selected_indices` value used by this helper.
+#' @return The internal `m2_m3_selected_item_table()` computation result.
+#' @keywords internal
+#' @noRd
 m2_m3_selected_item_table <- function(context, selected_indices) {
   items <- m2_m3_context_items(context)
   labels <- m2_m3_variable_labels(items)
@@ -104,6 +193,18 @@ m2_m3_selected_item_table <- function(context, selected_indices) {
   )
 }
 
+#' Internal m2 m3 analyze margin helper
+#'
+#' Supports the m2 m3 values implementation while preserving its internal contract.
+#' Source trace: `source/PAS_skunits/skbias14.pas::CM3_analysis`.
+#' @param context Prepared GLLRM computation context.
+#' @param state Current fitted or iterative parameter state.
+#' @param spec GLLRM model specification.
+#' @param score_group_lookup Internal `score_group_lookup` value used by this helper.
+#' @param probability_cache Internal `probability_cache` value used by this helper.
+#' @return The internal `m2_m3_analyze_margin()` computation result.
+#' @keywords internal
+#' @noRd
 m2_m3_analyze_margin <- function(context, state, spec, score_group_lookup, probability_cache) {
   # Source trace: source/PAS_skunits/skbias14.pas::Twoway_analysis and
   # ::Threeway_analysis dispatch observed and expected tables, then compute the
@@ -128,6 +229,16 @@ m2_m3_analyze_margin <- function(context, state, spec, score_group_lookup, proba
   )
 }
 
+#' Internal m2 m3 pearson stat helper
+#'
+#' Supports the m2 m3 values implementation while preserving its internal contract.
+#' Source trace: `source/PAS_skunits/skbias14.pas::CM3_analysis`.
+#' @param observed Internal `observed` value used by this helper.
+#' @param expected Internal `expected` value used by this helper.
+#' @param df Internal `df` value used by this helper.
+#' @return The internal `m2_m3_pearson_stat()` computation result.
+#' @keywords internal
+#' @noRd
 m2_m3_pearson_stat <- function(observed, expected, df) {
   # Source trace: source/PAS_skunits/skbias14.pas::Twoway_analysis and
   # ::Threeway_analysis add (observed - expected)^2 / expected only for cells
@@ -149,6 +260,14 @@ m2_m3_pearson_stat <- function(observed, expected, df) {
   )
 }
 
+#' Internal m2 m3 df two way helper
+#'
+#' Supports the m2 m3 values implementation while preserving its internal contract.
+#' Source trace: `source/PAS_skunits/skbias14.pas::CM3_analysis`.
+#' @param dimensions Internal `dimensions` value used by this helper.
+#' @return The internal `m2_m3_df_two_way()` computation result.
+#' @keywords internal
+#' @noRd
 m2_m3_df_two_way <- function(dimensions) {
   # Source trace: source/PAS_skunits/skbias14.pas::Twoway_analysis uses the
   # ordinary two-way margin df formula (columns - 1) * (rows - 1).
@@ -156,6 +275,14 @@ m2_m3_df_two_way <- function(dimensions) {
   as.integer((dimensions[[1L]] - 1L) * (dimensions[[2L]] - 1L))
 }
 
+#' Internal m2 m3 df three way helper
+#'
+#' Supports the m2 m3 values implementation while preserving its internal contract.
+#' Source trace: `source/PAS_skunits/skbias14.pas::CM3_analysis`.
+#' @param dimensions Internal `dimensions` value used by this helper.
+#' @return The internal `m2_m3_df_three_way()` computation result.
+#' @keywords internal
+#' @noRd
 m2_m3_df_three_way <- function(dimensions) {
   # Source trace: source/PAS_skunits/skbias14.pas::Threeway_analysis subtracts
   # the three one-way margins and the grand total from the full table cells.
@@ -163,6 +290,15 @@ m2_m3_df_three_way <- function(dimensions) {
   as.integer(prod(dimensions) - 1L - sum(dimensions - 1L))
 }
 
+#' Internal m2 m3 aggregate values helper
+#'
+#' Supports the m2 m3 values implementation while preserving its internal contract.
+#' Source trace: `source/PAS_skunits/skbias14.pas::CM3_analysis`.
+#' @param tests Diagnostic test rows.
+#' @param context Prepared GLLRM computation context.
+#' @return The internal `m2_m3_aggregate_values()` computation result.
+#' @keywords internal
+#' @noRd
 m2_m3_aggregate_values <- function(tests, context = NULL) {
   # Source trace: source/PAS_skunits/skbias14.pas:7181-7211 stores the CM2 aggregate
   # after the first nM2tests rows, then initializes the CM3 aggregate with that
@@ -188,6 +324,15 @@ m2_m3_aggregate_values <- function(tests, context = NULL) {
   )
 }
 
+#' Internal m2 m3 aggregate row helper
+#'
+#' Supports the m2 m3 values implementation while preserving its internal contract.
+#' Source trace: `source/PAS_skunits/skbias14.pas::CM3_analysis`.
+#' @param diagnostic Internal `diagnostic` value used by this helper.
+#' @param rows Rows used by the computation.
+#' @return The internal `m2_m3_aggregate_row()` computation result.
+#' @keywords internal
+#' @noRd
 m2_m3_aggregate_row <- function(diagnostic, rows) {
   chi_square <- if (is.data.frame(rows) && nrow(rows)) sum(rows$chi_square) else 0
   degrees_of_freedom <- if (is.data.frame(rows) && nrow(rows)) sum(rows$degrees_of_freedom) else 0L
@@ -201,6 +346,14 @@ m2_m3_aggregate_row <- function(diagnostic, rows) {
   )
 }
 
+#' Internal m2 m3 invariance rows helper
+#'
+#' Supports the m2 m3 values implementation while preserving its internal contract.
+#' Source trace: `source/PAS_skunits/skbias14.pas::CM3_analysis`.
+#' @param rows Rows used by the computation.
+#' @return The internal `m2_m3_invariance_rows()` computation result.
+#' @keywords internal
+#' @noRd
 m2_m3_invariance_rows <- function(rows) {
   if (!is.data.frame(rows) || !nrow(rows)) {
     return(data.frame(
@@ -228,6 +381,15 @@ m2_m3_invariance_rows <- function(rows) {
   do.call(rbind, out)
 }
 
+#' Internal m2 m3 margin metadata helper
+#'
+#' Supports the m2 m3 values implementation while preserving its internal contract.
+#' Source trace: `source/PAS_skunits/skbias14.pas::CM3_analysis`.
+#' @param context Prepared GLLRM computation context.
+#' @param spec GLLRM model specification.
+#' @return The internal `m2_m3_margin_metadata()` computation result.
+#' @keywords internal
+#' @noRd
 m2_m3_margin_metadata <- function(context, spec) {
   items <- m2_m3_context_items(context)
   backgrounds <- m2_m3_context_backgrounds(context)
@@ -325,10 +487,29 @@ m2_m3_margin_metadata <- function(context, spec) {
   row
 }
 
+#' Internal m2 m3 public margin table helper
+#'
+#' Supports the m2 m3 values implementation while preserving its internal contract.
+#' Source trace: `source/PAS_skunits/skbias14.pas::CM3_analysis`.
+#' @param tests Diagnostic test rows.
+#' @param context Prepared GLLRM computation context.
+#' @return The internal `m2_m3_public_margin_table()` computation result.
+#' @keywords internal
+#' @noRd
 m2_m3_public_margin_table <- function(tests, context = NULL) {
   tests
 }
 
+#' Internal m2 m3 nth character helper
+#'
+#' Supports the m2 m3 values implementation while preserving its internal contract.
+#' Source trace: `source/PAS_skunits/skbias14.pas::CM3_analysis`.
+#' @param x Object or value to process.
+#' @param index One-based internal index.
+#' @param default Internal `default` value used by this helper.
+#' @return The internal `m2_m3_nth_character()` computation result.
+#' @keywords internal
+#' @noRd
 m2_m3_nth_character <- function(x, index, default = NA_character_) {
   if (length(x) < index || is.na(x[[index]])) {
     return(default)

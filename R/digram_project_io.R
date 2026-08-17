@@ -1,25 +1,27 @@
-# DIGRAM import-project input and output helpers
-#
-# These helpers read or write legacy DIGRAM CSV/IMP/IMV import bundles. Public
-# users normally enter through gRm() for in-memory data or read_digram_project()
-# for an existing DIGRAM import project.
-#
-# Read a CSV file as DIGRAM data
-#
-# @param csv_path Path to the source CSV file.
-# @param items Character vector of item column names.
-# @param exo Character vector of exogeneous/person-factor column names.
-# @param idvar Identifier column name. Pass `NULL` to use the first CSV
-#   column.
-# @param output_dir Directory where `DIGRAM.csv`, `DIGRAM.imp`, and
-#   `DIGRAM.imv` should be written. Pass `NULL` when `save_digram_files` is
-#   `FALSE`.
-# @param save_digram_files Whether to write the three DIGRAM import files.
-#   If `TRUE`, `output_dir` must be supplied.
-# @param name DIGRAM project name used for saved files.
-# @param digram_folder Folder path written to `DIGRAM.imp`.
-# @param na.strings Strings treated as missing values by [utils::read.csv()].
-# @return A `gRm_data`/`gRm_project` object.
+#' DIGRAM import-project input and output helpers
+#'
+#' These helpers read or write legacy DIGRAM CSV/IMP/IMV import bundles. Public
+#' users normally enter through gRm() for in-memory data or read_digram_project()
+#' for an existing DIGRAM import project.
+#'
+#' Read a CSV file as DIGRAM data
+#'
+#' @param csv_path Path to the source CSV file.
+#' @param items Character vector of item column names.
+#' @param exo Character vector of exogeneous/person-factor column names.
+#' @param idvar Identifier column name. Pass `NULL` to use the first CSV
+#'   column.
+#' @param output_dir Directory where `DIGRAM.csv`, `DIGRAM.imp`, and
+#'   `DIGRAM.imv` should be written. Pass `NULL` when `save_digram_files` is
+#'   `FALSE`.
+#' @param save_digram_files Whether to write the three DIGRAM import files.
+#'   If `TRUE`, `output_dir` must be supplied.
+#' @param name DIGRAM project name used for saved files.
+#' @param digram_folder Folder path written to `DIGRAM.imp`.
+#' @param na.strings Strings treated as missing values by [utils::read.csv()].
+#' @return A `gRm_data`/`gRm_project` object.
+#' @keywords internal
+#' @noRd
 read_digram_csv <- function(csv_path,
                             items,
                             exo,
@@ -91,27 +93,29 @@ read_digram_csv <- function(csv_path,
   project
 }
 
-# Read a DIGRAM import-file directory
-#
-# This is the file-directory data entry point for the package. It reads a
-# directory containing `DIGRAM.csv`, `DIGRAM.imp`, and `DIGRAM.imv`, then
-# constructs the same internal DIGRAM project representation as the CSV
-# data-entry helper.
-#
-# `DIGRAM.csv`, `DIGRAM.imp`, and `DIGRAM.imv` do not encode the item versus
-# exogeneous split explicitly. The current reader therefore uses the explicit
-# `items` and `exo` declarations to assign roles while using `DIGRAM.imv` for
-# DIGRAM aliases, category maxima, and names.
-#
-# @param input_dir Directory containing `DIGRAM.csv`, `DIGRAM.imp`, and
-#   `DIGRAM.imv`.
-# @param items Character vector of item variable names.
-# @param exo Character vector of exogeneous/person-factor variable names.
-# @param idvar Identifier column name in `DIGRAM.csv`. Pass `NULL` to use the
-#   first CSV column.
-# @param name DIGRAM project name prefix.
-# @param na.strings Strings treated as missing values by [utils::read.csv()].
-# @return A `gRm_data`/`gRm_project` object.
+#' Read a DIGRAM import-file directory
+#'
+#' This is the file-directory data entry point for the package. It reads a
+#' directory containing `DIGRAM.csv`, `DIGRAM.imp`, and `DIGRAM.imv`, then
+#' constructs the same internal DIGRAM project representation as the CSV
+#' data-entry helper.
+#'
+#' `DIGRAM.csv`, `DIGRAM.imp`, and `DIGRAM.imv` do not encode the item versus
+#' exogeneous split explicitly. The current reader therefore uses the explicit
+#' `items` and `exo` declarations to assign roles while using `DIGRAM.imv` for
+#' DIGRAM aliases, category maxima, and names.
+#'
+#' @param input_dir Directory containing `DIGRAM.csv`, `DIGRAM.imp`, and
+#'   `DIGRAM.imv`.
+#' @param items Character vector of item variable names.
+#' @param exo Character vector of exogeneous/person-factor variable names.
+#' @param idvar Identifier column name in `DIGRAM.csv`. Pass `NULL` to use the
+#'   first CSV column.
+#' @param name DIGRAM project name prefix.
+#' @param na.strings Strings treated as missing values by [utils::read.csv()].
+#' @return A `gRm_data`/`gRm_project` object.
+#' @keywords internal
+#' @noRd
 read_digram_files <- function(input_dir,
                               items,
                               exo,
@@ -192,6 +196,14 @@ read_digram_files <- function(input_dir,
   project
 }
 
+#' Internal find digram import file helper
+#'
+#' Supports the digram project io implementation while preserving its internal contract.
+#' @param directory Internal `directory` value used by this helper.
+#' @param filename Internal `filename` value used by this helper.
+#' @return The internal `find_digram_import_file()` computation result.
+#' @keywords internal
+#' @noRd
 find_digram_import_file <- function(directory, filename) {
   candidate <- file.path(directory, filename)
   if (file.exists(candidate)) {
@@ -205,6 +217,13 @@ find_digram_import_file <- function(directory, filename) {
   candidate
 }
 
+#' Internal read digram imp helper
+#'
+#' Supports the digram project io implementation while preserving its internal contract.
+#' @param imp_path Internal `imp_path` value used by this helper.
+#' @return The internal `read_digram_imp()` computation result.
+#' @keywords internal
+#' @noRd
 read_digram_imp <- function(imp_path) {
   lines <- readLines(imp_path, warn = FALSE)
   if (length(lines) < 2L) {
@@ -220,6 +239,14 @@ read_digram_imp <- function(imp_path) {
   )
 }
 
+#' Internal resolve digram imp path helper
+#'
+#' Supports the digram project io implementation while preserving its internal contract.
+#' @param path Filesystem path used by the helper.
+#' @param base_dir Internal `base_dir` value used by this helper.
+#' @return The normalized or validated internal value.
+#' @keywords internal
+#' @noRd
 resolve_digram_imp_path <- function(path, base_dir) {
   path <- trimws(path)
   if (identical(path, "") || identical(path, "-")) {
@@ -241,6 +268,19 @@ resolve_digram_imp_path <- function(path, base_dir) {
   normalizePath(candidate, mustWork = FALSE)
 }
 
+#' Internal write digram import files helper
+#'
+#' Supports the digram project io implementation while preserving its internal contract.
+#' @param data Input data for the computation.
+#' @param project Encoded gRm project.
+#' @param idvar Internal `idvar` value used by this helper.
+#' @param output_dir Internal `output_dir` value used by this helper.
+#' @param name Internal name or label.
+#' @param digram_folder Internal `digram_folder` value used by this helper.
+#' @param line_ending Internal `line_ending` value used by this helper.
+#' @return The internal `write_digram_import_files()` computation result.
+#' @keywords internal
+#' @noRd
 write_digram_import_files <- function(data,
                                       project,
                                       idvar,
@@ -282,6 +322,15 @@ write_digram_import_files <- function(data,
   c(csv = csv_path, imp = imp_path, imv = imv_path)
 }
 
+#' Internal digram import data helper
+#'
+#' Supports the digram project io implementation while preserving its internal contract.
+#' @param data Input data for the computation.
+#' @param project Encoded gRm project.
+#' @param idvar Internal `idvar` value used by this helper.
+#' @return The internal `digram_import_data()` computation result.
+#' @keywords internal
+#' @noRd
 digram_import_data <- function(data, project, idvar) {
   encoded_positions <- c(project$items$position, project$backgrounds$position)
   encoded_names <- c(project$items$name, project$backgrounds$name)
@@ -301,11 +350,25 @@ digram_import_data <- function(data, project, idvar) {
   )
 }
 
+#' Internal ensure digram folder helper
+#'
+#' Supports the digram project io implementation while preserving its internal contract.
+#' @param path Filesystem path used by the helper.
+#' @return The internal `ensure_digram_folder()` computation result.
+#' @keywords internal
+#' @noRd
 ensure_digram_folder <- function(path) {
   path <- gsub("/", "\\\\", path, fixed = TRUE)
   if (grepl("\\\\$", path)) path else paste0(path, "\\")
 }
 
+#' Internal digram imv lines helper
+#'
+#' Supports the digram project io implementation while preserving its internal contract.
+#' @param project Encoded gRm project.
+#' @return The internal `digram_imv_lines()` computation result.
+#' @keywords internal
+#' @noRd
 digram_imv_lines <- function(project) {
   variables <- rbind(project$items, project$backgrounds)
   labels <- digram_category_labels()
@@ -323,6 +386,12 @@ digram_imv_lines <- function(project) {
   }, character(1L))
 }
 
+#' Internal digram category labels helper
+#'
+#' Supports the digram project io implementation while preserving its internal contract.
+#' @return The internal `digram_category_labels()` computation result.
+#' @keywords internal
+#' @noRd
 digram_category_labels <- function() {
   labels <- c(
     "one", "two", "three", "four", "five", "six", "seven", "eight",
@@ -332,6 +401,13 @@ digram_category_labels <- function() {
   stats::setNames(labels, as.character(seq_along(labels)))
 }
 
+#' Internal read digram imv helper
+#'
+#' Supports the digram project io implementation while preserving its internal contract.
+#' @param imv_path Internal `imv_path` value used by this helper.
+#' @return The internal `read_digram_imv()` computation result.
+#' @keywords internal
+#' @noRd
 read_digram_imv <- function(imv_path) {
   lines <- readLines(imv_path, warn = FALSE)
   nonblank <- lines[nzchar(trimws(lines))]

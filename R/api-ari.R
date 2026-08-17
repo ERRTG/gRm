@@ -3,7 +3,7 @@
 #' Compute the DIGRAM ARI item-by-total-score table for a fitted gRm model.
 #'
 #' @param fit A fitted gRm model.
-#' @param ... Reserved for future extensions; ignored.
+#' @param ... Reserved for future extensions and must be empty.
 #' @return A data frame with class `gRm_ari`. Rows follow DIGRAM's
 #'   item-major, score-minor order. The columns are `ItemNo`, `Item`, `Score`,
 #'   `n`, `Obs0..ObsK`, `ObsMean`, `ObsVar`, `Exp0..ExpK`, `ExpMean`,
@@ -18,6 +18,7 @@
 #'
 #' Values are returned at native R precision. The function does not write
 #' `Ari_dot.csv` or `Ari_comma.csv`.
+#' @aliases print.gRm_ari
 #' @export
 #' @examples
 #' data <- data.frame(
@@ -36,6 +37,7 @@
 #' head(ari_table)
 #' plot(ari_table)
 ari <- function(fit, ...) {
+  reject_public_dots(...)
   fit <- as_public_gRm_fit(fit)
   new_gRm_ari(
     ari_values(fit),
@@ -51,6 +53,14 @@ ari <- function(fit, ...) {
   )
 }
 
+#' Internal new gRm ari helper
+#'
+#' Supports the api ari implementation while preserving its internal contract.
+#' @param x Object or value to process.
+#' @param metadata Internal `metadata` value used by this helper.
+#' @return A newly assembled internal object or table.
+#' @keywords internal
+#' @noRd
 new_gRm_ari <- function(x, metadata = list()) {
   x <- as.data.frame(x, stringsAsFactors = FALSE)
   attr(x, "metadata") <- metadata
@@ -60,6 +70,7 @@ new_gRm_ari <- function(x, metadata = list()) {
 
 #' @export
 print.gRm_ari <- function(x, ...) {
+  reject_public_dots(...)
   metadata <- attr(x, "metadata") %||% list()
   score_range <- metadata$score_range %||% range(x$Score, na.rm = TRUE)
   if (!length(score_range) || anyNA(score_range) || any(!is.finite(score_range))) {
