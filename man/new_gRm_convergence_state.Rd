@@ -51,6 +51,6 @@ movements. The attempted block identifies the numerical attempt whose
 values were used in the report.
 }
 \details{
-Source trace: \code{source/PAS_skunits/skbias12b.pas::Estimate_GLLRM}.
+Source trace: \code{source/digram_source_20260817/skunits/skbias12b.pas::Estimate_GLLRM}.
 }
 \keyword{internal}

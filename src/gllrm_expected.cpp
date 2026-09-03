@@ -15,10 +15,10 @@
 //
 // This file is a mechanical acceleration of
 // R/gllrm_fit.R::calculate_gllrm_joint_expected_margins_r(), which is
-// the source-readable reference for source/GLLRM_ESTIM.txt::
-// CalculateBiasedGammaValues2, source/PAS_skunits/skbias12b.pas::
-// Estimate_GLLRM, source/PAS_skunits/skbias22.pas::Gamma_calculation, and
-// source/PAS_skunits/skbias22.pas::LD_Gamma_calculation. The native code only
+// the source-readable reference for source/digram_source_20260817/skunits/skbias22.pas::
+// CalculateBiasedGammaValues2, source/digram_source_20260817/skunits/skbias12b.pas::
+// Estimate_GLLRM, source/digram_source_20260817/skunits/skbias22.pas::Gamma_calculation, and
+// source/digram_source_20260817/skunits/skbias22.pas::LD_Gamma_calculation. The native code only
 // computes expected item, IJ/LD, and IX/DIF margins for the current state. R
 // keeps ownership of the fitting loop, update equations, stopping rules,
 // candidate ordering, likelihood calculation, and reporting gauge.
@@ -329,8 +329,8 @@ NativeInput parse_native_input(SEXP native_input) {
 }
 
 // Validate the complete index graph once before any expected-margin loop.
-// Source trace: source/PAS_skunits/skbias12b.pas::Initialize_GLLRMinfo and
-// source/GLLRM_ESTIM.txt::CalculateBiasedGammaValues2 rely on globally bounded
+// Source trace: source/digram_source_20260817/skunits/skbias12b.pas::Initialize_GLLRMinfo and
+// source/digram_source_20260817/skunits/skbias22.pas::CalculateBiasedGammaValues2 rely on globally bounded
 // Pascal arrays. The R native boundary must establish those same bounds
 // explicitly because malformed list metadata otherwise becomes unchecked
 // pointer arithmetic below.
@@ -580,7 +580,7 @@ void validate_native_input_graph(const NativeInput &input,
   }
 }
 
-// Source trace: source/PAS_skunits/skbias22.pas::Gamma_calculation combines
+// Source trace: source/digram_source_20260817/skunits/skbias22.pas::Gamma_calculation combines
 // component score polynomials by truncated convolution over total score.
 std::vector<double> convolve_truncated(const std::vector<double> &a,
                                        const std::vector<double> &b,
@@ -753,7 +753,7 @@ BackgroundCache build_background_cache(const NativeInput &input,
   return cache;
 }
 
-// Source trace: source/GLLRM_ESTIM.txt::CalculateBiasedGammaValues2 accumulates
+// Source trace: source/digram_source_20260817/skunits/skbias22.pas::CalculateBiasedGammaValues2 accumulates
 // fitted item, IJ/LD, and IX/DIF cells conditional on total score.
 void accumulate_group_expected(const NativeInput &input,
                                const BackgroundCache &cache,

@@ -22,6 +22,6 @@ The initial discrepancy is \code{Nvalid} and history indices -4 through 0 are
 seeded with 9999 exactly as in \code{Estimate_LL_parameters}.
 }
 \details{
-Source trace: \code{source/PAS_skunits/skbias12b.pas::Estimate_GLLRM}.
+Source trace: \code{source/digram_source_20260817/skunits/skbias12b.pas::Estimate_GLLRM}.
 }
 \keyword{internal}

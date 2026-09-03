@@ -13,6 +13,6 @@ assert_public_fit_values(values)
 \code{values}, invisibly.
 }
 \description{
-Source trace: \code{source/PAS_skunits/skbias12b.pas::Estimate_GLLRM}.
+Source trace: \code{source/digram_source_20260817/skunits/skbias12b.pas::Estimate_GLLRM}.
 }
 \keyword{internal}

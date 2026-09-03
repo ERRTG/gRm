@@ -1,6 +1,6 @@
 Package: gRm
 Title: Graphical Log-Linear Rasch Models in R
-Version: 1.0.0
+Version: 1.2.0
 Authors@R: c(
     person("Andreas", "Jensen", role = c("aut", "cre"), email = "aeje@sund.ku.dk")
   )

@@ -10,8 +10,8 @@
 \alias{print.gRm_local_dependence}
 \alias{print.gRm_dif}
 \alias{print.gRm_global_homogeneity}
-\alias{print.gRm_m2}
-\alias{print.gRm_m3}
+\alias{print.gRm_cm2}
+\alias{print.gRm_cm3}
 \title{Print gRm objects}
 \usage{
 \method{print}{gRm_analysis}(x, ...)
@@ -22,8 +22,8 @@
 \method{print}{gRm_local_dependence}(x, ...)
 \method{print}{gRm_dif}(x, ...)
 \method{print}{gRm_global_homogeneity}(x, ...)
-\method{print}{gRm_m2}(x, ...)
-\method{print}{gRm_m3}(x, ...)
+\method{print}{gRm_cm2}(x, ...)
+\method{print}{gRm_cm3}(x, ...)
 }
 \arguments{
 \item{x}{An gRm analysis, model, fit, screen, or result object.}

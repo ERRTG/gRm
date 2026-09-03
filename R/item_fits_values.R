@@ -1,7 +1,7 @@
 #' Internal item fits values helper
 #'
 #' Supports the item fits values implementation while preserving its internal contract.
-#' Source trace: `source/PAS_skunits/skbias15.pas::Calculate_residuals_and_item_fits`.
+#' Source trace: `source/digram_source_20260817/skunits/skbias15.pas::Calculate_residuals_and_item_fits`.
 #' @param project Encoded gRm project.
 #' @param max_step Maximum fitting iteration.
 #' @param max_delta Sufficient-count discrepancy tolerance.
@@ -20,7 +20,7 @@ item_fits_values <- function(project, max_step = 5000L, max_delta = 0.0001, incl
 #' Internal assemble item fits values helper
 #'
 #' Supports the item fits values implementation while preserving its internal contract.
-#' Source trace: `source/PAS_skunits/skbias15.pas::Calculate_residuals_and_item_fits`.
+#' Source trace: `source/digram_source_20260817/skunits/skbias15.pas::Calculate_residuals_and_item_fits`.
 #' @param bundle Source-shaped analysis bundle.
 #' @param fit_like Internal `fit_like` value used by this helper.
 #' @param item_fit Internal `item_fit` value used by this helper.
@@ -105,7 +105,7 @@ assemble_item_fits_values <- function(bundle,
 #' Internal base item fits values helper
 #'
 #' Supports the item fits values implementation while preserving its internal contract.
-#' Source trace: `source/PAS_skunits/skbias15.pas::Calculate_residuals_and_item_fits`.
+#' Source trace: `source/digram_source_20260817/skunits/skbias15.pas::Calculate_residuals_and_item_fits`.
 #' @param bundle Source-shaped analysis bundle.
 #' @param fit Fitted gRm model.
 #' @param include_extended Internal `include_extended` value used by this helper.
@@ -141,7 +141,7 @@ base_item_fits_values <- function(bundle, fit, include_extended = TRUE) {
 #' Internal gllrm item fits values helper
 #'
 #' Supports the item fits values implementation while preserving its internal contract.
-#' Source trace: `source/PAS_skunits/skbias15.pas::Calculate_residuals_and_item_fits`.
+#' Source trace: `source/digram_source_20260817/skunits/skbias15.pas::Calculate_residuals_and_item_fits`.
 #' @param fit Fitted gRm model.
 #' @param include_extended Internal `include_extended` value used by this helper.
 #' @return The internal `gllrm_item_fits_values()` computation result.
@@ -197,7 +197,7 @@ gllrm_item_fits_values <- function(fit, include_extended = TRUE) {
 #' Internal gllrm component restscore values helper
 #'
 #' Supports the item fits values implementation while preserving its internal contract.
-#' Source trace: `source/PAS_skunits/skbias15.pas::Calculate_residuals_and_item_fits`.
+#' Source trace: `source/digram_source_20260817/skunits/skbias15.pas::Calculate_residuals_and_item_fits`.
 #' @param context Prepared GLLRM computation context.
 #' @param state Current fitted or iterative parameter state.
 #' @return The internal `gllrm_component_restscore_values()` computation result.

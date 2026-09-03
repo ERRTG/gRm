@@ -13,11 +13,11 @@ source_complete_background_rows(context)
 An integer vector of source-row indices in input order.
 }
 \description{
-Mirrors \code{get_exogene} in \code{source/PAS_skunits/skbias14.pas}: every
+Mirrors \code{get_exogene} in \code{source/digram_source_20260817/skunits/skbias14.pas}: every
 exogenous variable must be present and inside its one-based source category
 range. Projects without exogenous variables accept every source row.
 }
 \details{
-Source trace: \code{source/PAS_skunits/skbias14.pas::Count_IJtable}.
+Source trace: \code{source/digram_source_20260817/skunits/skbias14.pas::Count_IJtable}.
 }
 \keyword{internal}

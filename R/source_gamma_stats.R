@@ -1,10 +1,10 @@
 #' Source-shaped Goodman-Kruskal/RC gamma table statistics.
 #'
-#' Source trace: source/GLLRM.txt::PREPARE_REAL_GAMMA_STATISTICS uses the
+#' Source trace: source/digram_source_20260817/skunits/skbias22.pas::PREPARE_REAL_GAMMA_STATISTICS uses the
 #' all-cell convention. For each table cell it builds AIJ and DIJ by scanning
 #' every other table cell, then accumulates P = sum(tab * AIJ),
 #' Q = sum(tab * DIJ), PPQ = P + Q, and PMQ = P - Q.
-#' Source trace: `source/PAS_skunits/skfit2.pas::Standardize_tab4`.
+#' Source trace: `source/digram_source_20260817/skunits/skfit2.pas::Standardize_tab4`.
 #' @param tab Internal `tab` value used by this helper.
 #' @param include_cells Internal `include_cells` value used by this helper.
 #' @return The internal `source_rc_gamma_stats()` computation result.
@@ -64,7 +64,7 @@ source_rc_gamma_stats <- function(tab, include_cells = FALSE) {
 #' Internal source rc gamma counts helper
 #'
 #' Supports the source gamma stats implementation while preserving its internal contract.
-#' Source trace: `source/PAS_skunits/skfit2.pas::Standardize_tab4`.
+#' Source trace: `source/digram_source_20260817/skunits/skfit2.pas::Standardize_tab4`.
 #' @param tab Internal `tab` value used by this helper.
 #' @return The internal `source_rc_gamma_counts()` computation result.
 #' @keywords internal
@@ -74,7 +74,7 @@ source_rc_gamma_counts <- function(tab) {
   list(gamma = stats$gamma, ppq = stats$ppq, pmq = stats$pmq)
 }
 
-#' Source trace: source/PAS_skunits/skfit2.pas::Standardize_tab4 performs
+#' Source trace: source/digram_source_20260817/skunits/skfit2.pas::Standardize_tab4 performs
 #' 30 fixed row/column scaling passes. Pascal stores table cells as
 #' V1V2_TAB(.I,J.) and scales the first source table index to Cmarg before the
 #' second source table index to Rmarg. R callers pass those source indices as
@@ -119,7 +119,7 @@ source_standardize_table_margins <- function(tab, row_margins, col_margins, n_it
 #' Internal gamma cell tables helper
 #'
 #' Supports the source gamma stats implementation while preserving its internal contract.
-#' Source trace: `source/PAS_skunits/skfit2.pas::Standardize_tab4`.
+#' Source trace: `source/digram_source_20260817/skunits/skfit2.pas::Standardize_tab4`.
 #' @param tab Internal `tab` value used by this helper.
 #' @return The internal `gamma_cell_tables()` computation result.
 #' @keywords internal

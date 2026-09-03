@@ -140,7 +140,7 @@ test_that("GLLRM final acceptance uses strict source delta below 0.1", {
   expect_false(source_gllrm_final_convergence(rejected$control))
 })
 
-test_that("a fitted sparse GLLRM reaches RecurringDeltaValues", {
+test_that("a fitted sparse GLLRM excludes extremes and stops deterministically", {
   analysis <- gRm(
     gllrm_recurrence_fixture_data(),
     items = paste0("I", 1:5),
@@ -152,26 +152,26 @@ test_that("a fitted sparse GLLRM reaches RecurringDeltaValues", {
     ld = ~ I1:I2 + I2:I3 + I3:I4 + I4:I5 + I1:I5,
     dif = ~ I1:X1 + I3:X2 + I5:X1
   )
-  # This intentionally sparse fixture exercises the low-level Pascal recurrence
-  # even though the stricter public fit boundary correctly rejects its
-  # rank-deficient parameterization.
+  # This intentionally sparse fixture exercises the complete fitted stop path;
+  # the source window excludes both the zero and maximum possible scores. The
+  # synthetic recurrence sequences above retain direct coverage of Pascal's
+  # RecurringDeltaValues branch.
   fitted <- fit_gllrm(model, max_step = 250L, max_delta = 1e-300)
   state <- c(fitted$state, list(context = fitted$context))
 
-  expect_identical(state$stop_reason, "recurring_delta_values")
-  expect_equal(state$n_step, 51L)
-  expect_true(state$recurring_delta_values)
+  expect_identical(state$stop_reason, "repeated_delta")
+  expect_equal(state$n_step, 211L)
+  expect_false(state$recurring_delta_values)
   expect_false(state$convergence_before_final_acceptance)
-  expect_false(state$converged)
-  expect_equal(state$report_delta, 4.978412843720301, tolerance = 1e-12)
-  expect_gte(state$delta_history[[51L]] - state$delta_history[[49L]], 0.00001)
-  expect_gte(state$delta_history[[51L]] - state$delta_history[[47L]], 0.00001)
-  expect_gte(state$delta_history[[51L]], 2)
+  expect_true(state$converged)
+  expect_lt(state$report_delta, 1e-12)
+  expect_equal(state$context$counts$n_valid, 22L)
+  expect_false(any(state$context$score[state$context$valid_rows] %in% c(0L, 5L)))
 
-  expect_equal(state$context$item_score_reference, 1L)
+  expect_equal(state$context$item_score_reference, 0L)
   output_state <- gllrm_output_parameter_state(state$context, state)
-  expect_false(isTRUE(all.equal(output_state$item_gamma, state$item_gamma)))
-  expect_false(isTRUE(all.equal(output_state$ld_parameters, state$ld_parameters)))
+  expect_equal(output_state$item_gamma, state$item_gamma)
+  expect_equal(output_state$ld_parameters, state$ld_parameters)
   expect_equal(
     gllrm_loglike(state$context, output_state),
     gllrm_loglike(state$context, state),

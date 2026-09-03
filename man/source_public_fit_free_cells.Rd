@@ -17,6 +17,6 @@ The source chooses the row and column having the largest number of positive
 cells, then estimates positive cells outside that reference row and column.
 }
 \details{
-Source trace: \code{source/PAS_skunits/skbias12b.pas::Estimate_GLLRM}.
+Source trace: \code{source/digram_source_20260817/skunits/skbias12b.pas::Estimate_GLLRM}.
 }
 \keyword{internal}

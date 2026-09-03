@@ -17,6 +17,6 @@ The observed and expected IJ/IX/score and exogenous three-way routines call
 \code{Get_Items} and then \code{get_exogene} without applying the CML score window.
 }
 \details{
-Source trace: \code{source/PAS_skunits/skbias14.pas::Count_IJtable}.
+Source trace: \code{source/digram_source_20260817/skunits/skbias14.pas::Count_IJtable}.
 }
 \keyword{internal}

@@ -2,7 +2,7 @@
 #'
 #' Port of `SkStat.TAILNORM`, used by the source chi-square tail approximation.
 #'
-#' Source trace: `source/PAS_scd/SkStat.pas::TAILNORM`.
+#' Source trace: `source/digram_source_20260817/skunits/SkStat.pas::TAILNORM`.
 #' @param value Normal deviate.
 #' @param upper Logical; `TRUE` returns the upper tail.
 #' @return Tail probability.
@@ -92,7 +92,7 @@ source_tail_norm <- function(value, upper = TRUE) {
 #'
 #' Port of `SkStat.PFCHI`.
 #'
-#' Source trace: `source/PAS_scd/SkStat.pas::PFCHI`.
+#' Source trace: `source/digram_source_20260817/skunits/SkStat.pas::PFCHI`.
 #' @param df Degrees of freedom.
 #' @param x Chi-square statistic.
 #' @return Upper-tail probability.
@@ -151,7 +151,7 @@ source_pfchi <- function(df, x) {
 #' Port of `SourceBenjaminiHochbergCritical`, matching the current Pascal
 #' harness behavior.
 #'
-#' Source trace: `source/PAS_skunits/SkStat.pas::BenjaminiHochberg0`.
+#' Source trace: `source/digram_source_20260817/skunits/SkStat.pas::BenjaminiHochberg0`.
 #' @param p_values Numeric p-values.
 #' @param alpha False discovery rate target.
 #' @return Critical p-value.

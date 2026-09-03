@@ -1,7 +1,7 @@
 #' Internal calculate extended item fit values helper
 #'
 #' Supports the item fits values implementation while preserving its internal contract.
-#' Source trace: `source/PAS_skunits/skbias15.pas::Calculate_residuals_and_item_fits`.
+#' Source trace: `source/digram_source_20260817/skunits/skbias15.pas::Calculate_residuals_and_item_fits`.
 #' @param bundle Source-shaped analysis bundle.
 #' @param fit Fitted gRm model.
 #' @param conditional Internal `conditional` value used by this helper.
@@ -70,7 +70,12 @@ calculate_extended_item_fit_values <- function(bundle, fit, conditional = NULL) 
         n_score = n_score,
         observed_rows = observed_rows,
         item_scores = item_scores,
-        conditional = conditional
+        conditional = conditional,
+        previous_row = if (length(item_score_rows)) {
+          item_score_rows[[length(item_score_rows)]]
+        } else {
+          NULL
+        }
       )
       if (is.null(row)) {
         next
@@ -103,8 +108,8 @@ calculate_extended_item_fit_values <- function(bundle, fit, conditional = NULL) 
 
 #' Compute one extended item-fit score row
 #'
-#' Source trace: `source/PAS_skunits/skbias15.pas::CalculateOutfit` and
-#' `source/PAS_skunits/skbias15.pas::CalculateInfit`.
+#' Source trace: `source/digram_source_20260817/skunits/skbias15.pas::CalculateOutfit` and
+#' `source/digram_source_20260817/skunits/skbias15.pas::CalculateInfit`.
 #' Mathematical step: form observed/expected conditional moments at one total
 #' score and preserve the source's positive-residual and score-count weights.
 #' @param items Parsed item metadata.
@@ -115,6 +120,8 @@ calculate_extended_item_fit_values <- function(bundle, fit, conditional = NULL) 
 #' @param observed_rows Valid observed-margin record mask.
 #' @param item_scores Zero-based total item score per record.
 #' @param conditional Conditional item moments by item and score.
+#' @param previous_row Previous emitted score row for the same item. DIGRAM's
+#'   zero-variance branch retains the preceding local `stdres` storage.
 #' @return One extended score row, or `NULL` for an unused score.
 #' @keywords internal
 #' @noRd
@@ -125,7 +132,8 @@ extended_item_fit_score_row <- function(items,
                                         n_score,
                                         observed_rows,
                                         item_scores,
-                                        conditional) {
+                                        conditional,
+                                        previous_row = NULL) {
   item_max <- items$raw_max[[item_index]] - 1L
   item_values <- seq.int(0L, item_max)
   score_rows_mask <- observed_rows & item_scores == score
@@ -138,13 +146,71 @@ extended_item_fit_score_row <- function(items,
     return(NULL)
   }
   moments <- conditional[[item_index]][[score + 1L]]
+  probabilities <- moments$probabilities
   variance <- moments$variance
+  observed_frequency <- observed_count / observed_total
+  observed_source_value <- observed_frequency * n_score
+
   if (variance <= 0) {
-    return(NULL)
+    # Source trace: skbias15.pas::CalculateOutfit initializes `range` and
+    # `resrange` to zero, but does not initialize its local `stdres` vector.
+    # The variance-positive branch is the only assignment to `stdres`, so the
+    # 7.04 runtime deterministically reuses the preceding score call's values
+    # when the same stack frame handles a zero-variance score.  Preserve that
+    # emitted behavior explicitly; zero is the only safe value when no prior
+    # emitted row exists.  The other residual/outfit/infit fields follow their
+    # initialized source zeros, including the two printed 0/0 `Nan` cells.
+    standardized <- numeric(length(item_values))
+    if (!is.null(previous_row) && nrow(previous_row) == 1L) {
+      previous_columns <- paste0("standardized_", item_values)
+      if (all(previous_columns %in% names(previous_row))) {
+        standardized <- as.numeric(previous_row[1L, previous_columns, drop = TRUE])
+      }
+    }
+    row <- data.frame(
+      item_label = items$label_code[[item_index]],
+      item_name = items$name[[item_index]],
+      score = score,
+      n = n_score,
+      observed_mean = sum(item_values * observed_frequency),
+      observed_variance = sum(item_values^2 * observed_frequency) -
+        sum(item_values * observed_frequency)^2,
+      expected_mean = moments$mean,
+      expected_variance = 0,
+      residual_mean = 0,
+      residual_variance = 0,
+      n_variance = 0,
+      squared_residual_mean = 0,
+      squared_residual_variance = 0,
+      squared_residual_observed_average = 0,
+      standardized_mean = 0,
+      standardized_variance = 1,
+      standardized_observed_average = 0,
+      squared_standardized_mean = 0,
+      squared_standardized_variance = 0,
+      squared_standardized_observed_average = NaN,
+      outfit_contribution = 0,
+      outfit_standard_error = 0,
+      outfit_z = NA_real_,
+      outfit_p = NA_real_,
+      infit_average = 0,
+      infit_expected = 0,
+      infit_ratio = NaN,
+      infit_variance = 0,
+      stringsAsFactors = FALSE
+    )
+    for (score_value in item_values) {
+      suffix <- as.character(score_value)
+      row[[paste0("observed_", suffix)]] <- observed_source_value[[score_value + 1L]]
+      row[[paste0("probability_", suffix)]] <- probabilities[[score_value + 1L]]
+      row[[paste0("residual_", suffix)]] <- 0
+      row[[paste0("squared_residual_", suffix)]] <- 0
+      row[[paste0("standardized_", suffix)]] <- standardized[[score_value + 1L]]
+      row[[paste0("squared_standardized_", suffix)]] <- 0
+    }
+    return(row)
   }
 
-  probabilities <- moments$probabilities
-  observed_frequency <- observed_count / observed_total
   residual <- item_values - moments$mean
   squared_residual <- residual^2
   standardized <- residual / sqrt(variance)
@@ -153,7 +219,6 @@ extended_item_fit_score_row <- function(items,
   # The source report rounds this value for display only. Its computational
   # row retains the mixed valid-background frequency times the broader
   # complete-item score count.
-  observed_source_value <- observed_frequency * n_score
   positive <- residual > 0
   positive_expected_squared <- sum(squared_residual[positive] * probabilities[positive])
   positive_expected_variance <-
@@ -221,7 +286,7 @@ extended_item_fit_score_row <- function(items,
 
 #' Summarize extended score rows for one item
 #'
-#' Source trace: `source/PAS_skunits/skbias15.pas::Calculate_residuals_and_item_fits`.
+#' Source trace: `source/digram_source_20260817/skunits/skbias15.pas::Calculate_residuals_and_item_fits`.
 #' @param items Parsed item metadata.
 #' @param item_index One-based item index.
 #' @param item_scores_df Extended rows for the item.
@@ -260,7 +325,7 @@ extended_item_fit_summary_row <- function(items, item_index, item_scores_df) {
 #' Internal extended item restscore source tables helper
 #'
 #' Supports the item fits values implementation while preserving its internal contract.
-#' Source trace: `source/PAS_skunits/skbias15.pas::Calculate_residuals_and_item_fits`.
+#' Source trace: `source/digram_source_20260817/skunits/skbias15.pas::Calculate_residuals_and_item_fits`.
 #' @param bundle Source-shaped analysis bundle.
 #' @param conditional Internal `conditional` value used by this helper.
 #' @param base_score_counts Internal `base_score_counts` value used by this helper.
@@ -336,7 +401,7 @@ extended_item_restscore_source_tables <- function(
 #' Internal restscore matrix helper
 #'
 #' Supports the item fits values implementation while preserving its internal contract.
-#' Source trace: `source/PAS_skunits/skbias15.pas::Calculate_residuals_and_item_fits`.
+#' Source trace: `source/digram_source_20260817/skunits/skbias15.pas::Calculate_residuals_and_item_fits`.
 #' @param item_max Internal `item_max` value used by this helper.
 #' @param rest_max Internal `rest_max` value used by this helper.
 #' @return The internal `restscore_matrix()` computation result.
@@ -349,7 +414,7 @@ restscore_matrix <- function(item_max, rest_max) {
 #' Internal extended global restscore tables helper
 #'
 #' Supports the item fits values implementation while preserving its internal contract.
-#' Source trace: `source/PAS_skunits/skbias15.pas::Calculate_residuals_and_item_fits`.
+#' Source trace: `source/digram_source_20260817/skunits/skbias15.pas::Calculate_residuals_and_item_fits`.
 #' @param bundle Source-shaped analysis bundle.
 #' @param conditional Internal `conditional` value used by this helper.
 #' @param observed_gamma Internal `observed_gamma` value used by this helper.
@@ -417,7 +482,7 @@ extended_global_restscore_tables <- function(bundle, conditional, observed_gamma
 #' Internal extended local restscore tables helper
 #'
 #' Supports the item fits values implementation while preserving its internal contract.
-#' Source trace: `source/PAS_skunits/skbias15.pas::Calculate_residuals_and_item_fits`.
+#' Source trace: `source/digram_source_20260817/skunits/skbias15.pas::Calculate_residuals_and_item_fits`.
 #' @param bundle Source-shaped analysis bundle.
 #' @param observed Internal `observed` value used by this helper.
 #' @param expected Internal `expected` value used by this helper.
@@ -515,7 +580,7 @@ extended_local_restscore_tables <- function(bundle, observed, expected, base_sco
 
 #' Build one item/adjacent-score local restscore diagnostic
 #'
-#' Source trace: `source/PAS_skunits/skbias14.pas::Calculate_item_restscore_gamma1`.
+#' Source trace: `source/digram_source_20260817/skunits/skbias14.pas::Calculate_item_restscore_gamma1`.
 #' Mathematical step: materialize the adjacent-category item-by-restscore
 #' observed and expected tables, rescale expected cells to observed score
 #' totals, and derive the fitted-gamma comparison in source loop order.
@@ -620,7 +685,7 @@ extended_local_restscore_item <- function(items,
 #' Internal restscore table rows helper
 #'
 #' Supports the item fits values implementation while preserving its internal contract.
-#' Source trace: `source/PAS_skunits/skbias15.pas::Calculate_residuals_and_item_fits`.
+#' Source trace: `source/digram_source_20260817/skunits/skbias15.pas::Calculate_residuals_and_item_fits`.
 #' @param items Item selection or item metadata.
 #' @param item_index One-based item index.
 #' @param local_restscore Internal `local_restscore` value used by this helper.

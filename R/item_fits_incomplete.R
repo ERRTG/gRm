@@ -1,6 +1,6 @@
 #' Collect source-style incomplete response records
 #'
-#' Source trace: `source/PAS_skunits/skbias15.pas::Calculate_residuals_and_item_fits`.
+#' Source trace: `source/digram_source_20260817/skunits/skbias15.pas::Calculate_residuals_and_item_fits`.
 #' @param bundle An item-parameters bundle.
 #' @return A list with grouped incomplete records, counts, observed scores, and
 #'   observed maximum scores.
@@ -25,7 +25,7 @@ empty_source_incomplete_records <- function(bundle) {
 #' Internal collect source incomplete records helper
 #'
 #' Supports the item fits values implementation while preserving its internal contract.
-#' Source trace: `source/PAS_skunits/skbias15.pas::Calculate_residuals_and_item_fits`.
+#' Source trace: `source/digram_source_20260817/skunits/skbias15.pas::Calculate_residuals_and_item_fits`.
 #' @param bundle Source-shaped analysis bundle.
 #' @return The internal `collect_source_incomplete_records()` computation result.
 #' @keywords internal
@@ -88,7 +88,7 @@ collect_source_incomplete_records <- function(bundle) {
 
 #' Calculate DIGRAM's expected total score for an incomplete record
 #'
-#' Source trace: `source/PAS_skunits/skbias15.pas::Calculate_residuals_and_item_fits`.
+#' Source trace: `source/digram_source_20260817/skunits/skbias15.pas::Calculate_residuals_and_item_fits`.
 #' @param bundle An item-parameters bundle.
 #' @param item_gamma Estimated item gamma matrix.
 #' @param incomplete Output from `collect_source_incomplete_records()`.
@@ -117,7 +117,7 @@ incomplete_expected_total_score <- function(bundle, item_gamma, incomplete, reco
 
 #' Build a source score-generating function for a subset of items
 #'
-#' Source trace: `source/PAS_skunits/skbias15.pas::Calculate_residuals_and_item_fits`.
+#' Source trace: `source/digram_source_20260817/skunits/skbias15.pas::Calculate_residuals_and_item_fits`.
 #' @param bundle An item-parameters bundle.
 #' @param item_gamma Estimated item gamma matrix.
 #' @param use_item Logical vector selecting included items.
@@ -154,7 +154,7 @@ build_source_subset_gamma <- function(bundle, item_gamma, use_item) {
 
 #' Prepare incomplete-record quantities for item-restscore gamma
 #'
-#' Source trace: `source/PAS_skunits/skbias15.pas::Calculate_residuals_and_item_fits`.
+#' Source trace: `source/digram_source_20260817/skunits/skbias15.pas::Calculate_residuals_and_item_fits`.
 #' @param bundle An item-parameters bundle.
 #' @param item_gamma Estimated item gamma matrix.
 #' @param incomplete Output from `collect_source_incomplete_records()`.
@@ -246,7 +246,7 @@ prepare_incomplete_item_restscore_gamma <- function(bundle, item_gamma, incomple
 #' Internal item conditional moments helper
 #'
 #' Supports the item fits values implementation while preserving its internal contract.
-#' Source trace: `source/PAS_skunits/skbias15.pas::Calculate_residuals_and_item_fits`.
+#' Source trace: `source/digram_source_20260817/skunits/skbias15.pas::Calculate_residuals_and_item_fits`.
 #' @param bundle Source-shaped analysis bundle.
 #' @param item_gamma Internal `item_gamma` value used by this helper.
 #' @param include_probabilities Internal `include_probabilities` value used by this helper.
@@ -300,7 +300,7 @@ item_conditional_moments <- function(bundle, item_gamma, include_probabilities =
 #' Internal item conditional moment for subset helper
 #'
 #' Supports the item fits values implementation while preserving its internal contract.
-#' Source trace: `source/PAS_skunits/skbias15.pas::Calculate_residuals_and_item_fits`.
+#' Source trace: `source/digram_source_20260817/skunits/skbias15.pas::Calculate_residuals_and_item_fits`.
 #' @param bundle Source-shaped analysis bundle.
 #' @param item_gamma Internal `item_gamma` value used by this helper.
 #' @param item_index One-based item index.
@@ -340,7 +340,7 @@ item_conditional_moment_for_subset <- function(bundle, item_gamma, item_index, s
 #' Internal build gamma excluding item subset helper
 #'
 #' Supports the item fits values implementation while preserving its internal contract.
-#' Source trace: `source/PAS_skunits/skbias15.pas::Calculate_residuals_and_item_fits`.
+#' Source trace: `source/digram_source_20260817/skunits/skbias15.pas::Calculate_residuals_and_item_fits`.
 #' @param bundle Source-shaped analysis bundle.
 #' @param item_gamma Internal `item_gamma` value used by this helper.
 #' @param excluded_item Internal `excluded_item` value used by this helper.
@@ -387,7 +387,7 @@ build_gamma_excluding_item_subset <- function(bundle, item_gamma, excluded_item,
 
 #' Fast source score-generating function for a subset of items
 #'
-#' Source trace: `source/PAS_skunits/skbias15.pas::Calculate_residuals_and_item_fits`.
+#' Source trace: `source/digram_source_20260817/skunits/skbias15.pas::Calculate_residuals_and_item_fits`.
 #' @param items Item metadata data frame.
 #' @param item_gamma Estimated item gamma matrix.
 #' @param use_item Logical vector selecting included items.

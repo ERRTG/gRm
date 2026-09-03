@@ -18,6 +18,6 @@ the source expression order and strict comparisons. The returned convergence
 flag is the pre-finalization source flag.
 }
 \details{
-Source trace: \code{source/PAS_skunits/skbias12b.pas::Estimate_GLLRM}.
+Source trace: \code{source/digram_source_20260817/skunits/skbias12b.pas::Estimate_GLLRM}.
 }
 \keyword{internal}

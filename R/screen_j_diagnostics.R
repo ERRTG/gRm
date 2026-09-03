@@ -1,7 +1,7 @@
 #' Internal screen j exo values helper
 #'
 #' Supports the screen j values implementation while preserving its internal contract.
-#' Source trace: `source/PAS_skunits/SKbias7.pas::Item_Screening`.
+#' Source trace: `source/digram_source_20260817/skunits/SKbias7.pas::Item_Screening`.
 #' @param project Encoded gRm project.
 #' @param item_matrix Internal `item_matrix` value used by this helper.
 #' @param item_score Internal `item_score` value used by this helper.
@@ -128,7 +128,7 @@ screen_j_exo_values <- function(project,
 #' Internal screen j weighted partial gamma helper
 #'
 #' Supports the screen j values implementation while preserving its internal contract.
-#' Source trace: `source/PAS_skunits/SKbias7.pas::Item_Screening`.
+#' Source trace: `source/digram_source_20260817/skunits/SKbias7.pas::Item_Screening`.
 #' @param ppq Internal `ppq` value used by this helper.
 #' @param pmq Internal `pmq` value used by this helper.
 #' @return The internal `screen_j_weighted_partial_gamma()` computation result.
@@ -152,7 +152,7 @@ screen_j_weighted_partial_gamma <- function(ppq, pmq) {
 #' Internal screen j average abs partial gamma helper
 #'
 #' Supports the screen j values implementation while preserving its internal contract.
-#' Source trace: `source/PAS_skunits/SKbias7.pas::Item_Screening`.
+#' Source trace: `source/digram_source_20260817/skunits/SKbias7.pas::Item_Screening`.
 #' @param gamma Internal `gamma` value used by this helper.
 #' @return The internal `screen_j_average_abs_partial_gamma()` computation result.
 #' @keywords internal
@@ -174,7 +174,7 @@ screen_j_average_abs_partial_gamma <- function(gamma) {
 #' Internal screen j problem counts helper
 #'
 #' Supports the screen j values implementation while preserving its internal contract.
-#' Source trace: `source/PAS_skunits/SKbias7.pas::Item_Screening`.
+#' Source trace: `source/digram_source_20260817/skunits/SKbias7.pas::Item_Screening`.
 #' @param gamma Internal `gamma` value used by this helper.
 #' @param p Internal `p` value used by this helper.
 #' @param fdr05 Internal `fdr05` value used by this helper.
@@ -204,7 +204,7 @@ screen_j_problem_counts <- function(gamma, p, fdr05, i, j, temp_p = p) {
 #' is retained for diagnostics, whereas `matrix` and `rows` contain only the
 #' terms that DIGRAM permits in the screen model.
 #'
-#' Source trace: `source/PAS_skunits/SKbias7.pas::Item_Screening`.
+#' Source trace: `source/digram_source_20260817/skunits/SKbias7.pas::Item_Screening`.
 #' @param gamma Directed partial-gamma matrix.
 #' @param p Directed partial-gamma p-value matrix.
 #' @param weighted_gamma Symmetric weighted-partial-gamma matrix.
@@ -289,7 +289,7 @@ screen_j_stepwise_local_dependence <- function(gamma, p, weighted_gamma, fdr05) 
 #' Since DIGRAM version 3.37, a provisional pair becomes a screen-model term
 #' only when the sum of its two directed partial gammas is strictly positive.
 #'
-#' Source trace: `source/PAS_skunits/SKbias7.pas::Item_Screening`.
+#' Source trace: `source/digram_source_20260817/skunits/SKbias7.pas::Item_Screening`.
 #' @param gamma Directed partial-gamma matrix.
 #' @param stepwise_matrix Symmetric logical matrix of provisional selections.
 #' @param stepwise_rows Ordered provisional-selection table.
@@ -349,7 +349,7 @@ screen_j_finalize_local_dependence <- function(gamma, stepwise_matrix, stepwise_
 #' Internal screen j post screen dif helper
 #'
 #' Supports the screen j values implementation while preserving its internal contract.
-#' Source trace: `source/PAS_skunits/SKbias7.pas::Item_Screening`.
+#' Source trace: `source/digram_source_20260817/skunits/SKbias7.pas::Item_Screening`.
 #' @param item_matrix Internal `item_matrix` value used by this helper.
 #' @param exo_values Internal `exo_values` value used by this helper.
 #' @param item_score Internal `item_score` value used by this helper.
@@ -515,7 +515,7 @@ screen_j_post_screen_dif <- function(item_matrix,
 #' Internal screen j spurious item bias analysis helper
 #'
 #' Supports the screen j values implementation while preserving its internal contract.
-#' Source trace: `source/PAS_skunits/SKbias7.pas::Item_Screening`.
+#' Source trace: `source/digram_source_20260817/skunits/SKbias7.pas::Item_Screening`.
 #' @param item_matrix Internal `item_matrix` value used by this helper.
 #' @param exo_values Internal `exo_values` value used by this helper.
 #' @param item_score Internal `item_score` value used by this helper.
@@ -652,7 +652,7 @@ screen_j_spurious_item_bias_analysis <- function(item_matrix,
 #' Internal screen j multiple item bias analysis helper
 #'
 #' Supports the screen j values implementation while preserving its internal contract.
-#' Source trace: `source/PAS_skunits/SKbias7.pas::Item_Screening`.
+#' Source trace: `source/digram_source_20260817/skunits/SKbias7.pas::Item_Screening`.
 #' @param item_matrix Internal `item_matrix` value used by this helper.
 #' @param exo_values Internal `exo_values` value used by this helper.
 #' @param item_score Internal `item_score` value used by this helper.

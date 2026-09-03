@@ -11,7 +11,7 @@
 #' either public constructor; Pascal and supplied DIGRAM reports are validation
 #' oracles only.
 #'
-#' Source trace: `source/PAS_scd/SkStat.pas::RCGAMMA`.
+#' Source trace: `source/digram_source_20260817/skunits/SkStat.pas::RCGAMMA`.
 #' @param project A parsed DIGRAM project from [read_digram_project()].
 #' @return A `gRm_gamma_values` object.
 #' @examples
@@ -79,7 +79,7 @@ gamma_values <- function(project) {
 
 #' Build a pairwise complete ordinal table for marginal gamma
 #'
-#' Source trace: `source/PAS_scd/SkStat.pas::RCGAMMA`.
+#' Source trace: `source/digram_source_20260817/skunits/SkStat.pas::RCGAMMA`.
 #' @param row_values Integer source-coded values for the row variable.
 #' @param col_values Integer source-coded values for the column variable.
 #' @param row_dim Number of ordinal row categories.
@@ -98,7 +98,7 @@ gRm_pairwise_gamma_table <- function(row_values, col_values, row_dim, col_dim) {
 
 #' Goodman-Kruskal gamma statistics using DIGRAM's RC gamma formula
 #'
-#' Source trace: `source/PAS_scd/SkStat.pas::RCGAMMA`.
+#' Source trace: `source/digram_source_20260817/skunits/SkStat.pas::RCGAMMA`.
 #' @param tab A two-way ordinal count table.
 #' @return List with `gamma`, `ppq`, and `pmq`.
 #' @keywords internal

@@ -1,7 +1,7 @@
 #' Internal goodman kruskal gamma helper
 #'
 #' Supports the item fits values implementation while preserving its internal contract.
-#' Source trace: `source/PAS_skunits/skbias15.pas::Calculate_residuals_and_item_fits`.
+#' Source trace: `source/digram_source_20260817/skunits/skbias15.pas::Calculate_residuals_and_item_fits`.
 #' @param tab Internal `tab` value used by this helper.
 #' @return The internal `goodman_kruskal_gamma()` computation result.
 #' @keywords internal
@@ -13,7 +13,7 @@ goodman_kruskal_gamma <- function(tab) {
 #' Internal fitted gamma stats helper
 #'
 #' Supports the item fits values implementation while preserving its internal contract.
-#' Source trace: `source/PAS_skunits/skbias15.pas::Calculate_residuals_and_item_fits`.
+#' Source trace: `source/digram_source_20260817/skunits/skbias15.pas::Calculate_residuals_and_item_fits`.
 #' @param expected Internal `expected` value used by this helper.
 #' @return The internal `fitted_gamma_stats()` computation result.
 #' @keywords internal
@@ -45,7 +45,7 @@ fitted_gamma_stats <- function(expected) {
 #' Internal item fdr risk helper
 #'
 #' Supports the item fits values implementation while preserving its internal contract.
-#' Source trace: `source/PAS_skunits/skbias15.pas::Calculate_residuals_and_item_fits`.
+#' Source trace: `source/digram_source_20260817/skunits/skbias15.pas::Calculate_residuals_and_item_fits`.
 #' @param p_values Probability values.
 #' @return The internal `item_fdr_risk()` computation result.
 #' @keywords internal
@@ -63,7 +63,7 @@ item_fdr_risk <- function(p_values) {
 #' Internal item fit direction helper
 #'
 #' Supports the item fits values implementation while preserving its internal contract.
-#' Source trace: `source/PAS_skunits/skbias15.pas::Calculate_residuals_and_item_fits`.
+#' Source trace: `source/digram_source_20260817/skunits/skbias15.pas::Calculate_residuals_and_item_fits`.
 #' @param rows Rows used by the computation.
 #' @return The internal `item_fit_direction()` computation result.
 #' @keywords internal
@@ -79,7 +79,7 @@ item_fit_direction <- function(rows) {
 #' Internal safe ratio helper
 #'
 #' Supports the item fits values implementation while preserving its internal contract.
-#' Source trace: `source/PAS_skunits/skbias15.pas::Calculate_residuals_and_item_fits`.
+#' Source trace: `source/digram_source_20260817/skunits/skbias15.pas::Calculate_residuals_and_item_fits`.
 #' @param numerator Internal `numerator` value used by this helper.
 #' @param denominator Internal `denominator` value used by this helper.
 #' @return The internal `safe_ratio()` computation result.
@@ -95,7 +95,7 @@ safe_ratio <- function(numerator, denominator) {
 #' Internal safe z helper
 #'
 #' Supports the item fits values implementation while preserving its internal contract.
-#' Source trace: `source/PAS_skunits/skbias15.pas::Calculate_residuals_and_item_fits`.
+#' Source trace: `source/digram_source_20260817/skunits/skbias15.pas::Calculate_residuals_and_item_fits`.
 #' @param observed Internal `observed` value used by this helper.
 #' @param expected Internal `expected` value used by this helper.
 #' @param variance Internal `variance` value used by this helper.
@@ -112,7 +112,7 @@ safe_z <- function(observed, expected, variance) {
 #' Internal inf replace helper
 #'
 #' Supports the item fits values implementation while preserving its internal contract.
-#' Source trace: `source/PAS_skunits/skbias15.pas::Calculate_residuals_and_item_fits`.
+#' Source trace: `source/digram_source_20260817/skunits/skbias15.pas::Calculate_residuals_and_item_fits`.
 #' @param x Object or value to process.
 #' @param value Value to validate or transform.
 #' @return The internal `inf_replace()` computation result.
@@ -126,7 +126,7 @@ inf_replace <- function(x, value) {
 #' Internal two sided source normal p helper
 #'
 #' Supports the item fits values implementation while preserving its internal contract.
-#' Source trace: `source/PAS_skunits/skbias15.pas::Calculate_residuals_and_item_fits`.
+#' Source trace: `source/digram_source_20260817/skunits/skbias15.pas::Calculate_residuals_and_item_fits`.
 #' @param z Internal `z` value used by this helper.
 #' @return The internal `two_sided_source_normal_p()` computation result.
 #' @keywords internal
@@ -140,7 +140,7 @@ two_sided_source_normal_p <- function(z) {
 #' Pascal's fixed-width `:0` numeric formatting rounds half values away from
 #' zero for the non-negative item fit frequencies printed by `skbias15.pas`.
 #'
-#' Source trace: `source/PAS_skunits/skbias15.pas::Calculate_residuals_and_item_fits`.
+#' Source trace: `source/digram_source_20260817/skunits/skbias15.pas::Calculate_residuals_and_item_fits`.
 #' @param value Numeric vector.
 #' @return Integer-like numeric vector rounded as DIGRAM prints it.
 #' @keywords internal

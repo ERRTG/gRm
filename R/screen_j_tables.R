@@ -1,7 +1,7 @@
 #' Internal screen j pair table helper
 #'
 #' Supports the screen j values implementation while preserving its internal contract.
-#' Source trace: `source/PAS_skunits/SKbias7.pas::Item_Screening`.
+#' Source trace: `source/digram_source_20260817/skunits/SKbias7.pas::Item_Screening`.
 #' @param x Object or value to process.
 #' @param y Internal `y` value used by this helper.
 #' @param x_dim Internal `x_dim` value used by this helper.
@@ -23,7 +23,7 @@ screen_j_pair_table <- function(x, y, x_dim, y_dim, valid) {
 #' Internal screen rc chi helper
 #'
 #' Supports the screen j values implementation while preserving its internal contract.
-#' Source trace: `source/PAS_skunits/SKbias7.pas::Item_Screening`.
+#' Source trace: `source/digram_source_20260817/skunits/SKbias7.pas::Item_Screening`.
 #' @param tab Internal `tab` value used by this helper.
 #' @return The internal `screen_rc_chi()` computation result.
 #' @keywords internal
@@ -52,7 +52,7 @@ screen_rc_chi <- function(tab) {
 #' Internal screen rc chi square helper
 #'
 #' Supports the screen j values implementation while preserving its internal contract.
-#' Source trace: `source/PAS_skunits/SKbias7.pas::Item_Screening`.
+#' Source trace: `source/digram_source_20260817/skunits/SKbias7.pas::Item_Screening`.
 #' @param tab Internal `tab` value used by this helper.
 #' @return The internal `screen_rc_chi_square()` computation result.
 #' @keywords internal
@@ -64,7 +64,7 @@ screen_rc_chi_square <- function(tab) {
 #' Internal screen rc gamma helper
 #'
 #' Supports the screen j values implementation while preserving its internal contract.
-#' Source trace: `source/PAS_skunits/SKbias7.pas::Item_Screening`.
+#' Source trace: `source/digram_source_20260817/skunits/SKbias7.pas::Item_Screening`.
 #' @param tab Internal `tab` value used by this helper.
 #' @return The internal `screen_rc_gamma()` computation result.
 #' @keywords internal
@@ -98,7 +98,7 @@ screen_rc_gamma <- function(tab) {
 #' Internal screen rc gamma counts helper
 #'
 #' Supports the screen j values implementation while preserving its internal contract.
-#' Source trace: `source/PAS_skunits/SKbias7.pas::Item_Screening`.
+#' Source trace: `source/digram_source_20260817/skunits/SKbias7.pas::Item_Screening`.
 #' @param tab Internal `tab` value used by this helper.
 #' @return The internal `screen_rc_gamma_counts()` computation result.
 #' @keywords internal
@@ -110,7 +110,7 @@ screen_rc_gamma_counts <- function(tab) {
 #' Internal screen j source seed helper
 #'
 #' Supports the screen j values implementation while preserving its internal contract.
-#' Source trace: `source/PAS_skunits/SKbias7.pas::Item_Screening`.
+#' Source trace: `source/digram_source_20260817/skunits/SKbias7.pas::Item_Screening`.
 #' @param seed Random-stream seed.
 #' @return The internal `screen_j_source_seed()` computation result.
 #' @keywords internal
@@ -126,7 +126,7 @@ screen_j_source_seed <- function(seed) {
 #' Internal screen j source random stream helper
 #'
 #' Supports the screen j values implementation while preserving its internal contract.
-#' Source trace: `source/PAS_skunits/SKbias7.pas::Item_Screening`.
+#' Source trace: `source/digram_source_20260817/skunits/SKbias7.pas::Item_Screening`.
 #' @param seed Random-stream seed.
 #' @return The internal `screen_j_source_random_stream()` computation result.
 #' @keywords internal
@@ -155,7 +155,7 @@ screen_j_source_random_stream <- function(seed) {
 #' Internal screen j source seed after draws helper
 #'
 #' Supports the screen j values implementation while preserving its internal contract.
-#' Source trace: `source/PAS_skunits/SKbias7.pas::Item_Screening`.
+#' Source trace: `source/digram_source_20260817/skunits/SKbias7.pas::Item_Screening`.
 #' @param seed Random-stream seed.
 #' @param draw_count Internal `draw_count` value used by this helper.
 #' @return The internal `screen_j_source_seed_after_draws()` computation result.
@@ -185,7 +185,7 @@ screen_j_source_seed_after_draws <- function(seed, draw_count) {
 #' Internal screen j repeated seq limit helper
 #'
 #' Supports the screen j values implementation while preserving its internal contract.
-#' Source trace: `source/PAS_skunits/SKbias7.pas::Item_Screening`.
+#' Source trace: `source/digram_source_20260817/skunits/SKbias7.pas::Item_Screening`.
 #' @param project Encoded gRm project.
 #' @param repeated Whether to use repeated sequential simulation.
 #' @param nsim Requested simulation count.
@@ -207,7 +207,7 @@ screen_j_repeated_seq_limit <- function(project, repeated, nsim, exact_state = N
 #' Internal screen j strata table helper
 #'
 #' Supports the screen j values implementation while preserving its internal contract.
-#' Source trace: `source/PAS_skunits/SKbias7.pas::Item_Screening`.
+#' Source trace: `source/digram_source_20260817/skunits/SKbias7.pas::Item_Screening`.
 #' @param x Object or value to process.
 #' @param y Internal `y` value used by this helper.
 #' @param z Internal `z` value used by this helper.
@@ -231,7 +231,7 @@ screen_j_strata_table <- function(x, y, z, x_dim, y_dim, z_dim, valid) {
 #' Internal screen j strata slices helper
 #'
 #' Supports the screen j values implementation while preserving its internal contract.
-#' Source trace: `source/PAS_skunits/SKbias7.pas::Item_Screening`.
+#' Source trace: `source/digram_source_20260817/skunits/SKbias7.pas::Item_Screening`.
 #' @param strata Internal `strata` value used by this helper.
 #' @return The internal `screen_j_strata_slices()` computation result.
 #' @keywords internal
@@ -245,7 +245,7 @@ screen_j_strata_slices <- function(strata) {
 #' Internal screen j source informative slice helper
 #'
 #' Supports the screen j values implementation while preserving its internal contract.
-#' Source trace: `source/PAS_skunits/SKbias7.pas::Item_Screening`.
+#' Source trace: `source/digram_source_20260817/skunits/SKbias7.pas::Item_Screening`.
 #' @param slice Internal `slice` value used by this helper.
 #' @return The internal `screen_j_source_informative_slice()` computation result.
 #' @keywords internal
@@ -257,7 +257,7 @@ screen_j_source_informative_slice <- function(slice) {
 #' Internal screen j partial gamma helper
 #'
 #' Supports the screen j values implementation while preserving its internal contract.
-#' Source trace: `source/PAS_skunits/SKbias7.pas::Item_Screening`.
+#' Source trace: `source/digram_source_20260817/skunits/SKbias7.pas::Item_Screening`.
 #' @param strata Internal `strata` value used by this helper.
 #' @return The internal `screen_j_partial_gamma()` computation result.
 #' @keywords internal
@@ -287,7 +287,7 @@ screen_j_partial_gamma <- function(strata) {
 #' Internal screen j source single helper
 #'
 #' Supports the screen j values implementation while preserving its internal contract.
-#' Source trace: `source/PAS_skunits/SKbias7.pas::Item_Screening`.
+#' Source trace: `source/digram_source_20260817/skunits/SKbias7.pas::Item_Screening`.
 #' @param value Value to validate or transform.
 #' @return The internal `screen_j_source_single()` computation result.
 #' @keywords internal
@@ -300,7 +300,7 @@ screen_j_source_single <- function(value) {
 #' Internal screen j partial chi helper
 #'
 #' Supports the screen j values implementation while preserving its internal contract.
-#' Source trace: `source/PAS_skunits/SKbias7.pas::Item_Screening`.
+#' Source trace: `source/digram_source_20260817/skunits/SKbias7.pas::Item_Screening`.
 #' @param strata Internal `strata` value used by this helper.
 #' @return The internal `screen_j_partial_chi()` computation result.
 #' @keywords internal
@@ -324,7 +324,7 @@ screen_j_partial_chi <- function(strata) {
 #' Internal screen j rc chi source expected helper
 #'
 #' Supports the screen j values implementation while preserving its internal contract.
-#' Source trace: `source/PAS_skunits/SKbias7.pas::Item_Screening`.
+#' Source trace: `source/digram_source_20260817/skunits/SKbias7.pas::Item_Screening`.
 #' @param tab Internal `tab` value used by this helper.
 #' @return The internal `screen_j_rc_chi_source_expected()` computation result.
 #' @keywords internal
@@ -344,7 +344,7 @@ screen_j_rc_chi_source_expected <- function(tab) {
 #' Internal screen j rc chi square source expected helper
 #'
 #' Supports the screen j values implementation while preserving its internal contract.
-#' Source trace: `source/PAS_skunits/SKbias7.pas::Item_Screening`.
+#' Source trace: `source/digram_source_20260817/skunits/SKbias7.pas::Item_Screening`.
 #' @param tab Internal `tab` value used by this helper.
 #' @return The internal `screen_j_rc_chi_square_source_expected()` computation result.
 #' @keywords internal
@@ -364,8 +364,8 @@ screen_j_rc_chi_square_source_expected <- function(tab) {
   for (row in seq_len(nrow(tab))) {
     for (col in seq_len(ncol(tab))) {
       col_share <- col_totals[[col]] / total
-      # Source trace: source/PAS_skunits/SKxyz1.PAS::MAKE_XYZ_TABLE and
-      # source/PAS_skunits/SKbigtab.pas::Transfer_BT_to_XYZ_TABLE store
+      # Source trace: source/digram_source_20260817/skunits/SKxyz1.PAS::MAKE_XYZ_TABLE and
+      # source/digram_source_20260817/skunits/SKbigtab.pas::Transfer_BT_to_XYZ_TABLE store
       # expected cells as row_margin * (col_margin / total). SKrandom.GENTAB1
       # passes that stored table to SkStat.RCCHI for exact chi-square
       # comparisons.

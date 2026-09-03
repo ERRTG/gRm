@@ -6,7 +6,7 @@
 #' movements. The attempted block identifies the numerical attempt whose
 #' values were used in the report.
 #'
-#' Source trace: `source/PAS_skunits/skbias12b.pas::Estimate_GLLRM`.
+#' Source trace: `source/digram_source_20260817/skunits/skbias12b.pas::Estimate_GLLRM`.
 #' @param converged Final source convergence flag.
 #' @param iterations Number of completed IPF steps.
 #' @param report_delta Source report/stopping discrepancy.
@@ -64,7 +64,7 @@ new_gRm_convergence_state <- function(converged,
 
 #' Convert a base Rasch fit to the public convergence schema
 #'
-#' Source trace: `source/PAS_skunits/skbias12b.pas::Estimate_GLLRM`.
+#' Source trace: `source/digram_source_20260817/skunits/skbias12b.pas::Estimate_GLLRM`.
 #' @param fit Low-level result from `fit_rasch_base()`.
 #' @param max_step Requested maximum number of steps.
 #' @param max_delta Requested strict discrepancy tolerance.
@@ -91,7 +91,7 @@ gRm_rasch_convergence_state <- function(fit, max_step, max_delta) {
 
 #' Convert a GLLRM state to the public convergence schema
 #'
-#' Source trace: `source/PAS_skunits/skbias12b.pas::Estimate_GLLRM`.
+#' Source trace: `source/digram_source_20260817/skunits/skbias12b.pas::Estimate_GLLRM`.
 #' @param state Low-level state returned by `fit_gllrm()`.
 #' @param max_step Requested maximum number of steps.
 #' @param max_delta Requested strict discrepancy tolerance.

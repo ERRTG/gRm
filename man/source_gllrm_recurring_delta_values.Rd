@@ -13,10 +13,10 @@ source_gllrm_recurring_delta_values(control)
 A single logical value.
 }
 \description{
-Implements \code{source/GLLRM_ESTIM.txt::RecurringDeltaValues} with its exact
+Implements \code{source/digram_source_20260817/skunits/skbias22.pas::RecurringDeltaValues} with its exact
 \code{Nstep > 5}, \verb{>= 0.00001}, and current-delta \verb{>= 2} boundaries.
 }
 \details{
-Source trace: \code{source/PAS_skunits/skbias12b.pas::Estimate_GLLRM}.
+Source trace: \code{source/digram_source_20260817/skunits/skbias12b.pas::Estimate_GLLRM}.
 }
 \keyword{internal}

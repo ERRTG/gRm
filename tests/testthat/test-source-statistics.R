@@ -88,11 +88,16 @@ test_that("item parameter Nresponses counts positive scores when focal item is m
   )
   gllrm_context <- list(
     ld_specs = list(list(item1 = 1L, item2 = 4L)),
-    dif_specs = list()
+    dif_specs = list(),
+    ld_components_items = list(c(1L, 4L), 2L, 3L)
   )
 
   expect_equal(
     item_parameters_input_stats(bundle, gllrm_context = gllrm_context)$n_responses,
+    2L
+  )
+  expect_equal(
+    item_parameters_input_stats(bundle, gllrm_context = gllrm_context)$n_useful,
     2L
   )
 })

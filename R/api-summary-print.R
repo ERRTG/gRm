@@ -79,8 +79,12 @@ print.summary.gRm <- function(x, ...) {
       print_diagnostic_tests_table(table, gamma_columns = "WPG")
     } else if (inherits(x, "summary.gRm_dif") && identical(name, "tests")) {
       print_diagnostic_tests_table(table, gamma_columns = "Gamma")
-    } else if (inherits(x, "summary.gRm_m2") || inherits(x, "summary.gRm_m3")) {
-      print_diagnostic_tests_table(table)
+    } else if (inherits(x, "summary.gRm_cm2") || inherits(x, "summary.gRm_cm3")) {
+      # CM2/CM3 add empirical bootstrap p-values, BH critical p-values, and an
+      # unsigned Delphi seed to the ordinary diagnostic-table columns. Format
+      # those display-only fields before applying the shared Chisq/p-value
+      # convention; the numeric tables returned by summary() remain unchanged.
+      print_diagnostic_tests_table(format_cm2_cm3_summary_table(table))
     } else if (inherits(x, "summary.gRm_global_homogeneity")) {
       if (identical(name, "test")) {
         cat("Global test\n")
@@ -144,6 +148,48 @@ print_summary_table <- function(table) {
   invisible(NULL)
 }
 
+#' Internal CM2/CM3 summary-table formatter
+#'
+#' Applies the package diagnostic display convention to CM2/CM3-only numeric
+#' columns without changing the full-precision tables returned by `summary()`.
+#' Empirical bootstrap zero is retained as exact zero because DIGRAM computes
+#' it as an exact exceedance count divided by `nused`, rather than as an
+#' asymptotic probability bound. The source trace is
+#' `source/digram_source_20260817/skunits/skbias14.pas::CM3_analysis`.
+#'
+#' @param table A public CM2/CM3 summary table.
+#' @return A display-only copy of `table`.
+#' @keywords internal
+#' @noRd
+format_cm2_cm3_summary_table <- function(table) {
+  display <- table
+  if (!is.data.frame(display) || !nrow(display)) {
+    return(display)
+  }
+  if ("Bootstrap Pr" %in% names(display)) {
+    display[["Bootstrap Pr"]] <- summary_p_values(
+      display[["Bootstrap Pr"]],
+      empirical = TRUE
+    )
+  }
+  if ("Critical p" %in% names(display)) {
+    display[["Critical p"]] <- summary_p_values(display[["Critical p"]])
+  }
+  if ("Seed" %in% names(display)) {
+    seed <- display$Seed
+    display$Seed <- format(seed, scientific = FALSE, trim = TRUE, digits = 22L)
+    display$Seed[is.na(seed)] <- NA_character_
+  }
+  if ("Acceptance delta" %in% names(display)) {
+    display[["Acceptance delta"]] <- vapply(
+      display[["Acceptance delta"]],
+      summary_scalar,
+      character(1L)
+    )
+  }
+  display
+}
+
 #' Internal print diagnostic tests table helper
 #'
 #' Supports the api summary implementation while preserving its internal contract.
@@ -164,11 +210,7 @@ print_diagnostic_tests_table <- function(table, gamma_columns = character()) {
     display$Chisq <- format(signif(display$Chisq, dig_tst), digits = dig_tst)
   }
   if ("Pr(>Chisq)" %in% names(display)) {
-    display[["Pr(>Chisq)"]] <- format.pval(
-      display[["Pr(>Chisq)"]],
-      digits = dig_tst,
-      eps = .Machine$double.eps
-    )
+    display[["Pr(>Chisq)"]] <- summary_p_values(display[["Pr(>Chisq)"]])
   }
   for (column in gamma_columns) {
     if (column %in% names(display)) {
@@ -595,16 +637,35 @@ summary_scalar <- function(x) {
 #'
 #' Supports the api summary implementation while preserving its internal contract.
 #' @param x Object or value to process.
+#' @param empirical Logical; preserve exact empirical zero when `TRUE`.
 #' @return The internal `summary_p_value()` computation result.
 #' @keywords internal
 #' @noRd
-summary_p_value <- function(x) {
+summary_p_value <- function(x, empirical = FALSE) {
   if (length(x) == 0L || is.na(x)) {
     return("NA")
   }
+  summary_p_values(x, empirical = empirical)
+}
+
+#' Internal summary p-value vector helper
+#'
+#' Centralizes the diagnostic p-value digit convention for scalar status lines
+#' and tabular output.
+#'
+#' @param x Numeric p-values.
+#' @param empirical Logical; preserve exact empirical zeros when `TRUE`.
+#' @return A character vector formatted for display.
+#' @keywords internal
+#' @noRd
+summary_p_values <- function(x, empirical = FALSE) {
   digits <- max(3L, getOption("digits") - 3L)
   dig_tst <- max(1L, min(5L, digits - 1L))
-  format.pval(x, digits = dig_tst, eps = .Machine$double.eps)
+  format.pval(
+    x,
+    digits = dig_tst,
+    eps = if (isTRUE(empirical)) 0 else .Machine$double.eps
+  )
 }
 
 #' Internal print fit parameter table helper

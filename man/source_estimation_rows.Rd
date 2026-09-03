@@ -18,6 +18,6 @@ used by \code{Estimate_GLLRM}. Diagnostic routines must select their own record
 policy instead of reusing this set.
 }
 \details{
-Source trace: \code{source/PAS_skunits/skbias14.pas::Count_IJtable}.
+Source trace: \code{source/digram_source_20260817/skunits/skbias14.pas::Count_IJtable}.
 }
 \keyword{internal}

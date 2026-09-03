@@ -16,10 +16,10 @@ A list containing updated \code{control} and its \code{decision}.
 }
 \description{
 Mirrors the bookkeeping order at the end of
-\code{source/GLLRM_ESTIM.txt::Take_an_IPF_step}, then evaluates the source stop
+\code{source/digram_source_20260817/skunits/skbias22.pas::Take_an_IPF_step}, then evaluates the source stop
 functions.
 }
 \details{
-Source trace: \code{source/PAS_skunits/skbias12b.pas::Estimate_GLLRM}.
+Source trace: \code{source/digram_source_20260817/skunits/skbias12b.pas::Estimate_GLLRM}.
 }
 \keyword{internal}

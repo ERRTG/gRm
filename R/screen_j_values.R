@@ -9,7 +9,7 @@
 #' Exact mode follows the source `GENTAB1` Monte Carlo branch and computes
 #' partial p-values directly from the project data.
 #'
-#' Source trace: `source/PAS_skunits/SKbias7.pas::Item_Screening`.
+#' Source trace: `source/digram_source_20260817/skunits/SKbias7.pas::Item_Screening`.
 #' @param project A parsed DIGRAM project.
 #' @param exact Logical; when `TRUE`, replace the partial item-item and partial
 #'   DIF p-values with the source-shaped Monte Carlo exact p-values used by
@@ -202,7 +202,7 @@ screen_j_values <- function(project,
 
 #' Compute the item-by-item SCREEN J matrices
 #'
-#' Source trace: `source/PAS_skunits/SKbias7.pas::Item_Screening`.
+#' Source trace: `source/digram_source_20260817/skunits/SKbias7.pas::Item_Screening`.
 #' Mathematical step: traverse row item then column item in source order,
 #' retaining the asymmetric complete/good-record policy and exact-test branch.
 #' @param item_matrix One-based source item values.

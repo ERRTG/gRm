@@ -1,6 +1,6 @@
 #' Source Goodman-Kruskal gamma count totals
 #'
-#' Source trace: `source/PAS_scd/DGRirtD.pas::MissingLD`.
+#' Source trace: `source/digram_source_20260817/scd/DGRirtD.pas::MissingLD`.
 #' @param tab Two-way integer table.
 #' @return Gamma, PPQ, and PMQ totals.
 #' @keywords internal
@@ -11,7 +11,7 @@ local_independence_source_gamma_counts <- function(tab) {
 
 #' Calculate source-shaped local-independence WPG gamma
 #'
-#' Source trace: `source/PAS_scd/DGRirtD.pas::MissingLD`.
+#' Source trace: `source/digram_source_20260817/scd/DGRirtD.pas::MissingLD`.
 #' @param project DIGRAM project.
 #' @return Raw item matrix and source score vectors.
 #' @keywords internal
@@ -37,7 +37,7 @@ build_local_independence_gamma_context <- function(project) {
 
 #' Calculate directed source-shaped local-independence gamma counts
 #'
-#' Source trace: `source/PAS_scd/DGRirtD.pas::MissingLD`.
+#' Source trace: `source/digram_source_20260817/scd/DGRirtD.pas::MissingLD`.
 #' @param context Context from `build_local_independence_gamma_context()`.
 #' @param item1 One-based first item index.
 #' @param item2 One-based second item index.
@@ -75,7 +75,7 @@ local_independence_directed_gamma_counts <- function(context, item1, item2, item
 #' Ports the weighted partial gamma used by `DGRirtD.MissingLD`: the two
 #' directed item-screening partial gamma count totals are pooled before PMQ/PPQ.
 #'
-#' Source trace: `source/PAS_scd/DGRirtD.pas::MissingLD`.
+#' Source trace: `source/digram_source_20260817/scd/DGRirtD.pas::MissingLD`.
 #' @param project DIGRAM project.
 #' @param context Context from `build_local_independence_gamma_context()`.
 #' @param item1 One-based first item index.
@@ -95,7 +95,7 @@ local_independence_wpg_gamma <- function(project, context, item1, item2) {
 #' Internal adjust ld gamma source reference details helper
 #'
 #' Supports the local independence values implementation while preserving its internal contract.
-#' Source trace: `source/PAS_scd/DGRirtD.pas::MissingLD`.
+#' Source trace: `source/digram_source_20260817/scd/DGRirtD.pas::MissingLD`.
 #' @param observed_ld Internal `observed_ld` value used by this helper.
 #' @param ld_gamma Internal `ld_gamma` value used by this helper.
 #' @param i_ref Internal `i_ref` value used by this helper.
@@ -212,7 +212,7 @@ adjust_ld_gamma_source_reference_details <- function(observed_ld,
 #' `docs/source-traces/BIRT_LOCAL_INDEPENDENCE_SOURCE_TRACE.md`, especially the
 #' `DGRirtD.pas` `MissingLD` branch.
 #'
-#' Source trace: `source/PAS_scd/DGRirtD.pas::MissingLD`.
+#' Source trace: `source/digram_source_20260817/scd/DGRirtD.pas::MissingLD`.
 #' @param project A source-shaped DIGRAM project list, such as the `project`
 #'   component returned by [gRm()] or [read_digram_project()].
 #' @param max_step Maximum source Rasch/GLLRM estimation iterations.
@@ -313,7 +313,7 @@ local_independence_values <- function(project, max_step = 5000L, max_delta = 0.0
 #' Internal gllrm local independence values helper
 #'
 #' Supports the local independence values implementation while preserving its internal contract.
-#' Source trace: `source/PAS_scd/DGRirtD.pas::MissingLD`.
+#' Source trace: `source/digram_source_20260817/scd/DGRirtD.pas::MissingLD`.
 #' @param fit Fitted gRm model.
 #' @param max_step Maximum fitting iteration.
 #' @param max_delta Sufficient-count discrepancy tolerance.
@@ -379,7 +379,7 @@ gllrm_local_independence_values <- function(fit, max_step = 5000L, max_delta = 0
     attempted_fit <- candidate_fit
     reported_checkpoint_step <- NA_integer_
     report_value_source <- "attempted_fit"
-    # Source trace: source/PAS_scd/DGRirtD.pas::MissingLD calls
+    # Source trace: source/digram_source_20260817/scd/DGRirtD.pas::MissingLD calls
     # Estimate_GLLRM once and reports that fit. Post-50 recurrence is handled
     # inside the common estimator; there is no universal step-51 replacement.
     candidate_loglike <- candidate_fit$log_likelihood
@@ -431,7 +431,7 @@ gllrm_local_independence_values <- function(fit, max_step = 5000L, max_delta = 0
 #' Internal gllrm context ld index helper
 #'
 #' Supports the local independence values implementation while preserving its internal contract.
-#' Source trace: `source/PAS_scd/DGRirtD.pas::MissingLD`.
+#' Source trace: `source/digram_source_20260817/scd/DGRirtD.pas::MissingLD`.
 #' @param context Prepared GLLRM computation context.
 #' @param item1 Internal `item1` value used by this helper.
 #' @param item2 Internal `item2` value used by this helper.
@@ -452,7 +452,7 @@ gllrm_context_ld_index <- function(context, item1, item2) {
 #' Internal gllrm li candidates helper
 #'
 #' Supports the local independence values implementation while preserving its internal contract.
-#' Source trace: `source/PAS_scd/DGRirtD.pas::MissingLD`.
+#' Source trace: `source/digram_source_20260817/scd/DGRirtD.pas::MissingLD`.
 #' @param context Prepared GLLRM computation context.
 #' @param components Internal `components` value used by this helper.
 #' @return The internal `gllrm_li_candidates()` computation result.
@@ -480,7 +480,7 @@ gllrm_li_candidates <- function(context, components = NULL) {
 #' Internal gllrm ld lookup helper
 #'
 #' Supports the local independence values implementation while preserving its internal contract.
-#' Source trace: `source/PAS_scd/DGRirtD.pas::MissingLD`.
+#' Source trace: `source/digram_source_20260817/scd/DGRirtD.pas::MissingLD`.
 #' @param context Prepared GLLRM computation context.
 #' @return The internal `gllrm_ld_lookup()` computation result.
 #' @keywords internal
@@ -496,7 +496,7 @@ gllrm_ld_lookup <- function(context) {
 #' Internal gllrm ld key helper
 #'
 #' Supports the local independence values implementation while preserving its internal contract.
-#' Source trace: `source/PAS_scd/DGRirtD.pas::MissingLD`.
+#' Source trace: `source/digram_source_20260817/scd/DGRirtD.pas::MissingLD`.
 #' @param item1 Internal `item1` value used by this helper.
 #' @param item2 Internal `item2` value used by this helper.
 #' @return The internal `gllrm_ld_key()` computation result.
@@ -509,7 +509,7 @@ gllrm_ld_key <- function(item1, item2) {
 #' Internal source ij observed df helper
 #'
 #' Supports the local independence values implementation while preserving its internal contract.
-#' Source trace: `source/PAS_scd/DGRirtD.pas::MissingLD`.
+#' Source trace: `source/digram_source_20260817/scd/DGRirtD.pas::MissingLD`.
 #' @param observed_ij Internal `observed_ij` value used by this helper.
 #' @return The internal `source_ij_observed_df()` computation result.
 #' @keywords internal

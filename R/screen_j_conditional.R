@@ -1,11 +1,11 @@
-#' Source trace: source/PAS_skunits/SKbias3.pas::XYZ_bias_ANALYSE receives the
+#' Source trace: source/digram_source_20260817/skunits/SKbias3.pas::XYZ_bias_ANALYSE receives the
 #' conditional item/background table prepared by
-#' source/PAS_skunits/SKxyz1.PAS::MAKE_XYZ_TABLE or
-#' source/PAS_skunits/SKbigtab.pas::Transfer_BT_to_XYZ_TABLE. It then computes
+#' source/digram_source_20260817/skunits/SKxyz1.PAS::MAKE_XYZ_TABLE or
+#' source/digram_source_20260817/skunits/SKbigtab.pas::Transfer_BT_to_XYZ_TABLE. It then computes
 #' chi-square, gamma, asymptotic p-values, and optional exact/repeated
 #' random-table summaries. This R helper is the shared implementation for those
 #' screen J conditional tests.
-#' Source trace: `source/PAS_skunits/SKbias7.pas::Item_Screening`.
+#' Source trace: `source/digram_source_20260817/skunits/SKbias7.pas::Item_Screening`.
 #' @param x Object or value to process.
 #' @param y Internal `y` value used by this helper.
 #' @param x_dim Internal `x_dim` value used by this helper.
@@ -59,7 +59,7 @@ screen_j_conditional_try_native <- function(x,
 #' Internal screen j conditional valid rows helper
 #'
 #' Supports the screen j values implementation while preserving its internal contract.
-#' Source trace: `source/PAS_skunits/SKbias7.pas::Item_Screening`.
+#' Source trace: `source/digram_source_20260817/skunits/SKbias7.pas::Item_Screening`.
 #' @param x Object or value to process.
 #' @param y Internal `y` value used by this helper.
 #' @param x_dim Internal `x_dim` value used by this helper.
@@ -93,7 +93,7 @@ screen_j_conditional_valid_rows <- function(x,
 #' Internal screen j conditional stratum index helper
 #'
 #' Supports the screen j values implementation while preserving its internal contract.
-#' Source trace: `source/PAS_skunits/SKbias7.pas::Item_Screening`.
+#' Source trace: `source/digram_source_20260817/skunits/SKbias7.pas::Item_Screening`.
 #' @param condition_values Internal `condition_values` value used by this helper.
 #' @param condition_dims Internal `condition_dims` value used by this helper.
 #' @return The internal `screen_j_conditional_stratum_index()` computation result.
@@ -118,7 +118,7 @@ screen_j_conditional_stratum_index <- function(condition_values, condition_dims)
 #' Internal screen j conditional empty result helper
 #'
 #' Supports the screen j values implementation while preserving its internal contract.
-#' Source trace: `source/PAS_skunits/SKbias7.pas::Item_Screening`.
+#' Source trace: `source/digram_source_20260817/skunits/SKbias7.pas::Item_Screening`.
 #' @param exact Whether to use the exact Monte Carlo branch.
 #' @param nsim Requested simulation count.
 #' @return The internal `screen_j_conditional_empty_result()` computation result.
@@ -145,7 +145,7 @@ screen_j_conditional_empty_result <- function(exact, nsim) {
 #' Internal screen j conditional slice stats helper
 #'
 #' Supports the screen j values implementation while preserving its internal contract.
-#' Source trace: `source/PAS_skunits/SKbias7.pas::Item_Screening`.
+#' Source trace: `source/digram_source_20260817/skunits/SKbias7.pas::Item_Screening`.
 #' @param x Object or value to process.
 #' @param y Internal `y` value used by this helper.
 #' @param x_dim Internal `x_dim` value used by this helper.
@@ -199,7 +199,7 @@ screen_j_conditional_slice_stats <- function(x,
     index <- x_keep[in_stratum] + (y_keep[in_stratum] - 1L) * x_dim
     tab[] <- tabulate(index, nbins = x_dim * y_dim)
     if (!isTRUE(exact) || screen_j_source_informative_slice(tab)) {
-      # Source trace: source/PAS_skunits/SKxyz1.PAS::MAKE_XYZ_TABLE only
+      # Source trace: source/digram_source_20260817/skunits/SKxyz1.PAS::MAKE_XYZ_TABLE only
       # materializes a conditioning slice when both tested variables have at
       # least two nonempty categories. Exact GENTAB1 simulations consume that
       # reduced XYZ slice set before running the fixed or sequential exact
@@ -242,7 +242,7 @@ screen_j_conditional_slice_stats <- function(x,
 #' Internal screen j conditional exact results helper
 #'
 #' Supports the screen j values implementation while preserving its internal contract.
-#' Source trace: `source/PAS_skunits/SKbias7.pas::Item_Screening`.
+#' Source trace: `source/digram_source_20260817/skunits/SKbias7.pas::Item_Screening`.
 #' @param slices Internal `slices` value used by this helper.
 #' @param chi_total Internal `chi_total` value used by this helper.
 #' @param gamma Internal `gamma` value used by this helper.
@@ -268,7 +268,7 @@ screen_j_conditional_exact_results <- function(slices,
                                                seq_p0,
                                                seq_boundary,
                                                use_native) {
-  # Source trace: source/PAS_skunits/SKrandom.pas::GENTAB1 is the exact
+  # Source trace: source/digram_source_20260817/skunits/SKrandom.pas::GENTAB1 is the exact
   # random-table generator behind SKbias3.XYZ_bias_ANALYSE. Native and R
   # branches must consume the same prepared slices, seed, sequential controls,
   # and draw order.
@@ -303,7 +303,7 @@ screen_j_conditional_exact_results <- function(slices,
 #' Internal screen j conditional bias test helper
 #'
 #' Supports the screen j values implementation while preserving its internal contract.
-#' Source trace: `source/PAS_skunits/SKbias7.pas::Item_Screening`.
+#' Source trace: `source/digram_source_20260817/skunits/SKbias7.pas::Item_Screening`.
 #' @param x Object or value to process.
 #' @param y Internal `y` value used by this helper.
 #' @param x_dim Internal `x_dim` value used by this helper.
@@ -420,7 +420,7 @@ screen_j_conditional_bias_test <- function(x,
 #' Internal screen j conditional bias test native helper
 #'
 #' Supports the screen j values implementation while preserving its internal contract.
-#' Source trace: `source/PAS_skunits/SKbias7.pas::Item_Screening`.
+#' Source trace: `source/digram_source_20260817/skunits/SKbias7.pas::Item_Screening`.
 #' @param x Object or value to process.
 #' @param y Internal `y` value used by this helper.
 #' @param x_dim Internal `x_dim` value used by this helper.
@@ -493,7 +493,7 @@ screen_j_conditional_bias_test_native <- function(x,
 #' Internal screen j hypothesis label helper
 #'
 #' Supports the screen j values implementation while preserving its internal contract.
-#' Source trace: `source/PAS_skunits/SKbias7.pas::Item_Screening`.
+#' Source trace: `source/digram_source_20260817/skunits/SKbias7.pas::Item_Screening`.
 #' @param first Internal `first` value used by this helper.
 #' @param second Internal `second` value used by this helper.
 #' @param given Internal `given` value used by this helper.
@@ -507,13 +507,13 @@ screen_j_hypothesis_label <- function(first, second, given) {
 #' Internal screen j exa p values helper
 #'
 #' Supports the screen j values implementation while preserving its internal contract.
-#' Source trace: `source/PAS_skunits/SKbias7.pas::Item_Screening`.
+#' Source trace: `source/digram_source_20260817/skunits/SKbias7.pas::Item_Screening`.
 #' @param rows Rows used by the computation.
 #' @return The internal `screen_j_exa_p_values()` computation result.
 #' @keywords internal
 #' @noRd
 screen_j_exa_p_values <- function(rows) {
-  # Source trace: source/PAS_skunits/SKexa1.pas::EXA_SUMMARY1_2 skips
+  # Source trace: source/digram_source_20260817/skunits/SKexa1.pas::EXA_SUMMARY1_2 skips
   # hypotheses with RESULTS[hypnr, 2] = 0 ("No tests") before adding p-values
   # to the Benjamini-Hochberg input vector.
   tested <- rows$df > 0L
@@ -527,7 +527,7 @@ screen_j_exa_p_values <- function(rows) {
 #' Internal screen j source stepwise p min helper
 #'
 #' Supports the screen j values implementation while preserving its internal contract.
-#' Source trace: `source/PAS_skunits/SKbias7.pas::Item_Screening`.
+#' Source trace: `source/digram_source_20260817/skunits/SKbias7.pas::Item_Screening`.
 #' @param test Internal `test` value used by this helper.
 #' @param use_gamma Internal `use_gamma` value used by this helper.
 #' @param exact Whether to use the exact Monte Carlo branch.

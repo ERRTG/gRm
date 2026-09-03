@@ -1,7 +1,7 @@
 #' Internal gllrm uniform ld scoregroup tables helper
 #'
 #' Supports the global homogeneity values implementation while preserving its internal contract.
-#' Source trace: `source/PAS_scd/DGRirtD.pas::GlobalHomogeneity`.
+#' Source trace: `source/digram_source_20260817/scd/DGRirtD.pas::GlobalHomogeneity`.
 #' @param context Prepared GLLRM computation context.
 #' @param groups Internal `groups` value used by this helper.
 #' @param spec GLLRM model specification.
@@ -17,7 +17,7 @@ gllrm_uniform_ld_scoregroup_tables <- function(context, groups, spec, ld_index, 
 #' Internal gllrm uniform ld scoregroup tables all helper
 #'
 #' Supports the global homogeneity values implementation while preserving its internal contract.
-#' Source trace: `source/PAS_scd/DGRirtD.pas::GlobalHomogeneity`.
+#' Source trace: `source/digram_source_20260817/scd/DGRirtD.pas::GlobalHomogeneity`.
 #' @param context Prepared GLLRM computation context.
 #' @param groups Internal `groups` value used by this helper.
 #' @param probability_cache Internal `probability_cache` value used by this helper.
@@ -79,7 +79,7 @@ gllrm_uniform_ld_scoregroup_tables_all <- function(context, groups, probability_
 #' Internal gllrm uniform summary stats helper
 #'
 #' Supports the global homogeneity values implementation while preserving its internal contract.
-#' Source trace: `source/PAS_scd/DGRirtD.pas::GlobalHomogeneity`.
+#' Source trace: `source/digram_source_20260817/scd/DGRirtD.pas::GlobalHomogeneity`.
 #' @param tables Internal `tables` value used by this helper.
 #' @param n_groups Internal `n_groups` value used by this helper.
 #' @return The internal `gllrm_uniform_summary_stats()` computation result.
@@ -128,7 +128,7 @@ gllrm_uniform_summary_stats <- function(tables, n_groups) {
 #' Internal gllrm uniform ld summary row helper
 #'
 #' Supports the global homogeneity values implementation while preserving its internal contract.
-#' Source trace: `source/PAS_scd/DGRirtD.pas::GlobalHomogeneity`.
+#' Source trace: `source/digram_source_20260817/scd/DGRirtD.pas::GlobalHomogeneity`.
 #' @param context Prepared GLLRM computation context.
 #' @param groups Internal `groups` value used by this helper.
 #' @param spec GLLRM model specification.
@@ -156,7 +156,7 @@ gllrm_uniform_ld_summary_row <- function(context, groups, spec, tables) {
 #' Internal gllrm group ld probabilities helper
 #'
 #' Supports the global homogeneity values implementation while preserving its internal contract.
-#' Source trace: `source/PAS_scd/DGRirtD.pas::GlobalHomogeneity`.
+#' Source trace: `source/digram_source_20260817/scd/DGRirtD.pas::GlobalHomogeneity`.
 #' @param context Prepared GLLRM computation context.
 #' @param state Current fitted or iterative parameter state.
 #' @param total_score Internal `total_score` value used by this helper.

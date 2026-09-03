@@ -1,6 +1,6 @@
 #' Count observed item scores and total scores
 #'
-#' Source trace: `source/PAS_skunits/skbias12b.pas::Estimate_GLLRM`.
+#' Source trace: `source/digram_source_20260817/skunits/skbias12b.pas::Estimate_GLLRM`.
 #' @param bundle An item-parameters bundle from
 #'   `build_item_parameters_bundle()`.
 #' @return A list containing the number of valid rows, an item-by-score count
@@ -42,7 +42,7 @@ rasch_counts <- function(bundle) {
 
 #' Initialize item gamma parameters
 #'
-#' Source trace: `source/PAS_skunits/skbias12b.pas::Estimate_GLLRM`.
+#' Source trace: `source/digram_source_20260817/skunits/skbias12b.pas::Estimate_GLLRM`.
 #' @param bundle An item-parameters bundle from
 #'   `build_item_parameters_bundle()`.
 #' @return A matrix of initial multiplicative item score parameters, with valid
@@ -68,7 +68,7 @@ initial_item_gamma <- function(bundle) {
 
 #' Build the score-generating function excluding one item
 #'
-#' Source trace: `source/PAS_skunits/skbias12b.pas::Estimate_GLLRM`.
+#' Source trace: `source/digram_source_20260817/skunits/skbias12b.pas::Estimate_GLLRM`.
 #' @param bundle An item-parameters bundle.
 #' @param item_gamma Matrix of current item gamma parameters.
 #' @param excluded_item One-based item index to exclude from the convolution.
@@ -110,7 +110,7 @@ build_gamma_excluding_item <- function(bundle, item_gamma, excluded_item) {
 
 #' Build the DIGRAM source score gamma array
 #'
-#' Source trace: `source/PAS_skunits/skbias12b.pas::Estimate_GLLRM`.
+#' Source trace: `source/digram_source_20260817/skunits/skbias12b.pas::Estimate_GLLRM`.
 #' @param bundle An item-parameters bundle.
 #' @param item_gamma Matrix of current item gamma parameters.
 #' @param use_items Logical vector selecting items included in the score gamma.
@@ -118,7 +118,7 @@ build_gamma_excluding_item <- function(bundle, item_gamma, excluded_item) {
 #' @keywords internal
 #' @noRd
 build_source_score_gamma <- function(bundle, item_gamma, use_items) {
-  # Source trace: source/PAS_scd/skbias12.pas::
+  # Source trace: source/digram_source_20260817/skunits/skbias12.pas::
   # Inexpensive_Gamma_Calculation. NewGamma starts as Sgamma, each included
   # valid item adds shifted Sgamma terms across the full source score limits,
   # and the old Sgamma is then subtracted. The report-driving Delphi copy still
@@ -190,7 +190,7 @@ build_source_score_gamma <- function(bundle, item_gamma, use_items) {
 
 #' Calculate expected item score counts under the current Rasch fit
 #'
-#' Source trace: `source/PAS_skunits/skbias12b.pas::Estimate_GLLRM`.
+#' Source trace: `source/digram_source_20260817/skunits/skbias12b.pas::Estimate_GLLRM`.
 #' @param bundle An item-parameters bundle.
 #' @param counts Count list from `rasch_counts()`.
 #' @param item_gamma Matrix of current item gamma parameters.
@@ -241,7 +241,7 @@ calculate_rasch_expected_items <- function(bundle, counts, item_gamma) {
 
 #' Calculate IPF update ratios for item gamma parameters
 #'
-#' Source trace: `source/PAS_skunits/skbias12b.pas::Estimate_GLLRM`.
+#' Source trace: `source/digram_source_20260817/skunits/skbias12b.pas::Estimate_GLLRM`.
 #' @param bundle An item-parameters bundle.
 #' @param counts Count list from `rasch_counts()`.
 #' @param expected Expected item score counts from
@@ -296,7 +296,7 @@ calculate_rasch_update_ratios <- function(bundle, counts, expected, item_gamma, 
 
 #' Rescale item gamma parameters to the Pascal source convention
 #'
-#' Source trace: `source/PAS_skunits/skbias12b.pas::Estimate_GLLRM`.
+#' Source trace: `source/digram_source_20260817/skunits/skbias12b.pas::Estimate_GLLRM`.
 #' @param bundle An item-parameters bundle.
 #' @param item_gamma Matrix of item gamma parameters after an IPF update.
 #' @return A rescaled item gamma matrix using the source normalization.
@@ -383,7 +383,7 @@ adjust_item_gammas_source_scale <- function(bundle, item_gamma) {
 #' update structure and returns both fitted parameters and diagnostic matrices
 #' used by downstream parity tests.
 #'
-#' Source trace: `source/PAS_skunits/skbias12b.pas::Estimate_GLLRM`.
+#' Source trace: `source/digram_source_20260817/skunits/skbias12b.pas::Estimate_GLLRM`.
 #' @param bundle An item-parameters bundle from
 #'   `build_item_parameters_bundle()`.
 #' @param max_step Maximum number of IPF iterations.

@@ -1,7 +1,7 @@
 #' Internal gllrm global homogeneity item mean rows helper
 #'
 #' Supports the global homogeneity values implementation while preserving its internal contract.
-#' Source trace: `source/PAS_scd/DGRirtD.pas::GlobalHomogeneity`.
+#' Source trace: `source/digram_source_20260817/scd/DGRirtD.pas::GlobalHomogeneity`.
 #' @param context Prepared GLLRM computation context.
 #' @param full_state Internal `full_state` value used by this helper.
 #' @param group Internal `group` value used by this helper.
@@ -75,7 +75,7 @@ gllrm_global_homogeneity_item_mean_rows <- function(context,
 #' Internal gllrm global homogeneity expected item margin tables helper
 #'
 #' Supports the global homogeneity values implementation while preserving its internal contract.
-#' Source trace: `source/PAS_scd/DGRirtD.pas::GlobalHomogeneity`.
+#' Source trace: `source/digram_source_20260817/scd/DGRirtD.pas::GlobalHomogeneity`.
 #' @param context Prepared GLLRM computation context.
 #' @param full_state Internal `full_state` value used by this helper.
 #' @param probability_cache Internal `probability_cache` value used by this helper.
@@ -122,7 +122,7 @@ gllrm_global_homogeneity_expected_item_margin_tables <- function(context, full_s
 #' Internal gllrm global homogeneity item variances helper
 #'
 #' Supports the global homogeneity values implementation while preserving its internal contract.
-#' Source trace: `source/PAS_scd/DGRirtD.pas::GlobalHomogeneity`.
+#' Source trace: `source/digram_source_20260817/scd/DGRirtD.pas::GlobalHomogeneity`.
 #' @param context Prepared GLLRM computation context.
 #' @param expected_tables Internal `expected_tables` value used by this helper.
 #' @return The internal `gllrm_global_homogeneity_item_variances()` computation result.
@@ -172,7 +172,7 @@ gllrm_global_homogeneity_item_variances <- function(context, expected_tables) {
 #' Internal gllrm global homogeneity score item n helper
 #'
 #' Supports the global homogeneity values implementation while preserving its internal contract.
-#' Source trace: `source/PAS_scd/DGRirtD.pas::GlobalHomogeneity`.
+#' Source trace: `source/digram_source_20260817/scd/DGRirtD.pas::GlobalHomogeneity`.
 #' @param context Prepared GLLRM computation context.
 #' @return The internal `gllrm_global_homogeneity_score_item_n()` computation result.
 #' @keywords internal

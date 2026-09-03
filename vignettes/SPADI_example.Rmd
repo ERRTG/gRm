@@ -182,7 +182,7 @@ A custom GLLRM can also be defined by giving the specific LDs and DIFs as one-si
 m_gllrm <- gllrm(spadi_proj, ld = ~ P3:P4, dif = ~ P4:over60)
 ```
 
-We can do a direct likelihood ratio test of the GLLRM against the Rach model
+We can do a direct likelihood ratio test of the GLLRM against the Rasch model
 
 ```{r}
 fit_gllrm <- fit(m_gllrm)
@@ -205,25 +205,165 @@ The package also includes ARI plots
 fit_gllrm |> ari() |> plot()
 ```
 
-# M2 
+# CM2
+
+The following CM2 and CM3 examples use two focal-item scopes. Omitting `items`
+selects all five fitted items, which is the R equivalent of accepting DIGRAM's
+blank item-selection prompt. We then repeat each diagnostic with the explicit
+three-item subset `P1`, `P3`, and `P5`.
+
+The subset changes only the margins being tested. The probabilities still come
+from the complete fitted GLLRM: the unselected items `P2` and `P4`, the fitted
+`P3:P4` local-dependence term, the fitted `P4:over60` DIF term, both exogenous
+variables, and the total score across all five fitted items remain part of the
+computation.
+
+The compact result and full `summary()` printout use the same display precision
+as the package's other diagnostic summaries. The tables returned by
+`summary(x)$tables` remain unrounded numeric data; printing one of those tables
+directly, as the aggregate examples below do, delegates its display precision
+to base R. Empirical bootstrap zero is printed as exact `0`, and a bootstrap
+seed, when shown in the full summary, is printed as its exact unsigned decimal
+identifier.
 
 ```{r}
-m2_fit <- m2(fit_gllrm)
-m2_fit
+diagnostic_subset_items <- c("P1", "P3", "P5")
+```
+
+## Asymptotic CM2
+
+The ordinary asymptotic diagnostic is the default (`bootstrap = FALSE`). The
+first call deliberately omits `items`, so every fitted item is focal.
+
+```{r}
+cm2_all_asymptotic <- cm2(fit_gllrm)
+cm2_all_asymptotic
+summary(cm2_all_asymptotic)$tables$aggregates
+summary(cm2_all_asymptotic)
+```
+
+The second call changes only the focal margin set. Its selection metadata
+records the requested names and their source-ordered resolution.
+
+```{r}
+cm2_subset_asymptotic <- cm2(
+  fit_gllrm,
+  items = diagnostic_subset_items
+)
+cm2_subset_asymptotic
+cm2_subset_asymptotic$metadata$selection$resolved_items
+summary(cm2_subset_asymptotic)$tables$aggregates
+summary(cm2_subset_asymptotic)
+```
+
+## Bootstrap CM2
+
+Setting `bootstrap = TRUE` requests DIGRAM's source-shaped parametric
+bootstrap. The same fixed seed is used for the all-item and subset calls. Since
+selection affects only the tested margins, the two calls generate and refit the
+same full-model samples; they differ in the CM2 statistics evaluated on those
+samples.
+
+The vignette uses only 10 samples per call to keep its build time reasonable.
+This demonstrates the interface but is too small for substantive inference. A
+real analysis should request a suitably large value such as `nsim = 1000L` and
+inspect `nused` before interpreting bootstrap p-values.
+
+```{r}
+vignette_bootstrap_nsim <- 10L
+vignette_bootstrap_seed <- 9
+
+cm2_all_bootstrap <- cm2(
+  fit_gllrm,
+  bootstrap = TRUE,
+  nsim = vignette_bootstrap_nsim,
+  seed = vignette_bootstrap_seed
+)
+cm2_all_bootstrap
+summary(cm2_all_bootstrap)$tables$aggregates
+summary(cm2_all_bootstrap)
 ```
 
 ```{r}
-summary(m2_fit)
+cm2_subset_bootstrap <- cm2(
+  fit_gllrm,
+  items = diagnostic_subset_items,
+  bootstrap = TRUE,
+  nsim = vignette_bootstrap_nsim,
+  seed = vignette_bootstrap_seed
+)
+cm2_subset_bootstrap
+cm2_subset_bootstrap$values$bootstrap[
+  c("nsim", "nused", "seed", "reestimate")
+]
+summary(cm2_subset_bootstrap)$tables$aggregates
+summary(cm2_subset_bootstrap)
 ```
 
+# CM3
 
-# M3
+CM3 uses the same default-all and explicit-subset interface as CM2. Its
+aggregate contains the complete CM2 block followed by the applicable
+three-way margins.
+
+## Asymptotic CM3
+
+The first ordinary call again omits `items`, so CM3 prepares margins for all
+five fitted items.
 
 ```{r}
-m3_fit <- m3(fit_gllrm)
-m3_fit
+cm3_all_asymptotic <- cm3(fit_gllrm)
+cm3_all_asymptotic
+summary(cm3_all_asymptotic)$tables$aggregates
+summary(cm3_all_asymptotic)
+```
+
+Selecting `P1`, `P3`, and `P5` retains the focal
+`P1`-by-`P3`-by-`P5` triple and the applicable two-way and other three-way
+margins, while excluding margins that require an unselected focal item.
+
+```{r}
+cm3_subset_asymptotic <- cm3(
+  fit_gllrm,
+  items = diagnostic_subset_items
+)
+cm3_subset_asymptotic
+cm3_subset_asymptotic$metadata$selection$resolved_items
+summary(cm3_subset_asymptotic)$tables$aggregates
+summary(cm3_subset_asymptotic)
+```
+
+## Bootstrap CM3
+
+The bootstrap comparison likewise starts with the default all-item scope and
+then repeats the analysis for the subset. Both calls use the complete fitted
+GLLRM, default per-sample re-estimation, and the same private Delphi-compatible
+seeded stream.
+
+```{r}
+cm3_all_bootstrap <- cm3(
+  fit_gllrm,
+  bootstrap = TRUE,
+  nsim = vignette_bootstrap_nsim,
+  seed = vignette_bootstrap_seed
+)
+cm3_all_bootstrap
+summary(cm3_all_bootstrap)$tables$aggregates
+summary(cm3_all_bootstrap)
 ```
 
 ```{r}
-summary(m3_fit)
+cm3_subset_bootstrap <- cm3(
+  fit_gllrm,
+  items = diagnostic_subset_items,
+  bootstrap = TRUE,
+  nsim = vignette_bootstrap_nsim,
+  seed = vignette_bootstrap_seed
+)
+cm3_subset_bootstrap
+cm3_subset_bootstrap$values$bootstrap[
+  c("nsim", "nused", "seed", "reestimate")
+]
+summary(cm3_subset_bootstrap)$tables$aggregates
+summary(cm3_subset_bootstrap)
 ```

@@ -4,7 +4,7 @@
 #' item-by-exogeneous margins: nonzero observed item-score levels minus one,
 #' times nonzero observed exogeneous levels minus one.
 #'
-#' Source trace: `source/PAS_scd/DGRirtD.pas::MissingDIF`.
+#' Source trace: `source/digram_source_20260817/scd/DGRirtD.pas::MissingDIF`.
 #' @param observed_ix Integer observed item-score by exogeneous-value margin.
 #' @return Degrees of freedom for the included IX margin.
 #' @keywords internal
@@ -17,7 +17,7 @@ source_ix_observed_df <- function(observed_ix) {
 
 #' Source Goodman-Kruskal gamma count totals
 #'
-#' Source trace: `source/PAS_scd/DGRirtD.pas::MissingDIF`.
+#' Source trace: `source/digram_source_20260817/scd/DGRirtD.pas::MissingDIF`.
 #' @param tab Two-way integer table.
 #' @return Gamma, PPQ, and PMQ totals.
 #' @keywords internal
@@ -28,7 +28,7 @@ dif_tests_source_gamma_counts <- function(tab) {
 
 #' Build cached raw-data context for DIF gamma values
 #'
-#' Source trace: `source/PAS_scd/DGRirtD.pas::MissingDIF`.
+#' Source trace: `source/digram_source_20260817/scd/DGRirtD.pas::MissingDIF`.
 #' @param project DIGRAM project.
 #' @return Raw item/background matrices and score vectors.
 #' @keywords internal
@@ -68,7 +68,7 @@ build_dif_gamma_context <- function(project) {
 #' `IJXgamma(.i,nitems+j.)`, and the GLLRM parameter reports label the
 #' same value "Item screening: Gamma".
 #'
-#' Source trace: `source/PAS_scd/DGRirtD.pas::MissingDIF`.
+#' Source trace: `source/digram_source_20260817/scd/DGRirtD.pas::MissingDIF`.
 #' @param project DIGRAM project.
 #' @param context Context from `build_dif_gamma_context()`.
 #' @param target_item One-based item index.
@@ -112,7 +112,7 @@ dif_tests_partial_gamma_stats <- function(project, context, target_item, backgro
   list(gamma = gamma, p_value = p_value, ppq = ppq, pmq = pmq, s = s)
 }
 
-#' Source trace: `source/PAS_scd/DGRirtD.pas::MissingDIF`.
+#' Source trace: `source/digram_source_20260817/scd/DGRirtD.pas::MissingDIF`.
 #' @return Source partial gamma.
 #' @param project Encoded gRm project.
 #' @param context Prepared GLLRM computation context.
@@ -126,7 +126,7 @@ dif_tests_partial_gamma <- function(project, context, target_item, background_in
 
 #' Convolve two score polynomials with source score bounds
 #'
-#' Source trace: `source/PAS_scd/DGRirtD.pas::MissingDIF`.
+#' Source trace: `source/digram_source_20260817/scd/DGRirtD.pas::MissingDIF`.
 #' @param left Numeric score vector indexed by score plus one.
 #' @param right Numeric score vector indexed by score plus one.
 #' @param max_total_score Maximum retained score.
@@ -156,7 +156,7 @@ convolve_score_vectors <- function(left, right, max_total_score) {
 
 #' Calculate the base Rasch negative log likelihood
 #'
-#' Source trace: `source/PAS_scd/DGRirtD.pas::MissingDIF`.
+#' Source trace: `source/digram_source_20260817/scd/DGRirtD.pas::MissingDIF`.
 #' @param bundle Source-shaped bundle.
 #' @param item_gamma Item gamma matrix.
 #' @return Negative conditional log likelihood.
@@ -166,7 +166,7 @@ base_rasch_loglike <- function(bundle, item_gamma) {
   data <- bundle$data
   items <- bundle$model$items
   valid_rows <- which(data$status == 1L)
-  # Source trace: source/PAS_scd/skbias12.pas::
+  # Source trace: source/digram_source_20260817/skunits/skbias12.pas::
   # Inexpensive_Gamma_Calculation builds the same denominator used by the base
   # Rasch estimator. Candidate diagnostics now share this canonical routine.
   full_gamma <- build_source_score_gamma(
@@ -198,7 +198,7 @@ base_rasch_loglike <- function(bundle, item_gamma) {
 #' `docs/source-traces/BIRT_DIF_TESTS_SOURCE_TRACE.md`, especially `DGRirtD`'s CHECK D branch,
 #' `Estimate_GLLRM`, `PFCHI`, and the source Benjamini-Hochberg rule.
 #'
-#' Source trace: `source/PAS_scd/DGRirtD.pas::MissingDIF`.
+#' Source trace: `source/digram_source_20260817/scd/DGRirtD.pas::MissingDIF`.
 #' @param project A source-shaped DIGRAM project list, such as the `project`
 #'   component returned by [gRm()] or [read_digram_project()].
 #' @param max_step Maximum source Rasch/GLLRM estimation iterations.
@@ -333,7 +333,7 @@ dif_tests_values <- function(project, max_step = 5000L, max_delta = 0.0001, jobs
 #' Internal gllrm dif tests values helper
 #'
 #' Supports the dif tests values implementation while preserving its internal contract.
-#' Source trace: `source/PAS_scd/DGRirtD.pas::MissingDIF`.
+#' Source trace: `source/digram_source_20260817/scd/DGRirtD.pas::MissingDIF`.
 #' @param fit Fitted gRm model.
 #' @param max_step Maximum fitting iteration.
 #' @param max_delta Sufficient-count discrepancy tolerance.
@@ -457,7 +457,7 @@ gllrm_dif_tests_values <- function(fit, max_step = 5000L, max_delta = 0.0001, jo
 #' Internal gllrm context dif index helper
 #'
 #' Supports the dif tests values implementation while preserving its internal contract.
-#' Source trace: `source/PAS_scd/DGRirtD.pas::MissingDIF`.
+#' Source trace: `source/digram_source_20260817/scd/DGRirtD.pas::MissingDIF`.
 #' @param context Prepared GLLRM computation context.
 #' @param item One-based item index.
 #' @param background One-based exogenous-variable index.
@@ -478,7 +478,7 @@ gllrm_context_dif_index <- function(context, item, background) {
 #' Internal gllrm no dif candidates helper
 #'
 #' Supports the dif tests values implementation while preserving its internal contract.
-#' Source trace: `source/PAS_scd/DGRirtD.pas::MissingDIF`.
+#' Source trace: `source/digram_source_20260817/scd/DGRirtD.pas::MissingDIF`.
 #' @param context Prepared GLLRM computation context.
 #' @return The internal `gllrm_no_dif_candidates()` computation result.
 #' @keywords internal
@@ -501,7 +501,7 @@ gllrm_no_dif_candidates <- function(context) {
 #' Internal gllrm dif tests helper
 #'
 #' Supports the dif tests values implementation while preserving its internal contract.
-#' Source trace: `source/PAS_scd/DGRirtD.pas::MissingDIF`.
+#' Source trace: `source/digram_source_20260817/scd/DGRirtD.pas::MissingDIF`.
 #' @param context Prepared GLLRM computation context.
 #' @return The internal `gllrm_dif_tests()` computation result.
 #' @keywords internal
@@ -537,7 +537,7 @@ gllrm_dif_tests <- function(context) {
 #' Internal gllrm dif pair test helper
 #'
 #' Supports the dif tests values implementation while preserving its internal contract.
-#' Source trace: `source/PAS_scd/DGRirtD.pas::MissingDIF`.
+#' Source trace: `source/digram_source_20260817/scd/DGRirtD.pas::MissingDIF`.
 #' @param context Prepared GLLRM computation context.
 #' @param item One-based item index.
 #' @param background One-based exogenous-variable index.
@@ -565,7 +565,7 @@ gllrm_dif_pair_test <- function(context, item, background) {
 #' Internal gllrm dif lookup helper
 #'
 #' Supports the dif tests values implementation while preserving its internal contract.
-#' Source trace: `source/PAS_scd/DGRirtD.pas::MissingDIF`.
+#' Source trace: `source/digram_source_20260817/scd/DGRirtD.pas::MissingDIF`.
 #' @param context Prepared GLLRM computation context.
 #' @return The internal `gllrm_dif_lookup()` computation result.
 #' @keywords internal
@@ -581,7 +581,7 @@ gllrm_dif_lookup <- function(context) {
 #' Internal gllrm dif key helper
 #'
 #' Supports the dif tests values implementation while preserving its internal contract.
-#' Source trace: `source/PAS_scd/DGRirtD.pas::MissingDIF`.
+#' Source trace: `source/digram_source_20260817/scd/DGRirtD.pas::MissingDIF`.
 #' @param item One-based item index.
 #' @param background One-based exogenous-variable index.
 #' @return The internal `gllrm_dif_key()` computation result.

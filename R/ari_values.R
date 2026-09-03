@@ -1,7 +1,7 @@
 #' Internal ari values helper
 #'
 #' Supports the ari values implementation while preserving its internal contract.
-#' Source trace: `source/PAS_skunits/skbias15.pas::Calculate_Ari`.
+#' Source trace: `source/digram_source_20260817/skunits/skbias15.pas::Calculate_Ari`.
 #' @param fit Fitted gRm model.
 #' @return The internal `ari_values()` computation result.
 #' @keywords internal
@@ -16,7 +16,7 @@ ari_values <- function(fit) {
 #' Internal ari observed tables helper
 #'
 #' Supports the ari values implementation while preserving its internal contract.
-#' Source trace: `source/PAS_skunits/skbias15.pas::Calculate_Ari`.
+#' Source trace: `source/digram_source_20260817/skunits/skbias15.pas::Calculate_Ari`.
 #' @param bundle Source-shaped analysis bundle.
 #' @return The internal `ari_observed_tables()` computation result.
 #' @keywords internal
@@ -80,7 +80,7 @@ ari_observed_tables <- function(bundle) {
 #' Internal ari expected moments helper
 #'
 #' Supports the ari values implementation while preserving its internal contract.
-#' Source trace: `source/PAS_skunits/skbias15.pas::Calculate_Ari`.
+#' Source trace: `source/digram_source_20260817/skunits/skbias15.pas::Calculate_Ari`.
 #' @param fit Fitted gRm model.
 #' @return The internal `ari_expected_moments()` computation result.
 #' @keywords internal
@@ -108,7 +108,7 @@ ari_expected_moments <- function(fit) {
 #' Internal ari row table helper
 #'
 #' Supports the ari values implementation while preserving its internal contract.
-#' Source trace: `source/PAS_skunits/skbias15.pas::Calculate_Ari`.
+#' Source trace: `source/digram_source_20260817/skunits/skbias15.pas::Calculate_Ari`.
 #' @param bundle Source-shaped analysis bundle.
 #' @param observed Internal `observed` value used by this helper.
 #' @param expected Internal `expected` value used by this helper.
@@ -187,7 +187,7 @@ ari_row_table <- function(bundle, observed, expected) {
 #' Internal ari global item max helper
 #'
 #' Supports the ari values implementation while preserving its internal contract.
-#' Source trace: `source/PAS_skunits/skbias15.pas::Calculate_Ari`.
+#' Source trace: `source/digram_source_20260817/skunits/skbias15.pas::Calculate_Ari`.
 #' @param items Item selection or item metadata.
 #' @return The internal `ari_global_item_max()` computation result.
 #' @keywords internal
@@ -199,7 +199,7 @@ ari_global_item_max <- function(items) {
 #' Internal ari table columns helper
 #'
 #' Supports the ari values implementation while preserving its internal contract.
-#' Source trace: `source/PAS_skunits/skbias15.pas::Calculate_Ari`.
+#' Source trace: `source/digram_source_20260817/skunits/skbias15.pas::Calculate_Ari`.
 #' @param global_item_max Internal `global_item_max` value used by this helper.
 #' @return The internal `ari_table_columns()` computation result.
 #' @keywords internal
@@ -217,7 +217,7 @@ ari_table_columns <- function(global_item_max) {
 #' Internal ari empty table helper
 #'
 #' Supports the ari values implementation while preserving its internal contract.
-#' Source trace: `source/PAS_skunits/skbias15.pas::Calculate_Ari`.
+#' Source trace: `source/digram_source_20260817/skunits/skbias15.pas::Calculate_Ari`.
 #' @param global_item_max Internal `global_item_max` value used by this helper.
 #' @return The internal `ari_empty_table()` computation result.
 #' @keywords internal

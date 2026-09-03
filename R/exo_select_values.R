@@ -1,13 +1,13 @@
 #' Internal gRm source score cap helper
 #'
 #' Supports the exo select values implementation while preserving its internal contract.
-#' Source trace: `source/PAS_skunits/SKbias13.pas::StepwiseScoreScreening`.
+#' Source trace: `source/digram_source_20260817/skunits/SKbias13.pas::StepwiseScoreScreening`.
 #' @return The internal `gRm_source_score_cap()` computation result.
 #' @keywords internal
 #' @noRd
 gRm_source_score_cap <- function() {
-  # Source trace: source/PAS_skunits/SKTypes.pas defines MAXDIM = 57, and
-  # source/PAS_skunits/SKbias13.pas collapses scores above maxdim - 1.
+  # Source trace: source/digram_source_20260817/skunits/SKTypes.pas defines MAXDIM = 57, and
+  # source/digram_source_20260817/skunits/SKbias13.pas collapses scores above maxdim - 1.
   56L
 }
 
@@ -23,7 +23,7 @@ gRm_source_score_cap <- function() {
 #' matrix; Pascal and supplied DIGRAM output files are external validation
 #' inputs only.
 #'
-#' Source trace: `source/PAS_skunits/SKbias13.pas::StepwiseScoreScreening`.
+#' Source trace: `source/digram_source_20260817/skunits/SKbias13.pas::StepwiseScoreScreening`.
 #' @param project A parsed DIGRAM project from [read_digram_project()].
 #' @param score_cap Highest printed score category for the score/exogenous
 #'   screening table. Source `maxdim - 1` gives `56` for this source tree.
@@ -139,7 +139,7 @@ exo_select_values <- function(project,
 
 #' Missing-exogenous diagnostics for complete item cases
 #'
-#' Source trace: `source/PAS_skunits/SKbias13.pas::StepwiseScoreScreening`.
+#' Source trace: `source/digram_source_20260817/skunits/SKbias13.pas::StepwiseScoreScreening`.
 #' @param project Parsed project.
 #' @param scores Raw scores for all records.
 #' @param complete_item Complete-item mask.
@@ -191,7 +191,7 @@ exo_select_missing_diagnostics <- function(project, scores, complete_item, valid
 
 #' Score distribution for exo-selection item-score cases
 #'
-#' Source trace: `source/PAS_skunits/SKbias13.pas::StepwiseScoreScreening`.
+#' Source trace: `source/digram_source_20260817/skunits/SKbias13.pas::StepwiseScoreScreening`.
 #' @param scores Raw scores for all records.
 #' @param known Logical mask for records with source-known item scores.
 #' @param min_score Lower score limit.
@@ -302,7 +302,7 @@ exo_select_score_distribution <- function(scores,
 
 #' Source score/exogenous screening values
 #'
-#' Source trace: `source/PAS_skunits/SKbias13.pas::StepwiseScoreScreening`.
+#' Source trace: `source/digram_source_20260817/skunits/SKbias13.pas::StepwiseScoreScreening`.
 #' @param project Parsed project.
 #' @param scores Raw scores.
 #' @param complete_item Complete-item mask.
@@ -449,7 +449,7 @@ exo_select_score_screen <- function(project,
 #' Internal exo select stepwise score screening helper
 #'
 #' Supports the exo select values implementation while preserving its internal contract.
-#' Source trace: `source/PAS_skunits/SKbias13.pas::StepwiseScoreScreening`.
+#' Source trace: `source/digram_source_20260817/skunits/SKbias13.pas::StepwiseScoreScreening`.
 #' @param score_category Internal `score_category` value used by this helper.
 #' @param score_valid Internal `score_valid` value used by this helper.
 #' @param score_in_range Internal `score_in_range` value used by this helper.
@@ -568,7 +568,7 @@ exo_select_stepwise_score_screening <- function(score_category,
 #' Internal exo select repeated count cutoff helper
 #'
 #' Supports the exo select values implementation while preserving its internal contract.
-#' Source trace: `source/PAS_skunits/SKbias13.pas::StepwiseScoreScreening`.
+#' Source trace: `source/digram_source_20260817/skunits/SKbias13.pas::StepwiseScoreScreening`.
 #' @param project Encoded gRm project.
 #' @param exact_state Internal `exact_state` value used by this helper.
 #' @return The internal `exo_select_repeated_count_cutoff()` computation result.
@@ -583,7 +583,7 @@ exo_select_repeated_count_cutoff <- function(project, exact_state = NULL) {
 
 #' Source Benjamini-Hochberg thresholds for score/exogenous screening
 #'
-#' Source trace: `source/PAS_skunits/SKbias13.pas::StepwiseScoreScreening`.
+#' Source trace: `source/digram_source_20260817/skunits/SKbias13.pas::StepwiseScoreScreening`.
 #' @param screen Screening rows from `exo_select_score_screen()`.
 #' @return List with FDR 0.05 and 0.01 source critical p-values.
 #' @keywords internal
@@ -605,7 +605,7 @@ exo_select_bh_thresholds <- function(screen) {
 
 #' Source-shaped Monte Carlo exact score/exogenous test
 #'
-#' Source trace: `source/PAS_skunits/SKbias13.pas::StepwiseScoreScreening`.
+#' Source trace: `source/digram_source_20260817/skunits/SKbias13.pas::StepwiseScoreScreening`.
 #' @param tab Observed score by exogenous table after source score collapsing.
 #' @param observed_chi Observed chi-square statistic.
 #' @param observed_gamma Observed RC gamma statistic.
@@ -696,11 +696,11 @@ exo_select_exact_test <- function(tab,
 
 #' Generate one conditional random table with fixed margins
 #'
-#' This is the R port of `source/PAS_scd/SKrandom.pas::GENTAB1`. It fills the
+#' This is the R port of `source/digram_source_20260817/skunits/SKrandom.pas::GENTAB1`. It fills the
 #' free cells sequentially using the source hypergeometric probability ordering
 #' around the rounded expected cell and preserves the observed margins.
 #'
-#' Source trace: `source/PAS_skunits/SKbias13.pas::StepwiseScoreScreening`.
+#' Source trace: `source/digram_source_20260817/skunits/SKbias13.pas::StepwiseScoreScreening`.
 #' @param tab Observed two-way table.
 #' @return Generated two-way table with the same margins.
 #' @param random_draw Internal `random_draw` value used by this helper.
@@ -713,7 +713,7 @@ exo_select_gentab1 <- function(tab, random_draw = NULL) {
 #' Internal exo select prepare gentab1 helper
 #'
 #' Supports the exo select values implementation while preserving its internal contract.
-#' Source trace: `source/PAS_skunits/SKbias13.pas::StepwiseScoreScreening`.
+#' Source trace: `source/digram_source_20260817/skunits/SKbias13.pas::StepwiseScoreScreening`.
 #' @param tab Internal `tab` value used by this helper.
 #' @return The internal `exo_select_prepare_gentab1()` computation result.
 #' @keywords internal
@@ -745,7 +745,7 @@ exo_select_prepare_gentab1 <- function(tab) {
 #' Internal exo select gentab1 prepared helper
 #'
 #' Supports the exo select values implementation while preserving its internal contract.
-#' Source trace: `source/PAS_skunits/SKbias13.pas::StepwiseScoreScreening`.
+#' Source trace: `source/digram_source_20260817/skunits/SKbias13.pas::StepwiseScoreScreening`.
 #' @param prepared Internal `prepared` value used by this helper.
 #' @param random_draw Internal `random_draw` value used by this helper.
 #' @return The internal `exo_select_gentab1_prepared()` computation result.
@@ -851,7 +851,7 @@ exo_select_gentab1_prepared <- function(prepared, random_draw = NULL) {
 
 #' Wilson-style 99 percent source confidence limits
 #'
-#' Source trace: `source/PAS_skunits/SKbias13.pas::StepwiseScoreScreening`.
+#' Source trace: `source/digram_source_20260817/skunits/SKbias13.pas::StepwiseScoreScreening`.
 #' @param n Number of simulations.
 #' @param p Simulated p-value.
 #' @return Numeric vector with lower and upper limits.
@@ -870,7 +870,7 @@ source_conflimit99 <- function(n, p) {
 
 #' Source gamma test for a score/exogenous table
 #'
-#' Source trace: `source/PAS_skunits/SKbias13.pas::StepwiseScoreScreening`.
+#' Source trace: `source/digram_source_20260817/skunits/SKbias13.pas::StepwiseScoreScreening`.
 #' @param tab Contingency table.
 #' @return List with gamma and one-sided p-value.
 #' @keywords internal
@@ -903,7 +903,7 @@ exo_select_gamma_test <- function(tab) {
 
 #' Source significance marker
 #'
-#' Source trace: `source/PAS_skunits/SKbias13.pas::StepwiseScoreScreening`.
+#' Source trace: `source/digram_source_20260817/skunits/SKbias13.pas::StepwiseScoreScreening`.
 #' @param p_value P-value used for the marker.
 #' @param statistic Statistic sign source.
 #' @param bh05 FDR 0.05 threshold.

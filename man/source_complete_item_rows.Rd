@@ -13,11 +13,12 @@ source_complete_item_rows(context)
 An integer vector of source-row indices in input order.
 }
 \description{
-Mirrors \code{Get_Items} in \code{source/PAS_scd/SKbias2.pas}: every selected item
-must be present and inside its source category range. No estimation score
+Mirrors \code{Get_Items} in \code{source/digram_source_20260817/skunits/SKbias2.pas}: every fitted item
+must be present and inside its source category range. CM2/CM3's focal
+\code{UseItems} set does not narrow this record reader. No estimation score
 window or exogenous-data condition is applied.
 }
 \details{
-Source trace: \code{source/PAS_skunits/skbias14.pas::Count_IJtable}.
+Source trace: \code{source/digram_source_20260817/skunits/skbias14.pas::Count_IJtable}.
 }
 \keyword{internal}

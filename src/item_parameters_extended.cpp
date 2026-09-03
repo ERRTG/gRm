@@ -84,7 +84,7 @@ inline int gamma_index(int item_index, int score, int max_category_count) {
 
 long double source_ln(long double value) {
 #if defined(__GNUC__) && (defined(__i386__) || defined(__x86_64__))
-  // Source trace: source/GLLRM.txt::write_iteminformation1 uses Pascal
+  // Source trace: source/digram_source_20260817/skunits/skbias22.pas::write_iteminformation1 uses Pascal
   // Extended Ln. On supported GNU x86 builds, keep both the logarithm and its
   // cancellation operands in x87 Extended precision.
   long double result;
@@ -112,7 +112,7 @@ struct TopIceDiagnostic {
 };
 
 TopIceDiagnostic top_ice_diagnostic(long double gamma_top, int k) {
-  // Source trace: source/GLLRM.txt::write_iteminformation1, output(4) ICE
+  // Source trace: source/digram_source_20260817/skunits/skbias22.pas::write_iteminformation1, output(4) ICE
   // branch. Preserve exact expression order: z := Ln(x[i,k]) / k, followed by
   // Ln(x[i,k]) - k*z. Direct fixed-field formatting derives the sign of a
   // displayed zero from the arithmetic result; no sign is imposed afterward.
@@ -139,14 +139,14 @@ std::vector<std::string> skbias12_ice_fields_from_gamma(
     long double gamma1 =
       item_gamma[gamma_index(item_index, 1, max_category_count)];
     if (gamma1 > 0.0L) {
-      // Source trace: source/PAS_skunits/skbias12.pas::CalculateICEandMICE.
+      // Source trace: source/digram_source_20260817/skunits/skbias12.pas::CalculateICEandMICE.
       // The dichotomous branch retains zero ICE and stores the one-step
       // quantity as ItemEffect.
       ice[0] = 0.0L;
       ice[1] = 0.0L;
     }
   } else if (max_score > 1) {
-    // Source trace: source/PAS_skunits/skbias12.pas::CalculateICEandMICE.
+    // Source trace: source/digram_source_20260817/skunits/skbias12.pas::CalculateICEandMICE.
     // Mathematical step: center adjacent-category log ratios at their mean,
     // then derive MICE and ICE in source category order.
     long double location = 0.0L;

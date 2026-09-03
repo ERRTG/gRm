@@ -6,7 +6,7 @@
 #' raw categories to zero-based scores, row scores and validity flags are
 #' computed, and source-style manifest counts are assembled.
 #'
-#' Source trace: `source/PAS_skunits/skbias12b.pas::Count_Margins`.
+#' Source trace: `source/digram_source_20260817/skunits/skbias12b.pas::Count_Margins`.
 #' @param project A project list returned by [read_digram_project()].
 #' @return A list with components:
 #'   \describe{
@@ -30,7 +30,11 @@ build_item_parameters_bundle <- function(project) {
   backgrounds <- project$backgrounds
   raw <- project$raw_data
   encoded <- source_encode_project_rows(items, backgrounds, raw)
-  classified <- source_classify_bundle_rows(encoded)
+  max_total_score <- sum(items$raw_max - 1L)
+  classified <- source_classify_bundle_rows(
+    encoded,
+    estimation_largest_score = max_total_score - 1L
+  )
 
   data <- cbind(
     encoded$item_data,
@@ -50,7 +54,7 @@ build_item_parameters_bundle <- function(project) {
       scenario = "DIGRAM",
       items = items,
       backgrounds = backgrounds,
-      max_total_score = sum(items$raw_max - 1L),
+      max_total_score = max_total_score,
       least_score = classified$least_score,
       largest_score = classified$largest_score
     ),
@@ -80,7 +84,7 @@ build_item_parameters_bundle <- function(project) {
 
 #' Encode source project records into item/background state
 #'
-#' Source trace: `source/PAS_skunits/skbias12b.pas::Count_Margins`.
+#' Source trace: `source/digram_source_20260817/skunits/skbias12b.pas::Count_Margins`.
 #' Mathematical step: traverse records, items, and backgrounds in source order;
 #' recode valid item categories to zero-based scores and preserve one-based
 #' background values while recording completeness and raw row scores.
@@ -171,17 +175,20 @@ source_encode_project_rows <- function(items, backgrounds, raw) {
 
 #' Classify encoded records for source estimation and manifest counters
 #'
-#' Source trace: `source/PAS_skunits/skbias12b.pas::Count_Margins`.
+#' Source trace: `source/digram_source_20260817/skunits/skbias12b.pas::Count_Margins`.
 #' Mathematical step: apply the CML score window before exogenous usability,
 #' retaining DIGRAM's distinct `Nincomplete` and `Nuseless` branches.
 #' @param encoded Result from `source_encode_project_rows()`.
+#' @param estimation_largest_score Upper score bound supplied to the source
+#'   GLLRM estimator, normally `highest_possible_score - 1`.
 #' @return Status/score vectors, score bounds, and source manifest counters.
 #' @keywords internal
 #' @noRd
-source_classify_bundle_rows <- function(encoded) {
+source_classify_bundle_rows <- function(encoded, estimation_largest_score) {
   score <- encoded$score
   status <- encoded$status
   least_score <- 1L
+  estimation_largest_score <- as.integer(estimation_largest_score)
   largest_score <- if (encoded$n_complete_items > 0L) {
     max(encoded$complete_item_scores[seq_len(encoded$n_complete_items)])
   } else {
@@ -191,7 +198,13 @@ source_classify_bundle_rows <- function(encoded) {
   n_incomplete <- 0L
   n_useless <- 0L
   for (row_index in seq_along(score)) {
-    if (score[[row_index]] >= least_score && score[[row_index]] <= largest_score) {
+    # skbias22.GLLRM_estim supplies the source CML bounds as
+    # 1..highest_possible_score-1. The separately retained largest_score is
+    # observed-range metadata and must not admit a maximum-score record.
+    if (
+      score[[row_index]] >= least_score &&
+        score[[row_index]] <= estimation_largest_score
+    ) {
       status[[row_index]] <- 1L
       n_valid <- n_valid + 1L
     }
@@ -202,7 +215,7 @@ source_classify_bundle_rows <- function(encoded) {
       # exogenous values, so boundary rows do not increment Nuseless.
       if (
         encoded$row_scores[[row_index]] < least_score ||
-          encoded$row_scores[[row_index]] > largest_score
+          encoded$row_scores[[row_index]] > estimation_largest_score
       ) {
         next
       }
@@ -228,7 +241,7 @@ source_classify_bundle_rows <- function(encoded) {
 
 #' Write a source-shaped DIGRAM bundle
 #'
-#' Source trace: `source/PAS_skunits/skbias12b.pas::Count_Margins`.
+#' Source trace: `source/digram_source_20260817/skunits/skbias12b.pas::Count_Margins`.
 #' @param bundle Bundle returned by `build_item_parameters_bundle()`.
 #' @param output_dir Directory to receive `model.tsv`, `manifest.tsv`, and
 #'   `GLLRMdata.txt`.

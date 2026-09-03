@@ -8,7 +8,7 @@
 #'   summary.gRm_screen
 #'   summary.gRm_local_dependence
 #'   summary.gRm_dif summary.gRm_global_homogeneity
-#'   summary.gRm_m2 summary.gRm_m3 print.summary.gRm
+#'   summary.gRm_cm2 summary.gRm_cm3 print.summary.gRm
 #' @usage
 #' \method{summary}{gRm_analysis}(object, ...)
 #' \method{summary}{gRm_model}(object, ...)
@@ -17,8 +17,8 @@
 #' \method{summary}{gRm_local_dependence}(object, ...)
 #' \method{summary}{gRm_dif}(object, ...)
 #' \method{summary}{gRm_global_homogeneity}(object, which = NULL, ...)
-#' \method{summary}{gRm_m2}(object, ...)
-#' \method{summary}{gRm_m3}(object, ...)
+#' \method{summary}{gRm_cm2}(object, ...)
+#' \method{summary}{gRm_cm3}(object, ...)
 #' \method{print}{summary.gRm}(x, ...)
 #' @param object An gRm analysis, model, fit, screen, or result object.
 #' @param which Optional named summary section to return for summary methods
@@ -113,11 +113,21 @@
 #'   source-status metadata are available as `attr(x, "source_status")`; item
 #'   residual and marker cells are not printed because the recovered Pascal
 #'   source does not source-back the exact runtime residual materialization.
-#' * `gRm_m2` and `gRm_m3`: one summary surface. Printed summaries show the
-#'   source-backed M2/M3 aggregate rows, item-trait interaction aggregate,
-#'   invariance decomposition by exogenous variable, and prepared margin rows.
-#'   They do not accept `which`; programmatic tables are available from the
-#'   returned summary object and from `x$values`.
+#' * `gRm_cm2` and `gRm_cm3`: one summary surface. Printed summaries show the
+#'   source-backed CM2/CM3 aggregate rows, item-trait interaction aggregate,
+#'   invariance decomposition by exogenous variable, prepared margin rows, and
+#'   the separate observed CM2/CM3 Benjamini--Hochberg blocks. They do not
+#'   accept `which`. `summary(result)$tables` contains `aggregates`,
+#'   `item_trait`, `invariance`, `margins`, and `bh`, plus `bootstrap` whenever
+#'   bootstrap was requested. Completed bootstrap runs add calibrated p-values
+#'   and accepted-sample counts to the applicable tables. The `margins` table
+#'   remains in DIGRAM source order. Printed chi-square statistics and p-values
+#'   use the same option-sensitive diagnostic formatting as the other gRm
+#'   summaries. Exact empirical bootstrap zero remains `0`, and bootstrap seeds
+#'   print as exact unsigned decimal identifiers. Formatting changes only the
+#'   display copy: the returned summary tables and the complete numerical and
+#'   audit payload in `result$values` retain their unrounded numeric values. See
+#'   [cm2()] and [cm3()] for the documented components and bootstrap states.
 #'
 #' @examples
 #' data <- data.frame(
@@ -150,7 +160,7 @@ NULL
 #'   print.gRm_screen
 #'   print.gRm_direct_table
 #'   print.gRm_local_dependence print.gRm_dif
-#'   print.gRm_global_homogeneity print.gRm_m2 print.gRm_m3
+#'   print.gRm_global_homogeneity print.gRm_cm2 print.gRm_cm3
 #' @usage
 #' \method{print}{gRm_analysis}(x, ...)
 #' \method{print}{gRm_model}(x, ...)
@@ -160,8 +170,8 @@ NULL
 #' \method{print}{gRm_local_dependence}(x, ...)
 #' \method{print}{gRm_dif}(x, ...)
 #' \method{print}{gRm_global_homogeneity}(x, ...)
-#' \method{print}{gRm_m2}(x, ...)
-#' \method{print}{gRm_m3}(x, ...)
+#' \method{print}{gRm_cm2}(x, ...)
+#' \method{print}{gRm_cm3}(x, ...)
 #' @param x An gRm analysis, model, fit, screen, or result object.
 #' @param ... Reserved for S3 dispatch compatibility and must be empty for all
 #'   gRm print methods.

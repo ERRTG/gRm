@@ -78,8 +78,8 @@ native-precision statistics and source-order rows. Fit values include item
 labels, gamma parameters, thresholds, locations, ICE/MICE effects, item
 statistics, observed score range, non-negative integer parameter count, and
 the finite positive negative log likelihood. A diagnostic result class such
-as \code{gRm_local_dependence}, \code{gRm_dif}, \code{gRm_global_homogeneity}, \code{gRm_m2}, or
-\code{gRm_m3} owns \code{analysis}, the supplied \code{fit}, raw \code{values}, a stable \code{result}
+as \code{gRm_local_dependence}, \code{gRm_dif}, \code{gRm_global_homogeneity}, \code{gRm_cm2}, or
+\code{gRm_cm3} owns \code{analysis}, the supplied \code{fit}, raw \code{values}, a stable \code{result}
 label, method metadata, trace/status fields, and unchanged identity fields.
 Public diagnostics compute from the supplied fit and do not silently refit.
 }

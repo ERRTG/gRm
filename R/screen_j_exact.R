@@ -4,7 +4,7 @@
 #' score-conditioned slice, adds simulated `PPQ` and `PMQ` over slices, and
 #' counts `abs(simulated_gamma) >= abs(observed_gamma)`.
 #'
-#' Source trace: `source/PAS_skunits/SKbias7.pas::Item_Screening`.
+#' Source trace: `source/digram_source_20260817/skunits/SKbias7.pas::Item_Screening`.
 #' @param strata Three-way table with dimensions item/background by item/exo by
 #'   conditioning score.
 #' @param observed_gamma Observed partial gamma.
@@ -47,7 +47,7 @@ screen_j_exact_partial_gamma <- function(strata,
 #' Internal screen j exact gamma slices helper
 #'
 #' Supports the screen j values implementation while preserving its internal contract.
-#' Source trace: `source/PAS_skunits/SKbias7.pas::Item_Screening`.
+#' Source trace: `source/digram_source_20260817/skunits/SKbias7.pas::Item_Screening`.
 #' @param slices Internal `slices` value used by this helper.
 #' @param observed_gamma Internal `observed_gamma` value used by this helper.
 #' @param nsim Requested simulation count.
@@ -66,7 +66,7 @@ screen_j_exact_gamma_slices <- function(slices, observed_gamma, nsim, seed = NUL
 #' Internal screen j exact gamma prepared helper
 #'
 #' Supports the screen j values implementation while preserving its internal contract.
-#' Source trace: `source/PAS_skunits/SKbias7.pas::Item_Screening`.
+#' Source trace: `source/digram_source_20260817/skunits/SKbias7.pas::Item_Screening`.
 #' @param prepared_slices Internal `prepared_slices` value used by this helper.
 #' @param observed_gamma Internal `observed_gamma` value used by this helper.
 #' @param nsim Requested simulation count.
@@ -81,7 +81,7 @@ screen_j_exact_gamma_prepared <- function(prepared_slices, observed_gamma, nsim,
 #' Internal screen j exact gamma prepared r helper
 #'
 #' Supports the screen j values implementation while preserving its internal contract.
-#' Source trace: `source/PAS_skunits/SKbias7.pas::Item_Screening`.
+#' Source trace: `source/digram_source_20260817/skunits/SKbias7.pas::Item_Screening`.
 #' @param prepared_slices Internal `prepared_slices` value used by this helper.
 #' @param observed_gamma Internal `observed_gamma` value used by this helper.
 #' @param nsim Requested simulation count.
@@ -118,7 +118,7 @@ screen_j_exact_gamma_prepared_r <- function(prepared_slices, observed_gamma, nsi
 #' `SEQUENTIAL`, `SEQ_P0`, `SEQ_B`, and `seq_limit` state is used while
 #' evaluating simulated chi results.
 #'
-#' Source trace: `source/PAS_skunits/SKbias7.pas::Item_Screening`.
+#' Source trace: `source/digram_source_20260817/skunits/SKbias7.pas::Item_Screening`.
 #' @param strata Three-way table.
 #' @param observed_chi Observed partial chi-square.
 #' @param nsim Number of simulated tables.
@@ -153,7 +153,7 @@ screen_j_exact_partial_chi <- function(strata,
 #' Internal screen j exact chi slices helper
 #'
 #' Supports the screen j values implementation while preserving its internal contract.
-#' Source trace: `source/PAS_skunits/SKbias7.pas::Item_Screening`.
+#' Source trace: `source/digram_source_20260817/skunits/SKbias7.pas::Item_Screening`.
 #' @param slices Internal `slices` value used by this helper.
 #' @param observed_chi Internal `observed_chi` value used by this helper.
 #' @param nsim Requested simulation count.
@@ -204,7 +204,7 @@ screen_j_exact_chi_slices <- function(slices,
 #' Internal screen j exact chi prepared helper
 #'
 #' Supports the screen j values implementation while preserving its internal contract.
-#' Source trace: `source/PAS_skunits/SKbias7.pas::Item_Screening`.
+#' Source trace: `source/digram_source_20260817/skunits/SKbias7.pas::Item_Screening`.
 #' @param prepared_slices Internal `prepared_slices` value used by this helper.
 #' @param observed_chi Internal `observed_chi` value used by this helper.
 #' @param nsim Requested simulation count.
@@ -239,7 +239,7 @@ screen_j_exact_chi_prepared <- function(prepared_slices,
 #' Internal screen j exact chi prepared r helper
 #'
 #' Supports the screen j values implementation while preserving its internal contract.
-#' Source trace: `source/PAS_skunits/SKbias7.pas::Item_Screening`.
+#' Source trace: `source/digram_source_20260817/skunits/SKbias7.pas::Item_Screening`.
 #' @param prepared_slices Internal `prepared_slices` value used by this helper.
 #' @param observed_chi Internal `observed_chi` value used by this helper.
 #' @param nsim Requested simulation count.
@@ -286,7 +286,7 @@ screen_j_exact_chi_prepared_r <- function(prepared_slices,
 #' Internal screen j exact chi gamma slices helper
 #'
 #' Supports the screen j values implementation while preserving its internal contract.
-#' Source trace: `source/PAS_skunits/SKbias7.pas::Item_Screening`.
+#' Source trace: `source/digram_source_20260817/skunits/SKbias7.pas::Item_Screening`.
 #' @param slices Internal `slices` value used by this helper.
 #' @param observed_chi Internal `observed_chi` value used by this helper.
 #' @param observed_gamma Internal `observed_gamma` value used by this helper.
@@ -344,7 +344,7 @@ screen_j_exact_chi_gamma_slices <- function(slices,
 #' Internal screen j exact chi gamma prepared r helper
 #'
 #' Supports the screen j values implementation while preserving its internal contract.
-#' Source trace: `source/PAS_skunits/SKbias7.pas::Item_Screening`.
+#' Source trace: `source/digram_source_20260817/skunits/SKbias7.pas::Item_Screening`.
 #' @param prepared_slices Internal `prepared_slices` value used by this helper.
 #' @param observed_chi Internal `observed_chi` value used by this helper.
 #' @param observed_gamma Internal `observed_gamma` value used by this helper.
@@ -501,7 +501,7 @@ screen_j_exact_chi_gamma_prepared_r <- function(prepared_slices,
 #' Internal screen j seq t helper
 #'
 #' Supports the screen j values implementation while preserving its internal contract.
-#' Source trace: `source/PAS_skunits/SKbias7.pas::Item_Screening`.
+#' Source trace: `source/digram_source_20260817/skunits/SKbias7.pas::Item_Screening`.
 #' @param exceed Internal `exceed` value used by this helper.
 #' @param sim Internal `sim` value used by this helper.
 #' @param p0 Internal `p0` value used by this helper.

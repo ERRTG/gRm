@@ -1041,6 +1041,8 @@ normalize_public_score_cuts <- function(score_cuts, project, default = NULL, bun
     if (length(score_cuts) < 2L) {
       score_cuts <- gRm_default_global_homogeneity_score_cuts(project)
     }
+  } else if (!is.null(dim(score_cuts))) {
+    stop("`score_cuts` must be a one-dimensional integer-like vector.", call. = FALSE)
   } else if (!is.numeric(score_cuts) && !is.integer(score_cuts)) {
     stop("`score_cuts` must be an integer-like vector of score cuts.", call. = FALSE)
   }

@@ -13,12 +13,12 @@ source_cm3_observed_ijk_rows(context)
 An integer vector of source-row indices in input order.
 }
 \description{
-\code{Count_IJK} in \code{source/PAS_skunits/skbias14.pas} calls \code{get_exogene}, but
+\code{Count_IJK} in \code{source/digram_source_20260817/skunits/skbias14.pas} calls \code{get_exogene}, but
 its failure branch is commented out. Consequently item-complete rows remain
 eligible even when exogenous data are missing. This compatibility policy is
 intentionally different from the expected-IJK policy.
 }
 \details{
-Source trace: \code{source/PAS_skunits/skbias14.pas::Count_IJtable}.
+Source trace: \code{source/digram_source_20260817/skunits/skbias14.pas::Count_IJK}.
 }
 \keyword{internal}

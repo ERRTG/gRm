@@ -19,6 +19,6 @@ Other platforms still return ordinary platform-long-double formatting, but
 this capability flag is false and exact Extended parity is not claimed.
 }
 \details{
-Source trace: \code{source/PAS_skunits/skbias22.pas::GLLRM_output}.
+Source trace: \code{source/digram_source_20260817/skunits/skbias22.pas::GLLRM_output}.
 }
 \keyword{internal}

@@ -1,7 +1,7 @@
 #' Internal gllrm component restscore tables helper
 #'
 #' Supports the item fits values implementation while preserving its internal contract.
-#' Source trace: `source/PAS_skunits/skbias15.pas::Calculate_residuals_and_item_fits`.
+#' Source trace: `source/digram_source_20260817/skunits/skbias15.pas::Calculate_residuals_and_item_fits`.
 #' @param context Prepared GLLRM computation context.
 #' @param state Current fitted or iterative parameter state.
 #' @param component_items Internal `component_items` value used by this helper.
@@ -126,7 +126,7 @@ gllrm_component_restscore_tables <- function(context, state, component_items) {
 #' Internal component restscore table rows helper
 #'
 #' Supports the item fits values implementation while preserving its internal contract.
-#' Source trace: `source/PAS_skunits/skbias15.pas::Calculate_residuals_and_item_fits`.
+#' Source trace: `source/digram_source_20260817/skunits/skbias15.pas::Calculate_residuals_and_item_fits`.
 #' @param component Internal `component` value used by this helper.
 #' @param representative_item_label Internal `representative_item_label` value used by this helper.
 #' @param observed_table Internal `observed_table` value used by this helper.
@@ -160,7 +160,7 @@ component_restscore_table_rows <- function(component,
 #' Internal gllrm item conditional moments helper
 #'
 #' Supports the item fits values implementation while preserving its internal contract.
-#' Source trace: `source/PAS_skunits/skbias15.pas::Calculate_residuals_and_item_fits`.
+#' Source trace: `source/digram_source_20260817/skunits/skbias15.pas::Calculate_residuals_and_item_fits`.
 #' @param context Prepared GLLRM computation context.
 #' @param state Current fitted or iterative parameter state.
 #' @param include_probabilities Internal `include_probabilities` value used by this helper.
@@ -244,7 +244,7 @@ gllrm_item_conditional_moments <- function(context,
 #' Internal gllrm group item probabilities helper
 #'
 #' Supports the item fits values implementation while preserving its internal contract.
-#' Source trace: `source/PAS_skunits/skbias15.pas::Calculate_residuals_and_item_fits`.
+#' Source trace: `source/digram_source_20260817/skunits/skbias15.pas::Calculate_residuals_and_item_fits`.
 #' @param context Prepared GLLRM computation context.
 #' @param state Current fitted or iterative parameter state.
 #' @param total_score Internal `total_score` value used by this helper.

@@ -47,7 +47,7 @@ ari <- function(fit, ...) {
       score_range = c(1L, fit$bundle$model$max_total_score - 1L),
       source_trace = c(
         fit$source_trace %||% character(),
-        ari = "source/PAS_scd/DGRirtD.pas::TargetSlut -> source/PAS_skunits/skbias15.pas::Calculate_Ari"
+        ari = "source/digram_source_20260817/scd/DGRirtD.pas::TargetSlut -> source/digram_source_20260817/skunits/skbias15.pas::Calculate_Ari"
       )
     )
   )

@@ -368,6 +368,18 @@ test_that("global homogeneity score group lookup matches source interval scan", 
   expect_equal(lookup[seq.int(0L, 8L) + 1L], vapply(seq.int(0L, 8L), scan_index, integer(1L)))
 })
 
+test_that("uniform homogeneity lookup retains source endpoint score groups", {
+  groups <- data.frame(
+    group = 1:2,
+    from_score = c(1L, 3L),
+    to_score = c(2L, 7L)
+  )
+
+  lookup <- global_homogeneity_uniform_score_group_lookup(groups, max_score = 8L)
+
+  expect_identical(lookup, c(1L, 1L, 1L, 2L, 2L, 2L, 2L, 2L, 2L))
+})
+
 test_that("GLLRM fit summaries expose source-shaped parameter and expected-margin tables", {
   ia <- gRm(gllrm_fit_data(), items = c("I1", "I2", "I3"), exogenous = "X1", id = "ID")
   fit <- fit(gllrm(ia, ld = ~ I1:I2, dif = ~ I3:X1), max_step = 200L, max_delta = 1e-6)

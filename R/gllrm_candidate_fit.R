@@ -9,7 +9,7 @@
 #' Internal gllrm candidate base model helper
 #'
 #' Supports the gllrm candidate fit implementation while preserving its internal contract.
-#' Source trace: `source/PAS_skunits/skbias12b.pas::Estimate_GLLRM`.
+#' Source trace: `source/digram_source_20260817/skunits/skbias12b.pas::Estimate_GLLRM`.
 #' @param object Object dispatched to this helper.
 #' @return The internal `gllrm_candidate_base_model()` computation result.
 #' @keywords internal
@@ -43,7 +43,7 @@ gllrm_candidate_base_model <- function(object) {
 #' Internal gllrm candidate ld spec helper
 #'
 #' Supports the gllrm candidate fit implementation while preserving its internal contract.
-#' Source trace: `source/PAS_skunits/skbias12b.pas::Estimate_GLLRM`.
+#' Source trace: `source/digram_source_20260817/skunits/skbias12b.pas::Estimate_GLLRM`.
 #' @param object Object dispatched to this helper.
 #' @param item1 Internal `item1` value used by this helper.
 #' @param item2 Internal `item2` value used by this helper.
@@ -79,7 +79,7 @@ gllrm_candidate_ld_spec <- function(object, item1, item2) {
 #' Internal gllrm candidate dif spec helper
 #'
 #' Supports the gllrm candidate fit implementation while preserving its internal contract.
-#' Source trace: `source/PAS_skunits/skbias12b.pas::Estimate_GLLRM`.
+#' Source trace: `source/digram_source_20260817/skunits/skbias12b.pas::Estimate_GLLRM`.
 #' @param object Object dispatched to this helper.
 #' @param item One-based item index.
 #' @param background One-based exogenous-variable index.
@@ -117,7 +117,7 @@ gllrm_candidate_dif_spec <- function(object, item, background) {
 #' Internal fit gllrm candidate core helper
 #'
 #' Supports the gllrm candidate fit implementation while preserving its internal contract.
-#' Source trace: `source/PAS_skunits/skbias12b.pas::Estimate_GLLRM`.
+#' Source trace: `source/digram_source_20260817/skunits/skbias12b.pas::Estimate_GLLRM`.
 #' @param spec GLLRM model specification.
 #' @param bundle Source-shaped analysis bundle.
 #' @param max_step Maximum fitting iteration.
@@ -137,7 +137,7 @@ fit_gllrm_candidate_core <- function(spec, bundle, max_step, max_delta) {
 #' Internal new gllrm candidate fit helper
 #'
 #' Supports the gllrm candidate fit implementation while preserving its internal contract.
-#' Source trace: `source/PAS_skunits/skbias12b.pas::Estimate_GLLRM`.
+#' Source trace: `source/digram_source_20260817/skunits/skbias12b.pas::Estimate_GLLRM`.
 #' @param gllrm_fit Internal `gllrm_fit` value used by this helper.
 #' @param spec GLLRM model specification.
 #' @param max_step Maximum fitting iteration.
@@ -172,7 +172,7 @@ new_gllrm_candidate_fit <- function(gllrm_fit, spec, max_step, max_delta) {
 #' Internal fit gllrm candidate bundle helper
 #'
 #' Supports the gllrm candidate fit implementation while preserving its internal contract.
-#' Source trace: `source/PAS_skunits/skbias12b.pas::Estimate_GLLRM`.
+#' Source trace: `source/digram_source_20260817/skunits/skbias12b.pas::Estimate_GLLRM`.
 #' @param object Object dispatched to this helper.
 #' @param spec GLLRM model specification.
 #' @return The internal `fit_gllrm_candidate_bundle()` computation result.
@@ -187,7 +187,7 @@ fit_gllrm_candidate_bundle <- function(object, spec) {
 #' Internal fit gllrm candidate ld helper
 #'
 #' Supports the gllrm candidate fit implementation while preserving its internal contract.
-#' Source trace: `source/PAS_skunits/skbias12b.pas::Estimate_GLLRM`.
+#' Source trace: `source/digram_source_20260817/skunits/skbias12b.pas::Estimate_GLLRM`.
 #' @param object Object dispatched to this helper.
 #' @param item1 Internal `item1` value used by this helper.
 #' @param item2 Internal `item2` value used by this helper.
@@ -211,7 +211,7 @@ fit_gllrm_candidate_ld <- function(object, item1, item2, max_step, max_delta) {
 #' Internal fit gllrm candidate dif helper
 #'
 #' Supports the gllrm candidate fit implementation while preserving its internal contract.
-#' Source trace: `source/PAS_skunits/skbias12b.pas::Estimate_GLLRM`.
+#' Source trace: `source/digram_source_20260817/skunits/skbias12b.pas::Estimate_GLLRM`.
 #' @param object Object dispatched to this helper.
 #' @param item One-based item index.
 #' @param background One-based exogenous-variable index.

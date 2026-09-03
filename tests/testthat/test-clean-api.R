@@ -25,8 +25,8 @@ test_that("namespace exports only the statistical modeling API", {
     "local_dependence",
     "dif",
     "global_homogeneity",
-    "m2",
-    "m3"
+    "cm2",
+    "cm3"
   )
   removed <- c(
     "sum_score",
@@ -84,8 +84,8 @@ test_that("public help topics coexist with explicitly internal documentation", {
     "global_homogeneity",
     "item_fit",
     "local_dependence",
-    "m2",
-    "m3",
+    "cm2",
+    "cm3",
     "model_graph",
     "plot.gRm_ari",
     "read_digram_project",

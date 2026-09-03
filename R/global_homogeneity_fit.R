@@ -10,7 +10,7 @@
 #' because the available source does not fully explain the historical runtime's
 #' hidden residual variance materialization.
 #'
-#' Source trace: `source/PAS_scd/DGRirtD.pas::GlobalHomogeneity`.
+#' Source trace: `source/digram_source_20260817/scd/DGRirtD.pas::GlobalHomogeneity`.
 #' @param project A parsed DIGRAM project from [read_digram_project()].
 #' @param score_cuts Integer upper score cuts. For the supplied validation runtime
 #'   example this is `c(30, 87)`, corresponding to `CUT 30 87`.
@@ -115,7 +115,7 @@ global_homogeneity_values <- function(project,
 #' Internal gllrm global homogeneity values helper
 #'
 #' Supports the global homogeneity values implementation while preserving its internal contract.
-#' Source trace: `source/PAS_scd/DGRirtD.pas::GlobalHomogeneity`.
+#' Source trace: `source/digram_source_20260817/scd/DGRirtD.pas::GlobalHomogeneity`.
 #' @param fit Fitted gRm model.
 #' @param score_cuts Resolved total-score cut values.
 #' @param max_step Maximum fitting iteration.
@@ -217,7 +217,7 @@ gllrm_global_homogeneity_values <- function(fit,
 #' Internal gllrm global homogeneity uniform ld helper
 #'
 #' Supports the global homogeneity values implementation while preserving its internal contract.
-#' Source trace: `source/PAS_scd/DGRirtD.pas::GlobalHomogeneity`.
+#' Source trace: `source/digram_source_20260817/scd/DGRirtD.pas::GlobalHomogeneity`.
 #' @param fit Fitted gRm model.
 #' @param groups Internal `groups` value used by this helper.
 #' @param probability_cache Internal `probability_cache` value used by this helper.

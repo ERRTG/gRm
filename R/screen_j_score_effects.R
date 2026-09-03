@@ -1,8 +1,8 @@
-#' Source trace: source/PAS_skunits/SKbias13.pas::StepwiseScoreScreening builds
+#' Source trace: source/digram_source_20260817/skunits/SKbias13.pas::StepwiseScoreScreening builds
 #' score-effect screening rows from the same conditional bias-test machinery
 #' used by screen J. The R helper returns those rows as numeric values rather
 #' than writing DIGRAM text.
-#' Source trace: `source/PAS_skunits/SKbias7.pas::Item_Screening`.
+#' Source trace: `source/digram_source_20260817/skunits/SKbias7.pas::Item_Screening`.
 #' @param project Encoded gRm project.
 #' @param item_matrix Internal `item_matrix` value used by this helper.
 #' @param item_score Internal `item_score` value used by this helper.
@@ -135,11 +135,11 @@ screen_j_score_effect_values <- function(project,
   )
 }
 
-#' Source trace: source/PAS_skunits/SKbias13.pas::StepwiseScoreScreening runs
+#' Source trace: source/digram_source_20260817/skunits/SKbias13.pas::StepwiseScoreScreening runs
 #' the marginal and conditional score-screening loop. The R function keeps the
 #' same candidate order and source random-table convention when exact or
 #' repeated inference is requested.
-#' Source trace: `source/PAS_skunits/SKbias7.pas::Item_Screening`.
+#' Source trace: `source/digram_source_20260817/skunits/SKbias7.pas::Item_Screening`.
 #' @param score_category Internal `score_category` value used by this helper.
 #' @param score_valid Internal `score_valid` value used by this helper.
 #' @param score_in_range Internal `score_in_range` value used by this helper.
@@ -270,7 +270,7 @@ screen_j_stepwise_score_screening <- function(score_category,
 #' Internal screen j score screening p values helper
 #'
 #' Supports the screen j values implementation while preserving its internal contract.
-#' Source trace: `source/PAS_skunits/SKbias7.pas::Item_Screening`.
+#' Source trace: `source/digram_source_20260817/skunits/SKbias7.pas::Item_Screening`.
 #' @param rows Rows used by the computation.
 #' @return The internal `screen_j_score_screening_p_values()` computation result.
 #' @keywords internal
@@ -285,7 +285,7 @@ screen_j_score_screening_p_values <- function(rows) {
 #' Internal screen j score report rows helper
 #'
 #' Supports the screen j values implementation while preserving its internal contract.
-#' Source trace: `source/PAS_skunits/SKbias7.pas::Item_Screening`.
+#' Source trace: `source/digram_source_20260817/skunits/SKbias7.pas::Item_Screening`.
 #' @param marginal_rows Internal `marginal_rows` value used by this helper.
 #' @param screening_rows Internal `screening_rows` value used by this helper.
 #' @param exact Whether to use the exact Monte Carlo branch.
@@ -324,7 +324,7 @@ screen_j_score_report_rows <- function(marginal_rows, screening_rows, exact) {
 #' Internal screen j conflimit99 field helper
 #'
 #' Supports the screen j values implementation while preserving its internal contract.
-#' Source trace: `source/PAS_skunits/SKbias7.pas::Item_Screening`.
+#' Source trace: `source/digram_source_20260817/skunits/SKbias7.pas::Item_Screening`.
 #' @param n Internal `n` value used by this helper.
 #' @param p Internal `p` value used by this helper.
 #' @param field Internal `field` value used by this helper.

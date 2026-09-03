@@ -1,7 +1,7 @@
 #' Internal screen j exact native available helper
 #'
 #' Supports the screen j values implementation while preserving its internal contract.
-#' Source trace: `source/PAS_skunits/SKbias7.pas::Item_Screening`.
+#' Source trace: `source/digram_source_20260817/skunits/SKbias7.pas::Item_Screening`.
 #' @return The internal `screen_j_exact_native_available()` computation result.
 #' @keywords internal
 #' @noRd
@@ -20,7 +20,7 @@ screen_j_exact_native_available <- function() {
 #' Internal screen j conditional native allowed helper
 #'
 #' Supports the screen j values implementation while preserving its internal contract.
-#' Source trace: `source/PAS_skunits/SKbias7.pas::Item_Screening`.
+#' Source trace: `source/digram_source_20260817/skunits/SKbias7.pas::Item_Screening`.
 #' @param repeated Whether to use repeated sequential simulation.
 #' @param seq_p0 Internal `seq_p0` value used by this helper.
 #' @param seq_boundary Internal `seq_boundary` value used by this helper.
@@ -35,7 +35,7 @@ screen_j_conditional_native_allowed <- function(repeated, seq_p0, seq_boundary) 
 #' Internal screen j conditional native controls allowed helper
 #'
 #' Supports the screen j values implementation while preserving its internal contract.
-#' Source trace: `source/PAS_skunits/SKbias7.pas::Item_Screening`.
+#' Source trace: `source/digram_source_20260817/skunits/SKbias7.pas::Item_Screening`.
 #' @param repeated Whether to use repeated sequential simulation.
 #' @param seq_p0 Internal `seq_p0` value used by this helper.
 #' @param seq_boundary Internal `seq_boundary` value used by this helper.
@@ -51,7 +51,7 @@ screen_j_conditional_native_controls_allowed <- function(repeated, seq_p0, seq_b
 #' Internal screen j conditional native probe fixtures helper
 #'
 #' Supports the screen j values implementation while preserving its internal contract.
-#' Source trace: `source/PAS_skunits/SKbias7.pas::Item_Screening`.
+#' Source trace: `source/digram_source_20260817/skunits/SKbias7.pas::Item_Screening`.
 #' @return The internal `screen_j_conditional_native_probe_fixtures()` computation result.
 #' @keywords internal
 #' @noRd
@@ -94,7 +94,7 @@ screen_j_conditional_native_probe_fixtures <- function() {
 #' Internal screen j conditional native probe matches helper
 #'
 #' Supports the screen j values implementation while preserving its internal contract.
-#' Source trace: `source/PAS_skunits/SKbias7.pas::Item_Screening`.
+#' Source trace: `source/digram_source_20260817/skunits/SKbias7.pas::Item_Screening`.
 #' @param fixture Internal `fixture` value used by this helper.
 #' @param controls Internal `controls` value used by this helper.
 #' @param repeated Whether to use repeated sequential simulation.
@@ -149,7 +149,7 @@ screen_j_conditional_native_source_faithful <- local({
 #' Internal screen j item pair native allowed helper
 #'
 #' Supports the screen j values implementation while preserving its internal contract.
-#' Source trace: `source/PAS_skunits/SKbias7.pas::Item_Screening`.
+#' Source trace: `source/digram_source_20260817/skunits/SKbias7.pas::Item_Screening`.
 #' @param repeated Whether to use repeated sequential simulation.
 #' @param seq_p0 Internal `seq_p0` value used by this helper.
 #' @param seq_boundary Internal `seq_boundary` value used by this helper.
@@ -164,7 +164,7 @@ screen_j_item_pair_native_allowed <- function(repeated, seq_p0, seq_boundary) {
 #' Internal screen j item pair native probe fixtures helper
 #'
 #' Supports the screen j values implementation while preserving its internal contract.
-#' Source trace: `source/PAS_skunits/SKbias7.pas::Item_Screening`.
+#' Source trace: `source/digram_source_20260817/skunits/SKbias7.pas::Item_Screening`.
 #' @return The internal `screen_j_item_pair_native_probe_fixtures()` computation result.
 #' @keywords internal
 #' @noRd
@@ -196,7 +196,7 @@ screen_j_item_pair_native_probe_fixtures <- function() {
 #' Internal screen j item pair probe reference helper
 #'
 #' Supports the screen j values implementation while preserving its internal contract.
-#' Source trace: `source/PAS_skunits/SKbias7.pas::Item_Screening`.
+#' Source trace: `source/digram_source_20260817/skunits/SKbias7.pas::Item_Screening`.
 #' @param args Internal `args` value used by this helper.
 #' @param controls Internal `controls` value used by this helper.
 #' @param sequential Internal `sequential` value used by this helper.
@@ -246,7 +246,7 @@ screen_j_item_pair_probe_reference <- function(args, controls, sequential) {
 #' Internal screen j item pair probe matches helper
 #'
 #' Supports the screen j values implementation while preserving its internal contract.
-#' Source trace: `source/PAS_skunits/SKbias7.pas::Item_Screening`.
+#' Source trace: `source/digram_source_20260817/skunits/SKbias7.pas::Item_Screening`.
 #' @param fixture Internal `fixture` value used by this helper.
 #' @param controls Internal `controls` value used by this helper.
 #' @param sequential Internal `sequential` value used by this helper.
@@ -313,7 +313,7 @@ screen_j_item_pair_native_source_faithful <- local({
 #' Internal screen j exact chi gamma slices native helper
 #'
 #' Supports the screen j values implementation while preserving its internal contract.
-#' Source trace: `source/PAS_skunits/SKbias7.pas::Item_Screening`.
+#' Source trace: `source/digram_source_20260817/skunits/SKbias7.pas::Item_Screening`.
 #' @param slices Internal `slices` value used by this helper.
 #' @param observed_chi Internal `observed_chi` value used by this helper.
 #' @param observed_gamma Internal `observed_gamma` value used by this helper.
@@ -350,7 +350,7 @@ screen_j_exact_chi_gamma_slices_native <- function(slices,
 #' Internal screen j exact chi gamma trace slices native helper
 #'
 #' Supports the screen j values implementation while preserving its internal contract.
-#' Source trace: `source/PAS_skunits/SKbias7.pas::Item_Screening`.
+#' Source trace: `source/digram_source_20260817/skunits/SKbias7.pas::Item_Screening`.
 #' @param slices Internal `slices` value used by this helper.
 #' @param observed_chi Internal `observed_chi` value used by this helper.
 #' @param observed_gamma Internal `observed_gamma` value used by this helper.
@@ -416,7 +416,7 @@ screen_j_exact_chi_gamma_trace_slices_native <- function(slices,
 #' Internal screen j exact chi slices native helper
 #'
 #' Supports the screen j values implementation while preserving its internal contract.
-#' Source trace: `source/PAS_skunits/SKbias7.pas::Item_Screening`.
+#' Source trace: `source/digram_source_20260817/skunits/SKbias7.pas::Item_Screening`.
 #' @param slices Internal `slices` value used by this helper.
 #' @param observed_chi Internal `observed_chi` value used by this helper.
 #' @param nsim Requested simulation count.
@@ -450,7 +450,7 @@ screen_j_exact_chi_slices_native <- function(slices,
 #' Internal screen j exact gamma slices native helper
 #'
 #' Supports the screen j values implementation while preserving its internal contract.
-#' Source trace: `source/PAS_skunits/SKbias7.pas::Item_Screening`.
+#' Source trace: `source/digram_source_20260817/skunits/SKbias7.pas::Item_Screening`.
 #' @param slices Internal `slices` value used by this helper.
 #' @param observed_gamma Internal `observed_gamma` value used by this helper.
 #' @param nsim Requested simulation count.
@@ -475,7 +475,7 @@ screen_j_exact_gamma_slices_native <- function(slices, observed_gamma, nsim, see
 #' Internal screen j item pair conditional exact native helper
 #'
 #' Supports the screen j values implementation while preserving its internal contract.
-#' Source trace: `source/PAS_skunits/SKbias7.pas::Item_Screening`.
+#' Source trace: `source/digram_source_20260817/skunits/SKbias7.pas::Item_Screening`.
 #' @param x Object or value to process.
 #' @param y Internal `y` value used by this helper.
 #' @param x_dim Internal `x_dim` value used by this helper.
@@ -551,7 +551,7 @@ screen_j_item_pair_conditional_exact_native <- function(x,
 #' Internal screen j prepare exact slices helper
 #'
 #' Supports the screen j values implementation while preserving its internal contract.
-#' Source trace: `source/PAS_skunits/SKbias7.pas::Item_Screening`.
+#' Source trace: `source/digram_source_20260817/skunits/SKbias7.pas::Item_Screening`.
 #' @param slices Internal `slices` value used by this helper.
 #' @return The internal `screen_j_prepare_exact_slices()` computation result.
 #' @keywords internal
@@ -564,7 +564,7 @@ screen_j_prepare_exact_slices <- function(slices) {
 #' Internal screen j prepare exact slice helper
 #'
 #' Supports the screen j values implementation while preserving its internal contract.
-#' Source trace: `source/PAS_skunits/SKbias7.pas::Item_Screening`.
+#' Source trace: `source/digram_source_20260817/skunits/SKbias7.pas::Item_Screening`.
 #' @param slice Internal `slice` value used by this helper.
 #' @return The internal `screen_j_prepare_exact_slice()` computation result.
 #' @keywords internal
@@ -582,7 +582,7 @@ screen_j_prepare_exact_slice <- function(slice) {
 #' Internal screen j expected from margins helper
 #'
 #' Supports the screen j values implementation while preserving its internal contract.
-#' Source trace: `source/PAS_skunits/SKbias7.pas::Item_Screening`.
+#' Source trace: `source/digram_source_20260817/skunits/SKbias7.pas::Item_Screening`.
 #' @param row_total Internal `row_total` value used by this helper.
 #' @param col_total Internal `col_total` value used by this helper.
 #' @param grand_total Internal `grand_total` value used by this helper.
@@ -609,7 +609,7 @@ screen_j_expected_from_margins <- function(row_total, col_total, grand_total) {
 #' Internal screen j rc chi square prepared expected helper
 #'
 #' Supports the screen j values implementation while preserving its internal contract.
-#' Source trace: `source/PAS_skunits/SKbias7.pas::Item_Screening`.
+#' Source trace: `source/digram_source_20260817/skunits/SKbias7.pas::Item_Screening`.
 #' @param tab Internal `tab` value used by this helper.
 #' @param prepared Internal `prepared` value used by this helper.
 #' @return The internal `screen_j_rc_chi_square_prepared_expected()` computation result.
@@ -625,7 +625,7 @@ screen_j_rc_chi_square_prepared_expected <- function(tab, prepared) {
     )
   }
   chi_square <- 0
-  # Source trace: source/PAS_skunits/SkStat.pas::RCCHI accumulates Pascal REAL
+  # Source trace: source/digram_source_20260817/skunits/SkStat.pas::RCCHI accumulates Pascal REAL
   # cells in first-index/second-index order. Do not use R's column-major logical
   # extraction here: exact comparisons are deliberately sensitive to this sum.
   for (row in seq_len(nrow(expected))) {

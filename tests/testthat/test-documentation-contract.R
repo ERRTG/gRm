@@ -203,19 +203,19 @@ test_that("the numerical source-trace manifest is complete and locally anchored"
 test_that("native numerical kernels carry exact local original-source paths", {
   required <- list(
     "item_parameters_extended.cpp" = c(
-      "source/GLLRM.txt::write_iteminformation1",
-      "source/PAS_skunits/skbias12.pas::CalculateICEandMICE"
+      "source/digram_source_20260817/skunits/skbias22.pas::write_iteminformation1",
+      "source/digram_source_20260817/skunits/skbias12.pas::CalculateICEandMICE"
     ),
     "gllrm_expected.cpp" = c(
-      "source/PAS_skunits/skbias12b.pas::Initialize_GLLRMinfo",
-      "source/PAS_skunits/skbias22.pas::Gamma_calculation",
-      "source/GLLRM_ESTIM.txt::CalculateBiasedGammaValues2"
+      "source/digram_source_20260817/skunits/skbias12b.pas::Initialize_GLLRMinfo",
+      "source/digram_source_20260817/skunits/skbias22.pas::Gamma_calculation",
+      "source/digram_source_20260817/skunits/skbias22.pas::CalculateBiasedGammaValues2"
     ),
     "screen_j_exact.cpp" = c(
-      "source/PAS_skunits/SKrandom.pas::GENTAB1",
-      "source/PAS_skunits/SKbigtab.pas::Transfer_BT_to_XYZ_TABLE",
-      "source/PAS_skunits/SkStat.pas::RCCHI",
-      "source/PAS_skunits/SKbias3.pas::XYZ_bias_ANALYSE"
+      "source/digram_source_20260817/skunits/SKrandom.pas::GENTAB1",
+      "source/digram_source_20260817/skunits/SKbigtab.pas::Transfer_BT_to_XYZ_TABLE",
+      "source/digram_source_20260817/skunits/SkStat.pas::RCCHI",
+      "source/digram_source_20260817/skunits/SKbias3.pas::XYZ_bias_ANALYSE"
     )
   )
   for (file in names(required)) {

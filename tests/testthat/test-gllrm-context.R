@@ -30,9 +30,11 @@ test_that("GLLRM context counts observed LD, DIF, and first-seen score/exogenous
 
   expect_equal(context$observed_ld[[1L]][1L, 1L], 1L)
   expect_equal(context$observed_dif[[1L]][1L, 1L], 1L)
-  expect_equal(context$score_exo_groups$score, c(1L, 2L, 2L, 1L, 3L))
-  expect_equal(context$score_exo_groups$count, c(1L, 1L, 1L, 1L, 1L))
-  expect_equal(context$score_exo_groups$X1, c(1L, 1L, 2L, 2L, 2L))
+  # The score-3 profile is the maximum possible response pattern and is outside
+  # GLLRM_estim's source CML window 1..highest_possible_score-1.
+  expect_equal(context$score_exo_groups$score, c(1L, 2L, 2L, 1L))
+  expect_equal(context$score_exo_groups$count, c(1L, 1L, 1L, 1L))
+  expect_equal(context$score_exo_groups$X1, c(1L, 1L, 2L, 2L))
 })
 
 test_that("score/exogenous groups ignore inincluded DIF backgrounds in the grouping key", {

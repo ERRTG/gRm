@@ -4,7 +4,7 @@
 #' The initial discrepancy is `Nvalid` and history indices -4 through 0 are
 #' seeded with 9999 exactly as in `Estimate_LL_parameters`.
 #'
-#' Source trace: `source/PAS_skunits/skbias12b.pas::Estimate_GLLRM`.
+#' Source trace: `source/digram_source_20260817/skunits/skbias12b.pas::Estimate_GLLRM`.
 #' @param n_valid Number of estimation records.
 #' @param max_step Source maximum IPF step.
 #' @param max_delta Source strict convergence tolerance.
@@ -31,7 +31,7 @@ source_gllrm_control_state <- function(n_valid, max_step, max_delta) {
 
 #' Read one indexed source delta-history value
 #'
-#' Source trace: `source/PAS_skunits/skbias12b.pas::Estimate_GLLRM`.
+#' Source trace: `source/digram_source_20260817/skunits/skbias12b.pas::Estimate_GLLRM`.
 #' @param control A source GLLRM stopping-control list.
 #' @param step Integer source history index.
 #' @return The stored numeric discrepancy.
@@ -46,10 +46,10 @@ source_gllrm_history_value <- function(control, step) {
 
 #' Test the source recurring-delta condition
 #'
-#' Implements `source/GLLRM_ESTIM.txt::RecurringDeltaValues` with its exact
+#' Implements `source/digram_source_20260817/skunits/skbias22.pas::RecurringDeltaValues` with its exact
 #' `Nstep > 5`, `>= 0.00001`, and current-delta `>= 2` boundaries.
 #'
-#' Source trace: `source/PAS_skunits/skbias12b.pas::Estimate_GLLRM`.
+#' Source trace: `source/digram_source_20260817/skunits/skbias12b.pas::Estimate_GLLRM`.
 #' @param control A source GLLRM stopping-control list after recording a step.
 #' @return A single logical value.
 #' @keywords internal
@@ -71,7 +71,7 @@ source_gllrm_recurring_delta_values <- function(control) {
 #' the source expression order and strict comparisons. The returned convergence
 #' flag is the pre-finalization source flag.
 #'
-#' Source trace: `source/PAS_skunits/skbias12b.pas::Estimate_GLLRM`.
+#' Source trace: `source/digram_source_20260817/skunits/skbias12b.pas::Estimate_GLLRM`.
 #' @param control A source GLLRM stopping-control list after recording a step.
 #' @return A list with `stop`, `reason`, `convergence`, and `recurring`.
 #' @keywords internal
@@ -81,7 +81,7 @@ source_gllrm_stop_decision <- function(control) {
   stop <- FALSE
   reason <- NA_character_
 
-  # Source trace: source/GLLRM_ESTIM.txt::Estimate_LL_parameters checks this
+  # Source trace: source/digram_source_20260817/skunits/skbias22.pas::GLLRM_estim checks this
   # recurrence branch before calling Iteration_stop and only after step 50.
   if (recurring && control$n_step > 50L) {
     stop <- TRUE
@@ -142,10 +142,10 @@ source_gllrm_stop_decision <- function(control) {
 #' Record one completed GLLRM IPF discrepancy
 #'
 #' Mirrors the bookkeeping order at the end of
-#' `source/GLLRM_ESTIM.txt::Take_an_IPF_step`, then evaluates the source stop
+#' `source/digram_source_20260817/skunits/skbias22.pas::Take_an_IPF_step`, then evaluates the source stop
 #' functions.
 #'
-#' Source trace: `source/PAS_skunits/skbias12b.pas::Estimate_GLLRM`.
+#' Source trace: `source/digram_source_20260817/skunits/skbias12b.pas::Estimate_GLLRM`.
 #' @param control A source GLLRM stopping-control list.
 #' @param delta Discrepancy produced by the completed IPF step.
 #' @return A list containing updated `control` and its `decision`.
@@ -185,7 +185,7 @@ source_gllrm_observe_delta <- function(control, delta) {
 
 #' Apply DIGRAM's post-stop convergence acceptance
 #'
-#' Source trace: `source/PAS_skunits/skbias12b.pas::Estimate_GLLRM`.
+#' Source trace: `source/digram_source_20260817/skunits/skbias12b.pas::Estimate_GLLRM`.
 #' @param control A stopped source GLLRM control state.
 #' @return A single logical value; strict `delta < 0.1` can accept a fit that
 #'   stopped with its pre-finalization convergence flag false.

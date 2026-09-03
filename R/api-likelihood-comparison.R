@@ -108,7 +108,7 @@ anova.gRm_fit <- function(object, ..., test = "Chisq") {
     test_rows <- seq_along(fits)[-1L]
     # Source-defined DIGRAM reports compute non-negative LR statistics for
     # specific current/previous or candidate-addition comparisons; see
-    # source/PAS_scd/DGRirtD.pas. anova.gRm_fit() accepts arbitrary R row order,
+    # source/digram_source_20260817/scd/DGRirtD.pas. anova.gRm_fit() accepts arbitrary R row order,
     # so keep signed row diagnostics and suppress only invalid p-values.
     usable <- !is.na(delta_df[test_rows]) &
       !is.na(lr_statistic[test_rows]) &

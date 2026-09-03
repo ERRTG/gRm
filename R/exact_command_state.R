@@ -1,6 +1,6 @@
 #' Source-faithful DIGRAM exact/asymptotic command state
 #'
-#' Source trace: `source/PAS_skunits/SKrandom.pas::GENTAB1`.
+#' Source trace: `source/digram_source_20260817/skunits/SKrandom.pas::GENTAB1`.
 #' @param inference One of asymptotic, exact, repeated, or sequential.
 #' @param nsim Number of random tables for exact modes.
 #' @param seed Random seed.
@@ -63,7 +63,7 @@ gRm_exact_command_state <- function(inference = c("asymptotic", "exact", "repeat
       seq_p0 = source_p0,
       seq_alpha = source_alpha,
       seq_b = source_seq_boundary(critlevel, risk, exact_nsim),
-      # Source trace: PAS_scd/DIGRAM1f.pas command 74 (REP) sets the
+      # Source trace: source/digram_source_20260817/scd/DIGRAM1f.pas command 74 (REP) sets the
       # repeated-Monte-Carlo boundary and keeps the same count cutoff as SEQ.
       seq_limit = 20L
     ),
@@ -89,7 +89,7 @@ gRm_exact_command_state <- function(inference = c("asymptotic", "exact", "repeat
 #' Internal exact integer scalar helper
 #'
 #' Supports the exact command state implementation while preserving its internal contract.
-#' Source trace: `source/PAS_skunits/SKrandom.pas::GENTAB1`.
+#' Source trace: `source/digram_source_20260817/skunits/SKrandom.pas::GENTAB1`.
 #' @param value Value to validate or transform.
 #' @param name Internal name or label.
 #' @param nonnegative Internal `nonnegative` value used by this helper.
@@ -125,7 +125,7 @@ exact_integer_scalar <- function(value, name, nonnegative = FALSE) {
 #' Internal gRm exact state from flags helper
 #'
 #' Supports the exact command state implementation while preserving its internal contract.
-#' Source trace: `source/PAS_skunits/SKrandom.pas::GENTAB1`.
+#' Source trace: `source/digram_source_20260817/skunits/SKrandom.pas::GENTAB1`.
 #' @param exact Whether to use the exact Monte Carlo branch.
 #' @param repeated Whether to use repeated sequential simulation.
 #' @param nsim Requested simulation count.
@@ -147,7 +147,7 @@ gRm_exact_state_from_flags <- function(exact, repeated, nsim = 1000L, seed = 9L)
 #' Internal gRm exact command state public helper
 #'
 #' Supports the exact command state implementation while preserving its internal contract.
-#' Source trace: `source/PAS_skunits/SKrandom.pas::GENTAB1`.
+#' Source trace: `source/digram_source_20260817/skunits/SKrandom.pas::GENTAB1`.
 #' @param inference Internal `inference` value used by this helper.
 #' @param nsim Requested simulation count.
 #' @param seed Random-stream seed.
@@ -183,7 +183,7 @@ gRm_exact_command_state_public <- function(inference,
 #' Internal source seq p0 helper
 #'
 #' Supports the exact command state implementation while preserving its internal contract.
-#' Source trace: `source/PAS_skunits/SKrandom.pas::GENTAB1`.
+#' Source trace: `source/digram_source_20260817/skunits/SKrandom.pas::GENTAB1`.
 #' @param critlevel Internal `critlevel` value used by this helper.
 #' @return The internal `source_seq_p0()` computation result.
 #' @keywords internal
@@ -202,7 +202,7 @@ source_seq_p0 <- function(critlevel = 50L) {
 #' Internal source seq alpha helper
 #'
 #' Supports the exact command state implementation while preserving its internal contract.
-#' Source trace: `source/PAS_skunits/SKrandom.pas::GENTAB1`.
+#' Source trace: `source/digram_source_20260817/skunits/SKrandom.pas::GENTAB1`.
 #' @param risk Internal `risk` value used by this helper.
 #' @return The internal `source_seq_alpha()` computation result.
 #' @keywords internal
@@ -227,7 +227,7 @@ source_seq_alpha <- function(risk = 1L) {
 #' Mirrors `SKrandom.pas::SEQ_INIT` for command 74. The source first snaps
 #' `P0`, `ALPHA`, and `NSIM` to coarse table coordinates, then selects `SEQ_B`.
 #'
-#' Source trace: `source/PAS_skunits/SKrandom.pas::GENTAB1`.
+#' Source trace: `source/digram_source_20260817/skunits/SKrandom.pas::GENTAB1`.
 #' @param critlevel Internal `critlevel` value used by this helper.
 #' @param risk Internal `risk` value used by this helper.
 #' @param nsim Requested simulation count.

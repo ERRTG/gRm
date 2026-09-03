@@ -1,9 +1,9 @@
 #' GLLRM source-order canonicalization.
 #'
-#' Source trace: source/PAS_skunits/skbias12b.pas::Initialize_GLLRMinfo
+#' Source trace: source/digram_source_20260817/skunits/skbias12b.pas::Initialize_GLLRMinfo
 #' fills IJinfo by scanning `i := 1..nitems-1`, `j := i+1..nitems`, and
 #' fills IXinfo by scanning `i := 1..nitems`, `j := 1..nexogene`.
-#' source/GLLRM.txt then reports included LD and DIF terms by iterating
+#' source/digram_source_20260817/skunits/skbias22.pas then reports included LD and DIF terms by iterating
 #' k := 1..Nij and k := 1..Nix. R keeps the same model-term order so formula
 #' order does not leak into source-shaped model arrays or public term tables.
 #' @param analysis Prepared gRm analysis.
@@ -22,7 +22,7 @@ source_order_model_terms <- function(analysis, ld, dif) {
 #' Internal source order ld table helper
 #'
 #' Supports the gllrm term order implementation while preserving its internal contract.
-#' Source trace: `source/PAS_skunits/skbias12b.pas::Initialize_GLLRMinfo`.
+#' Source trace: `source/digram_source_20260817/skunits/skbias12b.pas::Initialize_GLLRMinfo`.
 #' @param items Item selection or item metadata.
 #' @param terms Internal `terms` value used by this helper.
 #' @return The internal `source_order_ld_table()` computation result.
@@ -55,7 +55,7 @@ source_order_ld_table <- function(items, terms) {
 #' Internal source order dif table helper
 #'
 #' Supports the gllrm term order implementation while preserving its internal contract.
-#' Source trace: `source/PAS_skunits/skbias12b.pas::Initialize_GLLRMinfo`.
+#' Source trace: `source/digram_source_20260817/skunits/skbias12b.pas::Initialize_GLLRMinfo`.
 #' @param items Item selection or item metadata.
 #' @param backgrounds Internal `backgrounds` value used by this helper.
 #' @param terms Internal `terms` value used by this helper.
@@ -86,7 +86,7 @@ source_order_dif_table <- function(items, backgrounds, terms) {
 #' Internal source order names helper
 #'
 #' Supports the gllrm term order implementation while preserving its internal contract.
-#' Source trace: `source/PAS_skunits/skbias12b.pas::Initialize_GLLRMinfo`.
+#' Source trace: `source/digram_source_20260817/skunits/skbias12b.pas::Initialize_GLLRMinfo`.
 #' @param x Object or value to process.
 #' @return The internal `source_order_names()` computation result.
 #' @keywords internal

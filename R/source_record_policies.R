@@ -4,7 +4,7 @@
 #' used by `Estimate_GLLRM`. Diagnostic routines must select their own record
 #' policy instead of reusing this set.
 #'
-#' Source trace: `source/PAS_skunits/skbias14.pas::Count_IJtable`.
+#' Source trace: `source/digram_source_20260817/skunits/skbias14.pas::Count_IJtable`.
 #' @param context A fitted Rasch/GLLRM context.
 #' @return An integer vector of source-row indices in input order.
 #' @keywords internal
@@ -14,11 +14,12 @@ source_estimation_rows <- function(context) {
 
 #' Return rows with complete, in-range item responses
 #'
-#' Mirrors `Get_Items` in `source/PAS_scd/SKbias2.pas`: every selected item
-#' must be present and inside its source category range. No estimation score
+#' Mirrors `Get_Items` in `source/digram_source_20260817/skunits/SKbias2.pas`: every fitted item
+#' must be present and inside its source category range. CM2/CM3's focal
+#' `UseItems` set does not narrow this record reader. No estimation score
 #' window or exogenous-data condition is applied.
 #'
-#' Source trace: `source/PAS_skunits/skbias14.pas::Count_IJtable`.
+#' Source trace: `source/digram_source_20260817/skunits/skbias14.pas::Count_IJtable`.
 #' @param context A fitted Rasch/GLLRM context.
 #' @return An integer vector of source-row indices in input order.
 #' @keywords internal
@@ -45,11 +46,11 @@ source_complete_item_rows <- function(context) {
 
 #' Return rows with complete, in-range exogenous values
 #'
-#' Mirrors `get_exogene` in `source/PAS_skunits/skbias14.pas`: every
+#' Mirrors `get_exogene` in `source/digram_source_20260817/skunits/skbias14.pas`: every
 #' exogenous variable must be present and inside its one-based source category
 #' range. Projects without exogenous variables accept every source row.
 #'
-#' Source trace: `source/PAS_skunits/skbias14.pas::Count_IJtable`.
+#' Source trace: `source/digram_source_20260817/skunits/skbias14.pas::Count_IJtable`.
 #' @param context A fitted Rasch/GLLRM context.
 #' @return An integer vector of source-row indices in input order.
 #' @keywords internal
@@ -77,7 +78,7 @@ source_complete_background_rows <- function(context) {
 #' The observed and expected IJ/IX/score and exogenous three-way routines call
 #' `Get_Items` and then `get_exogene` without applying the CML score window.
 #'
-#' Source trace: `source/PAS_skunits/skbias14.pas::Count_IJtable`.
+#' Source trace: `source/digram_source_20260817/skunits/skbias14.pas::Count_IJtable`.
 #' @param context A fitted Rasch/GLLRM context.
 #' @return An integer vector of source-row indices in input order.
 #' @keywords internal
@@ -92,12 +93,12 @@ source_complete_item_exogenous_rows <- function(context) {
 
 #' Return rows accepted by the observed CM3 item-triple counter
 #'
-#' `Count_IJK` in `source/PAS_skunits/skbias14.pas` calls `get_exogene`, but
+#' `Count_IJK` in `source/digram_source_20260817/skunits/skbias14.pas` calls `get_exogene`, but
 #' its failure branch is commented out. Consequently item-complete rows remain
 #' eligible even when exogenous data are missing. This compatibility policy is
 #' intentionally different from the expected-IJK policy.
 #'
-#' Source trace: `source/PAS_skunits/skbias14.pas::Count_IJtable`.
+#' Source trace: `source/digram_source_20260817/skunits/skbias14.pas::Count_IJK`.
 #' @param context A fitted Rasch/GLLRM context.
 #' @return An integer vector of source-row indices in input order.
 #' @keywords internal

@@ -170,8 +170,8 @@
 #' labels, gamma parameters, thresholds, locations, ICE/MICE effects, item
 #' statistics, observed score range, non-negative integer parameter count, and
 #' the finite positive negative log likelihood. A diagnostic result class such
-#' as `gRm_local_dependence`, `gRm_dif`, `gRm_global_homogeneity`, `gRm_m2`, or
-#' `gRm_m3` owns `analysis`, the supplied `fit`, raw `values`, a stable `result`
+#' as `gRm_local_dependence`, `gRm_dif`, `gRm_global_homogeneity`, `gRm_cm2`, or
+#' `gRm_cm3` owns `analysis`, the supplied `fit`, raw `values`, a stable `result`
 #' label, method metadata, trace/status fields, and unchanged identity fields.
 #' Public diagnostics compute from the supplied fit and do not silently refit.
 #'

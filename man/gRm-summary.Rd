@@ -9,8 +9,8 @@
 \alias{summary.gRm_local_dependence}
 \alias{summary.gRm_dif}
 \alias{summary.gRm_global_homogeneity}
-\alias{summary.gRm_m2}
-\alias{summary.gRm_m3}
+\alias{summary.gRm_cm2}
+\alias{summary.gRm_cm3}
 \alias{print.summary.gRm}
 \title{Summary tables for gRm objects}
 \usage{
@@ -21,8 +21,8 @@
 \method{summary}{gRm_local_dependence}(object, ...)
 \method{summary}{gRm_dif}(object, ...)
 \method{summary}{gRm_global_homogeneity}(object, which = NULL, ...)
-\method{summary}{gRm_m2}(object, ...)
-\method{summary}{gRm_m3}(object, ...)
+\method{summary}{gRm_cm2}(object, ...)
+\method{summary}{gRm_cm3}(object, ...)
 \method{print}{summary.gRm}(x, ...)
 }
 \arguments{
@@ -129,11 +129,21 @@ chi-square, degrees of freedom, and p-value columns. Residual and marker
 source-status metadata are available as \code{attr(x, "source_status")}; item
 residual and marker cells are not printed because the recovered Pascal
 source does not source-back the exact runtime residual materialization.
-\item \code{gRm_m2} and \code{gRm_m3}: one summary surface. Printed summaries show the
-source-backed M2/M3 aggregate rows, item-trait interaction aggregate,
-invariance decomposition by exogenous variable, and prepared margin rows.
-They do not accept \code{which}; programmatic tables are available from the
-returned summary object and from \code{x$values}.
+\item \code{gRm_cm2} and \code{gRm_cm3}: one summary surface. Printed summaries show the
+source-backed CM2/CM3 aggregate rows, item-trait interaction aggregate,
+invariance decomposition by exogenous variable, prepared margin rows, and
+the separate observed CM2/CM3 Benjamini--Hochberg blocks. They do not
+accept \code{which}. \code{summary(result)$tables} contains \code{aggregates},
+\code{item_trait}, \code{invariance}, \code{margins}, and \code{bh}, plus \code{bootstrap} whenever
+bootstrap was requested. Completed bootstrap runs add calibrated p-values
+and accepted-sample counts to the applicable tables. The \code{margins} table
+remains in DIGRAM source order. Printed chi-square statistics and p-values
+use the same option-sensitive diagnostic formatting as the other gRm
+summaries. Exact empirical bootstrap zero remains \code{0}, and bootstrap seeds
+print as exact unsigned decimal identifiers. Formatting changes only the
+display copy: the returned summary tables and the complete numerical and
+audit payload in \code{result$values} retain their unrounded numeric values. See
+\code{\link[=cm2]{cm2()}} and \code{\link[=cm3]{cm3()}} for the documented components and bootstrap states.
 }
 }
 \examples{

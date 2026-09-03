@@ -44,9 +44,11 @@ test_that("score_cuts define analysis score groups and global homogeneity defaul
 
   expect_equal(analysis$score_groups, c(2L, 6L))
   expect_equal(default$metadata$score_cuts, c(2L, 6L))
-  expect_equal(default$values$score_groups$to_score, c(2L, 6L))
+  # Requested cuts remain metadata; displayed/refitted groups are clipped to
+  # DIGRAM's CML interior upper bound (highest possible score minus one).
+  expect_equal(default$values$score_groups$to_score, c(2L, 5L))
   expect_equal(override$metadata$score_cuts, c(3L, 6L))
-  expect_equal(override$values$score_groups$to_score, c(3L, 6L))
+  expect_equal(override$values$score_groups$to_score, c(3L, 5L))
   expect_false("groups" %in% names(formals(gRm)))
   expect_false("groups" %in% names(formals(read_digram_project)))
   expect_false("groups" %in% names(formals(global_homogeneity)))

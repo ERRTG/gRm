@@ -1,6 +1,6 @@
 #' Build DIGRAM score groups from source score cuts
 #'
-#' Source trace: `source/PAS_scd/DGRirtD.pas::GlobalHomogeneity`.
+#' Source trace: `source/digram_source_20260817/scd/DGRirtD.pas::GlobalHomogeneity`.
 #' @param bundle Source-shaped bundle from `build_item_parameters_bundle()`.
 #' @param score_cuts Integer vector of upper score cuts.
 #' @return A data frame with retained score-group bounds.
@@ -8,8 +8,9 @@
 #' @noRd
 global_homogeneity_score_groups <- function(bundle, score_cuts) {
   # Source trace: DGRirtD.pas global homogeneity loop after scorecuts[0] :=
-  # minscore - 1. The retained group bounds are clipped to LeastScore/LargestScore
-  # and skipped when outside the source-valid interior score range.
+  # minscore - 1. The retained group bounds are clipped to the observed range
+  # and to GLLRM_estim's 1..highest_possible_score-1 estimation window, then
+  # skipped when outside that source-valid interior range.
   if (length(score_cuts) < 2L) {
     stop("At least two score cuts are required for global homogeneity.", call. = FALSE)
   }
@@ -22,8 +23,12 @@ global_homogeneity_score_groups <- function(bundle, score_cuts) {
       from_score <- bundle$model$least_score
     }
     to_score <- score_cuts[[cut_index]]
-    if (bundle$model$largest_score < to_score) {
-      to_score <- bundle$model$largest_score
+    source_largest_score <- min(
+      bundle$model$largest_score,
+      bundle$model$max_total_score - 1L
+    )
+    if (source_largest_score < to_score) {
+      to_score <- source_largest_score
     }
     if (
       from_score <= to_score &&
@@ -54,7 +59,7 @@ global_homogeneity_score_groups <- function(bundle, score_cuts) {
 #' Internal global homogeneity score group lookup helper
 #'
 #' Supports the global homogeneity values implementation while preserving its internal contract.
-#' Source trace: `source/PAS_scd/DGRirtD.pas::GlobalHomogeneity`.
+#' Source trace: `source/digram_source_20260817/scd/DGRirtD.pas::GlobalHomogeneity`.
 #' @param groups Internal `groups` value used by this helper.
 #' @param max_score Internal `max_score` value used by this helper.
 #' @return The internal `global_homogeneity_score_group_lookup()` computation result.
@@ -81,7 +86,7 @@ global_homogeneity_score_group_lookup <- function(groups, max_score) {
 #' Internal global homogeneity uniform score group lookup helper
 #'
 #' Supports the global homogeneity values implementation while preserving its internal contract.
-#' Source trace: `source/PAS_scd/DGRirtD.pas::GlobalHomogeneity`.
+#' Source trace: `source/digram_source_20260817/scd/DGRirtD.pas::GlobalHomogeneity`.
 #' @param groups Internal `groups` value used by this helper.
 #' @param max_score Internal `max_score` value used by this helper.
 #' @return The internal `global_homogeneity_uniform_score_group_lookup()` computation result.
@@ -96,6 +101,13 @@ global_homogeneity_uniform_score_group_lookup <- function(groups, max_score) {
   source_groups <- groups
   if (nrow(source_groups) > 0L) {
     source_groups$from_score[[1L]] <- 0L
+    # Count_IJX_tabel/Count_IXZ_tabel classify the uniform-interaction tables
+    # with the original cutpoint interval through `maxscore`; unlike the
+    # subgroup GLLRM refits, that preliminary count is not clipped to the CML
+    # interior `highest_possible_score - 1`.  Restore the final source endpoint
+    # after `global_homogeneity_score_groups()` has clipped the displayed/refit
+    # interval.  Rows beyond the observed range simply contribute no counts.
+    source_groups$to_score[[nrow(source_groups)]] <- as.integer(max_score)
   }
   global_homogeneity_score_group_lookup(source_groups, max_score)
 }
@@ -103,7 +115,7 @@ global_homogeneity_uniform_score_group_lookup <- function(groups, max_score) {
 #' Internal global homogeneity lookup score helper
 #'
 #' Supports the global homogeneity values implementation while preserving its internal contract.
-#' Source trace: `source/PAS_scd/DGRirtD.pas::GlobalHomogeneity`.
+#' Source trace: `source/digram_source_20260817/scd/DGRirtD.pas::GlobalHomogeneity`.
 #' @param lookup Internal `lookup` value used by this helper.
 #' @param score Zero-based total or item score.
 #' @return The internal `global_homogeneity_lookup_score()` computation result.
@@ -119,7 +131,7 @@ global_homogeneity_lookup_score <- function(lookup, score) {
 #' Internal gllrm uniform complete rows helper
 #'
 #' Supports the global homogeneity values implementation while preserving its internal contract.
-#' Source trace: `source/PAS_scd/DGRirtD.pas::GlobalHomogeneity`.
+#' Source trace: `source/digram_source_20260817/scd/DGRirtD.pas::GlobalHomogeneity`.
 #' @param context Prepared GLLRM computation context.
 #' @param score_group_lookup Internal `score_group_lookup` value used by this helper.
 #' @return The internal `gllrm_uniform_complete_rows()` computation result.
@@ -147,7 +159,7 @@ gllrm_uniform_complete_rows <- function(context, score_group_lookup) {
 #' Internal gRm default global homogeneity score cuts helper
 #'
 #' Supports the global homogeneity values implementation while preserving its internal contract.
-#' Source trace: `source/PAS_scd/DGRirtD.pas::GlobalHomogeneity`.
+#' Source trace: `source/digram_source_20260817/scd/DGRirtD.pas::GlobalHomogeneity`.
 #' @param project Encoded gRm project.
 #' @return The internal `gRm_default_global_homogeneity_score_cuts()` computation result.
 #' @keywords internal
@@ -181,7 +193,7 @@ gRm_default_global_homogeneity_score_cuts <- function(project) {
 
 #' Subset a DIGRAM bundle to one score interval
 #'
-#' Source trace: `source/PAS_scd/DGRirtD.pas::GlobalHomogeneity`.
+#' Source trace: `source/digram_source_20260817/scd/DGRirtD.pas::GlobalHomogeneity`.
 #' @param bundle Source-shaped bundle.
 #' @param from_score Lower inclusive score bound.
 #' @param to_score Upper inclusive score bound.
@@ -205,7 +217,7 @@ subset_bundle_to_score_group <- function(bundle, from_score, to_score) {
 
 #' Summarize DIGRAM item means and unmodeled residual cells
 #'
-#' Source trace: `source/PAS_scd/DGRirtD.pas::GlobalHomogeneity`.
+#' Source trace: `source/digram_source_20260817/scd/DGRirtD.pas::GlobalHomogeneity`.
 #' @param bundle Score-group bundle.
 #' @param fit Score-group Rasch fit.
 #' @param group One-based score-group index.
@@ -279,7 +291,7 @@ global_homogeneity_item_mean_rows <- function(bundle, fit, group, expected_item_
 
 #' Build Pascal-shaped expected item margin tables for global homogeneity
 #'
-#' Source trace: `source/PAS_scd/DGRirtD.pas::GlobalHomogeneity`.
+#' Source trace: `source/digram_source_20260817/scd/DGRirtD.pas::GlobalHomogeneity`.
 #' @param bundle Score-group bundle.
 #' @param counts Count list from `rasch_counts()`.
 #' @param item_gamma Item gamma matrix used for expected margins.
@@ -352,7 +364,7 @@ global_homogeneity_expected_item_margin_tables <- function(bundle, counts, item_
 
 #' Build a score gamma array using the skbias12 Inexpensive_Gamma_Calculation order
 #'
-#' Source trace: `source/PAS_scd/DGRirtD.pas::GlobalHomogeneity`.
+#' Source trace: `source/digram_source_20260817/scd/DGRirtD.pas::GlobalHomogeneity`.
 #' @param bundle Score-group bundle.
 #' @param item_gamma Item gamma matrix used for expected margins.
 #' @param use_items Logical vector selecting items included in the score gamma.
@@ -365,7 +377,7 @@ global_homogeneity_score_gamma <- function(bundle, item_gamma, use_items) {
 
 #' Run skbias15.pas SummarizeTal on item-score cells
 #'
-#' Source trace: `source/PAS_scd/DGRirtD.pas::GlobalHomogeneity`.
+#' Source trace: `source/digram_source_20260817/scd/DGRirtD.pas::GlobalHomogeneity`.
 #' @param cells Numeric expected item-score cells.
 #' @param item_max Maximum item score for the item.
 #' @return List containing Pascal `tal[a]`, `tal[b]`, and `tal[c]`.

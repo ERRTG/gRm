@@ -15,6 +15,6 @@ assert_public_estimable_fit_bundle(bundle, model)
 \code{bundle}, invisibly.
 }
 \description{
-Source trace: \code{source/PAS_skunits/skbias12b.pas::Estimate_GLLRM}.
+Source trace: \code{source/digram_source_20260817/skunits/skbias12b.pas::Estimate_GLLRM}.
 }
 \keyword{internal}

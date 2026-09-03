@@ -1,5 +1,5 @@
-#' Source trace: source/GLLRM_ESTIM.txt::CalculateBiasedGammaValues2 and
-#' source/PAS_skunits/skbias12b.pas::Estimate_GLLRM compute expected item, IJ,
+#' Source trace: source/digram_source_20260817/skunits/skbias22.pas::CalculateBiasedGammaValues2 and
+#' source/digram_source_20260817/skunits/skbias12b.pas::Estimate_GLLRM compute expected item, IJ,
 #' and IX margins from the current GLLRM parameters. The R code performs
 #' the same score-conditioned summation using explicit context objects instead
 #' of Pascal global arrays.
@@ -64,10 +64,10 @@ calculate_gllrm_joint_expected_margins_r <- function(context, state) {
 }
 
 #' The R implementation above is the readable source-shaped reference for
-#' source/GLLRM_ESTIM.txt::CalculateBiasedGammaValues2. The dispatcher uses a
+#' source/digram_source_20260817/skunits/skbias22.pas::CalculateBiasedGammaValues2. The dispatcher uses a
 #' native backend for speed when available; the backend must remain a mechanical
 #' translation of this R reference and is tested against it directly.
-#' Source trace: `source/PAS_skunits/skbias12b.pas::Estimate_GLLRM`.
+#' Source trace: `source/digram_source_20260817/skunits/skbias12b.pas::Estimate_GLLRM`.
 #' @param context Prepared GLLRM computation context.
 #' @param state Current fitted or iterative parameter state.
 #' @return The internal `calculate_gllrm_joint_expected_margins()` computation result.
@@ -84,7 +84,7 @@ calculate_gllrm_joint_expected_margins <- function(context, state) {
 #' Internal gllrm expected native available helper
 #'
 #' Supports the gllrm fit implementation while preserving its internal contract.
-#' Source trace: `source/PAS_skunits/skbias12b.pas::Estimate_GLLRM`.
+#' Source trace: `source/digram_source_20260817/skunits/skbias12b.pas::Estimate_GLLRM`.
 #' @return The internal `gllrm_expected_native_available()` computation result.
 #' @keywords internal
 #' @noRd
@@ -95,7 +95,7 @@ gllrm_expected_native_available <- function() {
 #' Internal calculate gllrm joint expected margins cpp helper
 #'
 #' Supports the gllrm fit implementation while preserving its internal contract.
-#' Source trace: `source/PAS_skunits/skbias12b.pas::Estimate_GLLRM`.
+#' Source trace: `source/digram_source_20260817/skunits/skbias12b.pas::Estimate_GLLRM`.
 #' @param context Prepared GLLRM computation context.
 #' @param state Current fitted or iterative parameter state.
 #' @return The internal `calculate_gllrm_joint_expected_margins_cpp()` computation result.
@@ -123,7 +123,7 @@ calculate_gllrm_joint_expected_margins_cpp <- function(context, state) {
 #' Internal gllrm expected native input helper
 #'
 #' Supports the gllrm fit implementation while preserving its internal contract.
-#' Source trace: `source/PAS_skunits/skbias12b.pas::Estimate_GLLRM`.
+#' Source trace: `source/digram_source_20260817/skunits/skbias12b.pas::Estimate_GLLRM`.
 #' @param context Prepared GLLRM computation context.
 #' @return The internal `gllrm_expected_native_input()` computation result.
 #' @keywords internal
@@ -157,10 +157,10 @@ gllrm_expected_native_input <- function(context) {
   )
 }
 
-#' Source trace: source/PAS_skunits/skbias22.pas::Gamma_calculation combines
+#' Source trace: source/digram_source_20260817/skunits/skbias22.pas::Gamma_calculation combines
 #' component score polynomials into whole-model score probabilities. This helper
 #' keeps the same convolution calculation in R list form.
-#' Source trace: `source/PAS_skunits/skbias12b.pas::Estimate_GLLRM`.
+#' Source trace: `source/digram_source_20260817/skunits/skbias12b.pas::Estimate_GLLRM`.
 #' @param gamma_vectors Internal `gamma_vectors` value used by this helper.
 #' @param max_total_score Internal `max_total_score` value used by this helper.
 #' @return The internal `gllrm_component_convolutions()` computation result.
@@ -195,7 +195,7 @@ gllrm_component_convolutions <- function(gamma_vectors, max_total_score) {
 #' Internal gllrm group background values helper
 #'
 #' Supports the gllrm fit implementation while preserving its internal contract.
-#' Source trace: `source/PAS_skunits/skbias12b.pas::Estimate_GLLRM`.
+#' Source trace: `source/digram_source_20260817/skunits/skbias12b.pas::Estimate_GLLRM`.
 #' @param context Prepared GLLRM computation context.
 #' @param group Internal `group` value used by this helper.
 #' @return The internal `gllrm_group_background_values()` computation result.
@@ -213,7 +213,7 @@ gllrm_group_background_values <- function(context, group) {
 #' Internal gllrm background cache key helper
 #'
 #' Supports the gllrm fit implementation while preserving its internal contract.
-#' Source trace: `source/PAS_skunits/skbias12b.pas::Estimate_GLLRM`.
+#' Source trace: `source/digram_source_20260817/skunits/skbias12b.pas::Estimate_GLLRM`.
 #' @param context Prepared GLLRM computation context.
 #' @param background_values Internal `background_values` value used by this helper.
 #' @return The internal `gllrm_background_cache_key()` computation result.
@@ -227,11 +227,11 @@ gllrm_background_cache_key <- function(context, background_values) {
   paste(background_values[dif_backgrounds], collapse = "\r")
 }
 
-#' Source trace: source/GLLRM_ESTIM.txt::CalculateBiasedGammaValues2 accumulates
+#' Source trace: source/digram_source_20260817/skunits/skbias22.pas::CalculateBiasedGammaValues2 accumulates
 #' fitted item, IJ, and IX cells while traversing component configurations. This
 #' R helper contributes one component's fitted margins to the whole-model
 #' expected margins.
-#' Source trace: `source/PAS_skunits/skbias12b.pas::Estimate_GLLRM`.
+#' Source trace: `source/digram_source_20260817/skunits/skbias12b.pas::Estimate_GLLRM`.
 #' @param context Prepared GLLRM computation context.
 #' @param state Current fitted or iterative parameter state.
 #' @param component_items Internal `component_items` value used by this helper.
@@ -326,12 +326,12 @@ gllrm_accumulate_component_expected <- function(context,
   state
 }
 
-#' Source trace: source/GLLRM_ESTIM.txt::Find_new_IJparameters and
-#' source/GLLRM_ESTIM.txt::Find_new_IXparameters update included LD and DIF
+#' Source trace: source/digram_source_20260817/skunits/skbias22.pas::Find_new_IJparameters and
+#' source/digram_source_20260817/skunits/skbias22.pas::Find_new_IXparameters update included LD and DIF
 #' parameters by observed/fitted margin ratios, while the item score parameters
 #' receive the analogous source IPF update. This core function performs those
 #' multiplicative updates for one iteration.
-#' Source trace: `source/PAS_skunits/skbias12b.pas::Estimate_GLLRM`.
+#' Source trace: `source/digram_source_20260817/skunits/skbias12b.pas::Estimate_GLLRM`.
 #' @param context Prepared GLLRM computation context.
 #' @param state Current fitted or iterative parameter state.
 #' @param apply_update Internal `apply_update` value used by this helper.
@@ -392,7 +392,7 @@ update_gllrm_parameters_core <- function(context, state, apply_update, track_del
 #' Internal update gllrm parameters helper
 #'
 #' Supports the gllrm fit implementation while preserving its internal contract.
-#' Source trace: `source/PAS_skunits/skbias12b.pas::Estimate_GLLRM`.
+#' Source trace: `source/digram_source_20260817/skunits/skbias12b.pas::Estimate_GLLRM`.
 #' @param context Prepared GLLRM computation context.
 #' @param state Current fitted or iterative parameter state.
 #' @param apply_update Internal `apply_update` value used by this helper.
@@ -412,7 +412,7 @@ update_gllrm_parameters <- function(context, state, apply_update, track_delta) {
 #' Internal update gllrm parameters once helper
 #'
 #' Supports the gllrm fit implementation while preserving its internal contract.
-#' Source trace: `source/PAS_skunits/skbias12b.pas::Estimate_GLLRM`.
+#' Source trace: `source/digram_source_20260817/skunits/skbias12b.pas::Estimate_GLLRM`.
 #' @param context Prepared GLLRM computation context.
 #' @param state Current fitted or iterative parameter state.
 #' @return The internal `update_gllrm_parameters_once()` computation result.
@@ -429,11 +429,11 @@ update_gllrm_parameters_once <- function(context, state) {
   state
 }
 
-#' Source trace: source/GLLRM_ESTIM.txt::Adjust_IJparameters and
-#' source/GLLRM_ESTIM.txt::Adjust_IJparameters0 move local-dependence effects
+#' Source trace: source/digram_source_20260817/skunits/skbias22.pas::Adjust_IJparameters and
+#' source/digram_source_20260817/skunits/skbias22.pas::Adjust_IJparameters0 move local-dependence effects
 #' into the source reporting gauge after the multiplicative updates. This R
 #' helper preserves that gauge convention before parameters are exposed.
-#' Source trace: `source/PAS_skunits/skbias12b.pas::Estimate_GLLRM`.
+#' Source trace: `source/digram_source_20260817/skunits/skbias12b.pas::Estimate_GLLRM`.
 #' @param context Prepared GLLRM computation context.
 #' @param state Current fitted or iterative parameter state.
 #' @param absorb_ld_item_factors Internal `absorb_ld_item_factors` value used by this helper.
@@ -507,7 +507,7 @@ adjust_gllrm_dependency_parameters <- function(context,
 #' Internal gllrm output parameter state helper
 #'
 #' Supports the gllrm fit implementation while preserving its internal contract.
-#' Source trace: `source/PAS_skunits/skbias12b.pas::Estimate_GLLRM`.
+#' Source trace: `source/digram_source_20260817/skunits/skbias12b.pas::Estimate_GLLRM`.
 #' @param context Prepared GLLRM computation context.
 #' @param state Current fitted or iterative parameter state.
 #' @return The internal `gllrm_output_parameter_state()` computation result.
@@ -521,7 +521,7 @@ gllrm_output_parameter_state <- function(context, state) {
   if (score_reference == 0L) {
     return(state)
   }
-  # Source trace: source/GLLRM_ESTIM.txt::Estimate_LL_parameters applies the
+  # Source trace: source/digram_source_20260817/skunits/skbias22.pas::GLLRM_estim applies the
   # final Adjust_IJparameters0/Adjust_IXparameters/Adjust_gamma0 block only when
   # (IscoreRef <> 0) and (Nij > 0). Component size and term count are not source
   # conditions for this report-facing gauge.
@@ -537,7 +537,7 @@ gllrm_output_parameter_state <- function(context, state) {
 #' Internal add ld item log factors helper
 #'
 #' Supports the gllrm fit implementation while preserving its internal contract.
-#' Source trace: `source/PAS_skunits/skbias12b.pas::Estimate_GLLRM`.
+#' Source trace: `source/digram_source_20260817/skunits/skbias12b.pas::Estimate_GLLRM`.
 #' @param log_factors Internal `log_factors` value used by this helper.
 #' @param item One-based item index.
 #' @param factors Internal `factors` value used by this helper.
@@ -559,7 +559,7 @@ add_ld_item_log_factors <- function(log_factors, item, factors, zero_factors) {
 #' Internal adjust item gammas source scale log helper
 #'
 #' Supports the gllrm fit implementation while preserving its internal contract.
-#' Source trace: `source/PAS_skunits/skbias12b.pas::Estimate_GLLRM`.
+#' Source trace: `source/digram_source_20260817/skunits/skbias12b.pas::Estimate_GLLRM`.
 #' @param bundle Source-shaped analysis bundle.
 #' @param item_gamma Internal `item_gamma` value used by this helper.
 #' @param log_factors Internal `log_factors` value used by this helper.
@@ -646,10 +646,10 @@ adjust_item_gammas_source_scale_log <- function(bundle, item_gamma, log_factors 
   out
 }
 
-#' Source trace: source/GLLRM_ESTIM.txt::Adjust_IXparameters adjusts included DIF
+#' Source trace: source/digram_source_20260817/skunits/skbias22.pas::Adjust_IXparameters adjusts included DIF
 #' parameters against the selected reference background category. The R helper
 #' applies the same reporting gauge to the fitted IX matrix.
-#' Source trace: `source/PAS_skunits/skbias12b.pas::Estimate_GLLRM`.
+#' Source trace: `source/digram_source_20260817/skunits/skbias12b.pas::Estimate_GLLRM`.
 #' @param observed Internal `observed` value used by this helper.
 #' @param gamma Internal `gamma` value used by this helper.
 #' @return The internal `adjust_gllrm_dif_reference()` computation result.
@@ -709,8 +709,8 @@ adjust_gllrm_dif_reference <- function(observed, gamma) {
   adjusted
 }
 
-#' Source trace: source/PAS_skunits/skbias12b.pas::Estimate_GLLRM and
-#' source/PAS_skunits/skbias22.pas::GLLRM_estim evaluate the fitted current GLLRM
+#' Source trace: source/digram_source_20260817/skunits/skbias12b.pas::Estimate_GLLRM and
+#' source/digram_source_20260817/skunits/skbias22.pas::GLLRM_estim evaluate the fitted current GLLRM
 #' likelihood from the same score-conditioned probabilities used for expected
 #' margins. The R helper returns the DIGRAM/source-style negative conditional
 #' log likelihood. The public logLik() method converts this stored value to R's
@@ -764,7 +764,7 @@ gllrm_loglike <- function(context, state) {
 #' Internal gllrm score gamma helper
 #'
 #' Supports the gllrm fit implementation while preserving its internal contract.
-#' Source trace: `source/PAS_skunits/skbias12b.pas::Estimate_GLLRM`.
+#' Source trace: `source/digram_source_20260817/skunits/skbias12b.pas::Estimate_GLLRM`.
 #' @param context Prepared GLLRM computation context.
 #' @param state Current fitted or iterative parameter state.
 #' @param background_values Internal `background_values` value used by this helper.
@@ -781,8 +781,8 @@ gllrm_score_gamma <- function(context, state, background_values) {
   full
 }
 
-#' Source trace: source/GLLRM_ESTIM.txt::GLLRM_estim and
-#' source/PAS_skunits/skbias12b.pas::Estimate_GLLRM run the iterative GLLRM
+#' Source trace: source/digram_source_20260817/skunits/skbias22.pas::GLLRM_estim and
+#' source/digram_source_20260817/skunits/skbias12b.pas::Estimate_GLLRM run the iterative GLLRM
 #' estimation loop: initialize parameters, compute expected margins,
 #' update by observed/fitted ratios, adjust the reporting gauge, and stop at the
 #' source tolerance or iteration limit. This R function is the package's direct
@@ -792,6 +792,8 @@ gllrm_score_gamma <- function(context, state, background_values) {
 #' @param max_delta Sufficient-count discrepancy tolerance.
 #' @param max_joint_configs Internal `max_joint_configs` value used by this helper.
 #' @param bundle Source-shaped analysis bundle.
+#' @param initial_parameters Optional saved observed-data parameter state used
+#'   only by source-shaped bootstrap refits.
 #' @return The internal `fit_gllrm()` computation result.
 #' @keywords internal
 #' @noRd
@@ -799,10 +801,18 @@ fit_gllrm <- function(spec,
                              max_step = 5000L,
                              max_delta = 0.0001,
                              max_joint_configs = 200000L,
-                             bundle = NULL) {
+                             bundle = NULL,
+                             initial_parameters = NULL) {
   bundle <- bundle %||% build_item_parameters_bundle(spec$project)
   context <- build_gllrm_context(spec, bundle, max_joint_configs = max_joint_configs)
-  state <- initialize_gllrm_state(context)
+  # Ordinary fits take InitializeParameters' unit start. CM3 bootstrap refits
+  # instead take skbias12b.UseItemParameters after SKbias8.MakeIRTcopy saved the
+  # observed fit immediately before simulation.
+  state <- if (is.null(initial_parameters)) {
+    initialize_gllrm_state(context)
+  } else {
+    initialize_gllrm_state_from_parameters(context, initial_parameters)
+  }
   if (context$counts$n_valid == 0L || context$n_items == 0L) {
     state$converged <- TRUE
     return(list(context = context, state = state, bundle = bundle))
@@ -863,7 +873,7 @@ fit_gllrm <- function(spec,
 #' Internal fit gllrm with added ld full refit helper
 #'
 #' Supports the gllrm fit implementation while preserving its internal contract.
-#' Source trace: `source/PAS_skunits/skbias12b.pas::Estimate_GLLRM`.
+#' Source trace: `source/digram_source_20260817/skunits/skbias12b.pas::Estimate_GLLRM`.
 #' @param object Object dispatched to this helper.
 #' @param item1 Internal `item1` value used by this helper.
 #' @param item2 Internal `item2` value used by this helper.
@@ -902,7 +912,7 @@ fit_gllrm_with_added_ld_full_refit <- function(object, item1, item2, max_step, m
 #' Internal fit gllrm with added dif full refit helper
 #'
 #' Supports the gllrm fit implementation while preserving its internal contract.
-#' Source trace: `source/PAS_skunits/skbias12b.pas::Estimate_GLLRM`.
+#' Source trace: `source/digram_source_20260817/skunits/skbias12b.pas::Estimate_GLLRM`.
 #' @param object Object dispatched to this helper.
 #' @param item One-based item index.
 #' @param background One-based exogenous-variable index.
@@ -942,7 +952,7 @@ fit_gllrm_with_added_dif_full_refit <- function(object, item, background, max_st
 #' Internal fit gllrm with added ld helper
 #'
 #' Supports the gllrm fit implementation while preserving its internal contract.
-#' Source trace: `source/PAS_skunits/skbias12b.pas::Estimate_GLLRM`.
+#' Source trace: `source/digram_source_20260817/skunits/skbias12b.pas::Estimate_GLLRM`.
 #' @param object Object dispatched to this helper.
 #' @param item1 Internal `item1` value used by this helper.
 #' @param item2 Internal `item2` value used by this helper.
@@ -964,7 +974,7 @@ fit_gllrm_with_added_ld <- function(object, item1, item2, max_step, max_delta) {
 #' Internal fit gllrm with added dif helper
 #'
 #' Supports the gllrm fit implementation while preserving its internal contract.
-#' Source trace: `source/PAS_skunits/skbias12b.pas::Estimate_GLLRM`.
+#' Source trace: `source/digram_source_20260817/skunits/skbias12b.pas::Estimate_GLLRM`.
 #' @param object Object dispatched to this helper.
 #' @param item One-based item index.
 #' @param background One-based exogenous-variable index.

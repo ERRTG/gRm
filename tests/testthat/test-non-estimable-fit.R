@@ -59,26 +59,39 @@ test_that("Rasch fitting still accepts source-valid complete rows", {
 
 test_that("public fitting rejects upper-boundary and one-category support", {
   cases <- list(
-    upper_boundary_only = data.frame(
-      ID = seq_len(3L),
-      I1 = rep(1L, 3L),
-      I2 = rep(1L, 3L)
+    upper_boundary_only = list(
+      data = data.frame(
+        ID = seq_len(3L),
+        I1 = rep(1L, 3L),
+        I2 = rep(1L, 3L)
+      ),
+      nvalid = 0L,
+      error = "at least one source-valid complete response pattern"
     ),
-    one_category_per_item = data.frame(
-      ID = seq_len(4L),
-      I1 = rep(0L, 4L),
-      I2 = rep(1L, 4L)
+    one_category_per_item = list(
+      data = data.frame(
+        ID = seq_len(4L),
+        I1 = rep(0L, 4L),
+        I2 = rep(1L, 4L)
+      ),
+      nvalid = 4L,
+      error = "supported response categories"
     ),
-    mixed_valid_invalid = data.frame(
-      ID = seq_len(6L),
-      I1 = rep(c(1L, 0L), 3L),
-      I2 = rep(c(0L, 1L), 3L),
-      I3 = rep(0L, 6L)
+    mixed_valid_invalid = list(
+      data = data.frame(
+        ID = seq_len(6L),
+        I1 = rep(c(1L, 0L), 3L),
+        I2 = rep(c(0L, 1L), 3L),
+        I3 = rep(0L, 6L)
+      ),
+      nvalid = 6L,
+      error = "supported response categories"
     )
   )
 
   for (case_name in names(cases)) {
-    case_data <- cases[[case_name]]
+    case <- cases[[case_name]]
+    case_data <- case$data
     item_names <- setdiff(names(case_data), "ID")
     levels <- stats::setNames(rep(list(0:1), length(item_names)), item_names)
     analysis <- gRm(
@@ -90,15 +103,15 @@ test_that("public fitting rejects upper-boundary and one-category support", {
     )
     bundle <- build_item_parameters_bundle(analysis$project)
 
-    expect_true(bundle$manifest$nvalid > 0L, info = case_name)
+    expect_identical(bundle$manifest$nvalid, case$nvalid, info = case_name)
     expect_error(
       fit(gllrm(analysis), max_step = 20L),
-      "supported response categories",
+      case$error,
       info = case_name
     )
     expect_error(
       fit(gllrm(analysis, ld = stats::as.formula(paste0("~ ", item_names[[1L]], ":", item_names[[2L]]))), max_step = 20L),
-      "supported response categories",
+      case$error,
       info = paste(case_name, "GLLRM")
     )
   }
@@ -115,7 +128,7 @@ test_that("public fitting rejects a one-item conditional model", {
 
   expect_error(
     fit(gllrm(analysis), max_step = 20L),
-    "supported response categories|non-reference parameter"
+    "at least one source-valid complete response pattern"
   )
 })
 

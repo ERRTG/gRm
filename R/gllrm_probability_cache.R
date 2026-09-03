@@ -2,14 +2,14 @@
 #
 # This file does not implement a separate Pascal algorithm. It memoizes repeated
 # GLLRM probability calculations that are otherwise defined by
-# source/GLLRM_ESTIM.txt::CalculateBiasedGammaValues2 and the fit loop in
-# source/GLLRM_ESTIM.txt::GLLRM_estim. The cache does not change the source algorithm,
+# source/digram_source_20260817/skunits/skbias22.pas::CalculateBiasedGammaValues2 and the fit loop in
+# source/digram_source_20260817/skunits/skbias22.pas::GLLRM_estim. The cache does not change the source algorithm,
 # fitted values, update order, or reporting gauge.
 
 #' Internal new gllrm probability cache helper
 #'
 #' Supports the gllrm probability cache implementation while preserving its internal contract.
-#' Source trace: `source/PAS_skunits/skbias22.pas::Gamma_calculation`.
+#' Source trace: `source/digram_source_20260817/skunits/skbias22.pas::Gamma_calculation`.
 #' @param context Prepared GLLRM computation context.
 #' @param state Current fitted or iterative parameter state.
 #' @param components Internal `components` value used by this helper.
@@ -29,7 +29,7 @@ new_gllrm_probability_cache <- function(context, state, components = NULL) {
 #' Internal gllrm probability cache key helper
 #'
 #' Supports the gllrm probability cache implementation while preserving its internal contract.
-#' Source trace: `source/PAS_skunits/skbias22.pas::Gamma_calculation`.
+#' Source trace: `source/digram_source_20260817/skunits/skbias22.pas::Gamma_calculation`.
 #' @param context Prepared GLLRM computation context.
 #' @param total_score Internal `total_score` value used by this helper.
 #' @param background_values Internal `background_values` value used by this helper.
@@ -47,7 +47,7 @@ gllrm_probability_cache_key <- function(context, total_score, background_values)
 #' Internal gllrm cached item probabilities helper
 #'
 #' Supports the gllrm probability cache implementation while preserving its internal contract.
-#' Source trace: `source/PAS_skunits/skbias22.pas::Gamma_calculation`.
+#' Source trace: `source/digram_source_20260817/skunits/skbias22.pas::Gamma_calculation`.
 #' @param cache Computation cache.
 #' @param total_score Internal `total_score` value used by this helper.
 #' @param background_values Internal `background_values` value used by this helper.
@@ -75,7 +75,7 @@ gllrm_cached_item_probabilities <- function(cache, total_score, background_value
 #' Internal gllrm cached ld probabilities helper
 #'
 #' Supports the gllrm probability cache implementation while preserving its internal contract.
-#' Source trace: `source/PAS_skunits/skbias22.pas::Gamma_calculation`.
+#' Source trace: `source/digram_source_20260817/skunits/skbias22.pas::Gamma_calculation`.
 #' @param cache Computation cache.
 #' @param total_score Internal `total_score` value used by this helper.
 #' @param background_values Internal `background_values` value used by this helper.

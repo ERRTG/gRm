@@ -1,17 +1,7 @@
 # gRm
 
 `gRm` is a native R implementation of the GLLRM-oriented parts of DIGRAM.
-The public API is a compact statistical modeling workflow.
-
-## Installation
-
-Install the latest release from GitHub with:
-
-```r
-remotes::install_github("ERRTG/gRm")
-```
-
-## Example
+The public API is a compact statistical modeling workflow:
 
 ```r
 analysis <- gRm(data, items = c("I1", "I2", "I3"), exogenous = "site")
@@ -40,9 +30,21 @@ summary(global)
 
 score_effects(analysis)
 
-m2(fit0)
-m3(fit0)
-m3(fit0, bootstrap = TRUE, nsim = 100, seed = 47)
+# All items (default), asymptotic
+cm2(fit0)
+cm3(fit0)
+
+# Selected items, asymptotic
+cm2(fit0, items = c("I1", "I3"))
+cm3(fit0, items = c("I1", "I3"))
+
+# All items (default), parametric bootstrap
+cm2(fit0, bootstrap = TRUE, nsim = 100, seed = 47)
+cm3(fit0, bootstrap = TRUE, nsim = 100, seed = 47)
+
+# Selected items, parametric bootstrap
+cm2(fit0, items = c("I1", "I3"), bootstrap = TRUE, nsim = 100, seed = 47)
+cm3(fit0, items = c("I1", "I3"), bootstrap = TRUE, nsim = 100, seed = 47)
 ```
 
 The installed package computes numeric results from data and model objects
@@ -59,8 +61,16 @@ The exported functions are:
   diagnostics;
 - `item_fit()`, `local_dependence()`, `dif()`, `global_homogeneity()`, and
   `ari()` for post-fit numeric results;
-- source-backed `m2()` and `m3()` fit diagnostics, with opt-in parametric
+- source-backed `cm2()` and `cm3()` fit diagnostics, with opt-in parametric
   bootstrap calibration.
+
+For CM2/CM3, `items = NULL` selects all fitted items, matching DIGRAM's blank
+item prompt. Exact item names or one-based indices select at least two focal
+items and are normalized to fitted source order. This selection changes only
+the reported diagnostic margins: all fitted exogenous variables remain
+automatic, score groups use the total across all fitted items, fitted LD/DIF
+terms retain unselected partners, and bootstrap generation/refitting continues
+to use the complete fitted model. The supplied fit is not mutated.
 
 Fitted item parameters and thresholds are reported through `summary(fit)` and
 `summary(fit, which = "parameters" / "thresholds")`. Some diagnostics, such as

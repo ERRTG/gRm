@@ -18,7 +18,7 @@ struct ExactError : public std::runtime_error {
 };
 
 struct SourceLcg {
-  // Source trace: source/PAS_skunits/SKrandom.pas::GENTAB1 consumes Pascal
+  // Source trace: source/digram_source_20260817/skunits/SKrandom.pas::GENTAB1 consumes Pascal
   // Random values while traversing free cells. The Delphi-LCG recurrence is
   // the audited runtime compatibility stream pinned by
   // pascal_harness/SCREEN_EXACT_TRAJECTORY.pas::DelphiRandom.
@@ -192,7 +192,7 @@ PreparedSlice prepare_slice(SEXP matrix) {
 }
 
 void fill_log_factorial(PreparedSlice &prepared) {
-  // Source trace: source/PAS_skunits/SKrandom.pas::GENTAB1 builds the
+  // Source trace: source/digram_source_20260817/skunits/SKrandom.pas::GENTAB1 builds the
   // log-factorial table recursively through 1000 and then uses its preserved
   // large-n approximation. Both R-facing prepared-slice routes share this one
   // implementation so their probability trajectory cannot drift.
@@ -219,10 +219,10 @@ void fill_expected(PreparedSlice &prepared) {
     double col_share = static_cast<double>(prepared.col_total[col]) / prepared.total;
     for (int row = 0; row < prepared.nrow; ++row) {
       // Source trace:
-      // source/PAS_skunits/SKbigtab.pas::Transfer_BT_to_XYZ_TABLE fills RTAB2
+      // source/digram_source_20260817/skunits/SKbigtab.pas::Transfer_BT_to_XYZ_TABLE fills RTAB2
       // once as row margin * (column margin / total).
-      // source/PAS_skunits/SKrandom.pas::GENTAB1 then passes that stored
-      // expected table to source/PAS_skunits/SkStat.pas::RCCHI.
+      // source/digram_source_20260817/skunits/SKrandom.pas::GENTAB1 then passes that stored
+      // expected table to source/digram_source_20260817/skunits/SkStat.pas::RCCHI.
       prepared.expected[index2(row, col, prepared.nrow)] =
         static_cast<double>(prepared.row_total[row]) * col_share;
     }
@@ -241,7 +241,7 @@ void fill_slice_metadata(PreparedSlice &prepared) {
   }
   prepared.positive_expected_index.clear();
   prepared.positive_expected_index.reserve(static_cast<std::size_t>(prepared.ncell));
-  // Source trace: source/PAS_skunits/SkStat.pas::RCCHI accumulates cells as
+  // Source trace: source/digram_source_20260817/skunits/SkStat.pas::RCCHI accumulates cells as
   // `FOR I:=1 TO C DO FOR J:=1 TO R DO`, i.e. row/category of the first
   // variable first and then the second variable. Preserve that order because
   // exact tests compare generated chi-square totals with `>=`, so source-tied
@@ -299,7 +299,7 @@ double cell_probability(const PreparedSlice &prepared,
                         int row1,
                         int row2,
                         int t11) {
-  // Source trace: source/PAS_skunits/SKrandom.pas::GENTAB1 evaluates each
+  // Source trace: source/digram_source_20260817/skunits/SKrandom.pas::GENTAB1 evaluates each
   // feasible free-cell count from the same log-factorial hypergeometric term.
   // Mathematical step: exponentiate the four margin factorials minus the four
   // cell factorials and the free-total factorial in the preserved order.
@@ -337,7 +337,7 @@ struct SliceScratch {
 };
 
 void gentab1_into(const PreparedSlice &prepared, SourceLcg &rng, SliceScratch &scratch) {
-  // Source trace: source/PAS_skunits/SKrandom.pas::GENTAB1 visits every free
+  // Source trace: source/digram_source_20260817/skunits/SKrandom.pas::GENTAB1 visits every free
   // cell in source order, starts at the rounded expected count, alternates up
   // and down, then fills the final row/column deterministically.
   scratch.reset_for(prepared);
@@ -635,8 +635,8 @@ SimulationResult simulate_chi_gamma(const std::vector<PreparedSlice> &slices,
   const double seq_p0 = 0.05;
   const double seq_boundary = 1.058;
   if (seq_limit < 1) seq_limit = nsim;
-  // Source trace: source/PAS_skunits/SKbias3.pas::XYZ_bias_ANALYSE stores
-  // observed CHITOT in RESULTS[1,1], and source/PAS_skunits/SKTypes.pas::
+  // Source trace: source/digram_source_20260817/skunits/SKbias3.pas::XYZ_bias_ANALYSE stores
+  // observed CHITOT in RESULTS[1,1], and source/digram_source_20260817/skunits/SKTypes.pas::
   // RESARRAY is explicitly SINGLE. GENTAB1's simulated CHI/PPQ/PMQ and
   // AbsGammaTot remain Pascal REAL (8-byte Double in the historical Delphi
   // target). Only the observed chi threshold is therefore quantized before
@@ -765,8 +765,8 @@ SEXP scalar_with_attrs(double value, int exceed, const SimulationResult &result)
 }
 
 double source_p_value(int exceed, int nsim) {
-  // Source trace: source/PAS_skunits/SKexa2.pas::XYZ_TEST and
-  // source/PAS_skunits/SKexa1.pas::EXA_SUMMARY1_2 store exact p-values as REAL
+  // Source trace: source/digram_source_20260817/skunits/SKxyz1.PAS::XYZ_TEST and
+  // source/digram_source_20260817/skunits/SKexa1.pas::EXA_SUMMARY1_2 store exact p-values as REAL
   // RESULTS entries from count / NSIM. Keep this in double precision so the
   // native path is bit-for-bit aligned with the R parity reference.
   return static_cast<double>(exceed) / static_cast<double>(nsim);

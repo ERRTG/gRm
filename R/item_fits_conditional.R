@@ -1,7 +1,7 @@
 #' Internal calculate conditional item fit values helper
 #'
 #' Supports the item fits values implementation while preserving its internal contract.
-#' Source trace: `source/PAS_skunits/skbias15.pas::Calculate_residuals_and_item_fits`.
+#' Source trace: `source/digram_source_20260817/skunits/skbias15.pas::Calculate_residuals_and_item_fits`.
 #' @param bundle Source-shaped analysis bundle.
 #' @param fit Fitted gRm model.
 #' @param conditional Internal `conditional` value used by this helper.
@@ -46,7 +46,7 @@ calculate_conditional_item_fit_values <- function(bundle, fit, conditional = NUL
 
 #' Accumulate complete-record conditional item-fit contributions
 #'
-#' Source trace: `source/PAS_skunits/skbias15.pas::CalculateInAndOutfits`.
+#' Source trace: `source/digram_source_20260817/skunits/skbias15.pas::CalculateInAndOutfits`.
 #' Mathematical step: traverse source score groups then items and accumulate
 #' score-count-weighted outfit and variance-weighted infit moments.
 #' @param bundle Source-shaped analysis bundle.
@@ -111,6 +111,10 @@ conditional_item_fit_complete_accumulators <- function(bundle, conditional) {
       probabilities <- moments$probabilities
       variance <- moments$variance
       if (variance <= 0) {
+        # CalculateOutfit initializes this score's contribution to zero, but
+        # the final item outfit remains divided by ScoreDistribution including
+        # the zero-variance score count. Infit still receives zero weight.
+        n_used[[item_index]] <- n_used[[item_index]] + score_weight
         next
       }
 
@@ -160,7 +164,7 @@ conditional_item_fit_complete_accumulators <- function(bundle, conditional) {
 
 #' Add source incomplete-record conditional item-fit contributions
 #'
-#' Source trace: `source/PAS_skunits/skbias15.pas::CalculateInAndOutfits`.
+#' Source trace: `source/digram_source_20260817/skunits/skbias15.pas::CalculateInAndOutfits`.
 #' Mathematical step: reconstruct the available-item conditional distribution
 #' for each compressed incomplete record and add its weighted moments.
 #' @param accumulators Complete-record item-fit accumulators.
@@ -221,7 +225,7 @@ conditional_item_fit_add_incomplete <- function(accumulators,
 #' Internal calculate item restscore gamma values helper
 #'
 #' Supports the item fits values implementation while preserving its internal contract.
-#' Source trace: `source/PAS_skunits/skbias15.pas::Calculate_residuals_and_item_fits`.
+#' Source trace: `source/digram_source_20260817/skunits/skbias15.pas::Calculate_residuals_and_item_fits`.
 #' @param bundle Source-shaped analysis bundle.
 #' @param fit Fitted gRm model.
 #' @param conditional Internal `conditional` value used by this helper.
@@ -299,7 +303,7 @@ calculate_item_restscore_gamma_values <- function(bundle, fit, conditional = NUL
 
 #' Compute one source item-restscore gamma comparison
 #'
-#' Source trace: `source/PAS_skunits/skbias14.pas::Calculate_item_restscore_gamma`.
+#' Source trace: `source/digram_source_20260817/skunits/skbias14.pas::Calculate_item_restscore_gamma`.
 #' Mathematical step: build observed and fitted item-by-restscore tables with
 #' deterministic extremes and compressed incomplete-record contributions, then
 #' compare Goodman--Kruskal gamma using the source fitted variance.

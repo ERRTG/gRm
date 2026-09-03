@@ -1,7 +1,7 @@
 #' Internal gllrm global homogeneity uniform dif helper
 #'
 #' Supports the global homogeneity values implementation while preserving its internal contract.
-#' Source trace: `source/PAS_scd/DGRirtD.pas::GlobalHomogeneity`.
+#' Source trace: `source/digram_source_20260817/scd/DGRirtD.pas::GlobalHomogeneity`.
 #' @param fit Fitted gRm model.
 #' @param groups Internal `groups` value used by this helper.
 #' @param probability_cache Internal `probability_cache` value used by this helper.
@@ -30,7 +30,7 @@ gllrm_global_homogeneity_uniform_dif <- function(fit, groups, probability_cache 
 #' Internal gllrm uniform dif scoregroup tables helper
 #'
 #' Supports the global homogeneity values implementation while preserving its internal contract.
-#' Source trace: `source/PAS_scd/DGRirtD.pas::GlobalHomogeneity`.
+#' Source trace: `source/digram_source_20260817/scd/DGRirtD.pas::GlobalHomogeneity`.
 #' @param context Prepared GLLRM computation context.
 #' @param groups Internal `groups` value used by this helper.
 #' @param spec GLLRM model specification.
@@ -50,7 +50,7 @@ gllrm_uniform_dif_scoregroup_tables <- function(context, groups, spec, probabili
 #' Internal gllrm uniform dif scoregroup tables all helper
 #'
 #' Supports the global homogeneity values implementation while preserving its internal contract.
-#' Source trace: `source/PAS_scd/DGRirtD.pas::GlobalHomogeneity`.
+#' Source trace: `source/digram_source_20260817/scd/DGRirtD.pas::GlobalHomogeneity`.
 #' @param context Prepared GLLRM computation context.
 #' @param groups Internal `groups` value used by this helper.
 #' @param probability_cache Internal `probability_cache` value used by this helper.
@@ -69,7 +69,7 @@ gllrm_uniform_dif_scoregroup_tables_all <- function(context, groups, probability
 #' Internal gllrm uniform dif scoregroup tables for specs helper
 #'
 #' Supports the global homogeneity values implementation while preserving its internal contract.
-#' Source trace: `source/PAS_scd/DGRirtD.pas::GlobalHomogeneity`.
+#' Source trace: `source/digram_source_20260817/scd/DGRirtD.pas::GlobalHomogeneity`.
 #' @param context Prepared GLLRM computation context.
 #' @param groups Internal `groups` value used by this helper.
 #' @param specs Internal `specs` value used by this helper.
@@ -138,7 +138,7 @@ gllrm_uniform_dif_scoregroup_tables_for_specs <- function(context, groups, specs
 #' Internal gllrm uniform dif summary row helper
 #'
 #' Supports the global homogeneity values implementation while preserving its internal contract.
-#' Source trace: `source/PAS_scd/DGRirtD.pas::GlobalHomogeneity`.
+#' Source trace: `source/digram_source_20260817/scd/DGRirtD.pas::GlobalHomogeneity`.
 #' @param context Prepared GLLRM computation context.
 #' @param groups Internal `groups` value used by this helper.
 #' @param spec GLLRM model specification.
@@ -166,16 +166,16 @@ gllrm_uniform_dif_summary_row <- function(context, groups, spec, tables) {
 #' Internal gllrm uniform dif standardize expected helper
 #'
 #' Supports the global homogeneity values implementation while preserving its internal contract.
-#' Source trace: `source/PAS_scd/DGRirtD.pas::GlobalHomogeneity`.
+#' Source trace: `source/digram_source_20260817/scd/DGRirtD.pas::GlobalHomogeneity`.
 #' @param observed Internal `observed` value used by this helper.
 #' @param expected Internal `expected` value used by this helper.
 #' @return The internal `gllrm_uniform_dif_standardize_expected()` computation result.
 #' @keywords internal
 #' @noRd
 gllrm_uniform_dif_standardize_expected <- function(observed, expected) {
-  # Source trace: source/PAS_skunits/skfit2.pas::Standardize_ETAB2_to_TAB2_margins
+  # Source trace: source/digram_source_20260817/skunits/skfit2.pas::Standardize_ETAB2_to_TAB2_margins
   # derives observed margins, then delegates to
-  # source/PAS_skunits/skfit2.pas::Standardize_tab4. The R table stores only
+  # source/digram_source_20260817/skunits/skfit2.pas::Standardize_tab4. The R table stores only
   # body cells, so the shared helper applies the same fixed row/column scaling
   # to the expected table before the global-homogeneity gamma is calculated.
   row_margins <- rowSums(observed)

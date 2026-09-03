@@ -5,7 +5,7 @@
 #' items_select_values() name is retained because validator code and source
 #' traces still refer to the historical DIGRAM item-selection report path.
 #'
-#' Source trace: `source/PAS_skunits/BIASvars.pas::ScoreGruppe`.
+#' Source trace: `source/digram_source_20260817/skunits/BIASvars.pas::ScoreGruppe`.
 #' @param project A parsed DIGRAM project from [read_digram_project()].
 #' @return A `gRm_items_select_values` object.
 #' @examples
@@ -75,7 +75,7 @@ items_select_values <- function(project) {
     mean(x^2) - mean(x)^2
   })
   score_var_population <- sum(complete_scores^2) / n_complete - score_mean^2
-  # Source trace: SKbias2.pas::Calculate_ChronbachsAlpha uses population item
+  # Source trace: SKbias7.pas::Calculate_ChronbachsAlpha uses population item
   # variances and population total-score variance, then multiplies by k/(k-1).
   alpha <- nrow(items) / (nrow(items) - 1L) *
     (1 - sum(item_variances) / score_var_population)
@@ -127,7 +127,7 @@ items_select_values <- function(project) {
 
 #' Source default score cut for item selection
 #'
-#' Source trace: `source/PAS_skunits/BIASvars.pas::ScoreGruppe`.
+#' Source trace: `source/digram_source_20260817/skunits/BIASvars.pas::ScoreGruppe`.
 #' @param score_counts Integer counts indexed by score plus one.
 #' @return Integer cutpoint.
 #' @keywords internal

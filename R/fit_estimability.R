@@ -1,6 +1,6 @@
 #' Source support summary for public fitting
 #'
-#' Source trace: `source/PAS_skunits/skbias12b.pas::Estimate_GLLRM`.
+#' Source trace: `source/digram_source_20260817/skunits/skbias12b.pas::Estimate_GLLRM`.
 #' @param bundle Source-shaped estimation bundle.
 #' @return Item support table and observed Rasch counts.
 #' @keywords internal
@@ -29,7 +29,7 @@ source_public_fit_item_support <- function(bundle) {
 #' The source chooses the row and column having the largest number of positive
 #' cells, then estimates positive cells outside that reference row and column.
 #'
-#' Source trace: `source/PAS_skunits/skbias12b.pas::Estimate_GLLRM`.
+#' Source trace: `source/digram_source_20260817/skunits/skbias12b.pas::Estimate_GLLRM`.
 #' @param observed Observed IJ or IX margin.
 #' @return Two-column integer matrix of one-based free-cell indices.
 #' @keywords internal
@@ -59,7 +59,7 @@ source_public_fit_free_cells <- function(observed) {
 #' a sufficient-statistic mean can be interior to the full conditional support
 #' even when only a small number of distinct patterns has positive frequency.
 #'
-#' Source trace: `source/PAS_skunits/skbias12b.pas::Estimate_GLLRM`.
+#' Source trace: `source/digram_source_20260817/skunits/skbias12b.pas::Estimate_GLLRM`.
 #' @param model Canonical `gRm_model` specification.
 #' @param bundle Source-shaped estimation bundle.
 #' @return A list with the source parameter count, per-term support counts, and
@@ -109,7 +109,7 @@ source_public_fit_support <- function(model, bundle) {
 
 #' Validate public Rasch/GLLRM estimability
 #'
-#' Source trace: `source/PAS_skunits/skbias12b.pas::Estimate_GLLRM`.
+#' Source trace: `source/digram_source_20260817/skunits/skbias12b.pas::Estimate_GLLRM`.
 #' @param bundle Source-shaped estimation bundle.
 #' @param model Canonical `gRm_model` specification.
 #' @return `bundle`, invisibly.
@@ -166,7 +166,7 @@ assert_public_estimable_fit_bundle <- function(bundle, model) {
 
 #' Validate values before constructing a public fit
 #'
-#' Source trace: `source/PAS_skunits/skbias12b.pas::Estimate_GLLRM`.
+#' Source trace: `source/digram_source_20260817/skunits/skbias12b.pas::Estimate_GLLRM`.
 #' @param values Source-shaped fitted value list.
 #' @return `values`, invisibly.
 #' @keywords internal

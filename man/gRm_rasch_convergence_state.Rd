@@ -17,6 +17,6 @@ gRm_rasch_convergence_state(fit, max_step, max_delta)
 A \code{gRm_convergence_state} list.
 }
 \description{
-Source trace: \code{source/PAS_skunits/skbias12b.pas::Estimate_GLLRM}.
+Source trace: \code{source/digram_source_20260817/skunits/skbias12b.pas::Estimate_GLLRM}.
 }
 \keyword{internal}

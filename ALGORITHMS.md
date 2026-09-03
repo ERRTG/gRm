@@ -24,7 +24,7 @@ Public API, object construction, presentation, and analysis identity:
 - `R/api-constructors.R`
 - `R/api-fit.R`
 - `R/api-likelihood-comparison.R`
-- `R/api-m2-m3.R`
+- `R/api-cm2-cm3.R`
 - `R/api-model-graph.R`
 - `R/api-model-plot.R`
 - `R/api-model-spec.R`
@@ -82,16 +82,16 @@ GLLRM context, state, fitting, and candidate diagnostics:
 - `R/gllrm_values.R`
 - `R/local_independence_values.R`
 
-CM2/CM3, M2/M3, and parametric-bootstrap modules:
+CM2/CM3 diagnostic and parametric-bootstrap modules:
 
-- `R/m2_m3_bootstrap_generate.R`
-- `R/m2_m3_bootstrap_run.R`
-- `R/m2_m3_bootstrap_summary.R`
-- `R/m2_m3_bootstrap.R`
-- `R/m2_m3_counts.R`
-- `R/m2_m3_expected.R`
-- `R/m2_m3_specs.R`
-- `R/m2_m3_values.R`
+- `R/cm2_cm3_bootstrap_generate.R`
+- `R/cm2_cm3_bootstrap_run.R`
+- `R/cm2_cm3_bootstrap_summary.R`
+- `R/cm2_cm3_bootstrap.R`
+- `R/cm2_cm3_counts.R`
+- `R/cm2_cm3_expected.R`
+- `R/cm2_cm3_specs.R`
+- `R/cm2_cm3_values.R`
 
 SCREEN J, exact inference, exogenous screening, and global homogeneity:
 
@@ -137,19 +137,19 @@ Primary source traces:
 - `pascal_harness/SourceRaschCore.pas::CalculateSourceItemTarget`
 - `pascal_harness/SourceRaschCore.pas::SourceItemInformation`
 - `pascal_harness/SourceRaschCore.pas::EmitGLLRMOutputRows` output(4)
-- `source/PAS_skunits/skbias15.pas::Calculate_residuals_and_item_fits`
-- `source/PAS_skunits/skbias15.pas::Calculate_residuals_and_item_fits.Count_Observed`
-- `source/PAS_skunits/skbias15.pas::Calculate_residuals_and_item_fits.CalculateMeans`
-- `source/PAS_skunits/skbias15.pas::Calculate_residuals_and_item_fits.CalculateInAndOutfits`
-- `source/PAS_skunits/skbias15.pas::Calculate_residuals_and_item_fits.CalculateInAndOutfits.CalculateOutfit`
-- `source/PAS_skunits/skbias15.pas::Calculate_residuals_and_item_fits.CalculateInAndOutfits.CalculateInfit`
-- `source/PAS_skunits/skbias12a.pas::IncompleteItemfits`
-- `source/PAS_scd/DGRirtD.pas::TargetSlut`
-- `source/PAS_skunits/skbias15.pas::Calculate_Ari`
-- `source/PAS_skunits/skbias15.pas::Calculate_Ari.Count_Observed`
-- `source/PAS_skunits/skbias15.pas::Calculate_Ari.CalculateExpectedValues`
-- `source/PAS_skunits/skbias15.pas::Calculate_Ari.CalculateMeans`
-- `source/PAS_skunits/skbias15.pas::Calculate_Ari.SaveARI`
+- `source/digram_source_20260817/skunits/skbias15.pas::Calculate_residuals_and_item_fits`
+- `source/digram_source_20260817/skunits/skbias15.pas::Calculate_residuals_and_item_fits.Count_Observed`
+- `source/digram_source_20260817/skunits/skbias15.pas::Calculate_residuals_and_item_fits.CalculateMeans`
+- `source/digram_source_20260817/skunits/skbias15.pas::Calculate_residuals_and_item_fits.CalculateInAndOutfits`
+- `source/digram_source_20260817/skunits/skbias15.pas::Calculate_residuals_and_item_fits.CalculateInAndOutfits.CalculateOutfit`
+- `source/digram_source_20260817/skunits/skbias15.pas::Calculate_residuals_and_item_fits.CalculateInAndOutfits.CalculateInfit`
+- `source/digram_source_20260817/skunits/skbias12a.pas::IncompleteItemfits`
+- `source/digram_source_20260817/scd/DGRirtD.pas::TargetSlut`
+- `source/digram_source_20260817/skunits/skbias15.pas::Calculate_Ari`
+- `source/digram_source_20260817/skunits/skbias15.pas::Calculate_Ari.Count_Observed`
+- `source/digram_source_20260817/skunits/skbias15.pas::Calculate_Ari.CalculateExpectedValues`
+- `source/digram_source_20260817/skunits/skbias15.pas::Calculate_Ari.CalculateMeans`
+- `source/digram_source_20260817/skunits/skbias15.pas::Calculate_Ari.SaveARI`
 - `pascal_harness/item_parameters_report/BIRT_ITEM_PARAMETERS_REPORT.pas::CalculateObservedScoreRange`
 - `pascal_harness/item_parameters_report/BIRT_ITEM_PARAMETERS_REPORT.pas::CalculateSourceNParameters`
 
@@ -157,8 +157,8 @@ Primary source traces:
 
 Source trace:
 
-- `source/PAS_scd/DGRirtD.pas::TargetSlut`, ITA 18 branch;
-- `source/PAS_skunits/skbias15.pas::Calculate_Ari`;
+- `source/digram_source_20260817/scd/DGRirtD.pas::TargetSlut`, ITA 18 branch;
+- `source/digram_source_20260817/skunits/skbias15.pas::Calculate_Ari`;
 - `Calculate_Ari.Count_Observed`;
 - `Calculate_Ari.CalculateExpectedValues`;
 - `Calculate_Ari.CalculateMeans`;
@@ -326,16 +326,16 @@ R implementation or its installed API.
 
 Source trace:
 
-- `source/PAS_scd/DIGRAM1f.pas`, command 3 `SCREEN`, parameter `J`;
-- `source/PAS_scd/SKbias7.pas::Item_screening`;
-- `source/PAS_scd/SKbias7.pas::inexpensive_rosenberg`;
-- `source/PAS_scd/SKbias7.pas::inexpensive_itembias1`;
-- `source/PAS_scd/SKbias3.pas::XYZ_bias_ANALYSE`;
-- `source/PAS_skunits/SKbias7.pas::number_of_Tjur_problems`,
+- `source/digram_source_20260817/scd/DIGRAM1f.pas`, command 3 `SCREEN`, parameter `J`;
+- `source/digram_source_20260817/skunits/SKbias7.pas::Item_screening`;
+- `source/digram_source_20260817/skunits/SKbias7.pas::inexpensive_rosenberg`;
+- `source/digram_source_20260817/skunits/SKbias7.pas::inexpensive_itembias1`;
+- `source/digram_source_20260817/skunits/SKbias3.pas::XYZ_bias_ANALYSE`;
+- `source/digram_source_20260817/skunits/SKbias7.pas::number_of_Tjur_problems`,
   `Adjusted_number_of_Tjur_problems`, and `stepwise_elimination`;
-- `source/PAS_skunits/DIGRAM1f.pas`, command 3 `SCREEN`, parameters `I` and
+- `source/digram_source_20260817/scd/DIGRAM1f.pas`, command 3 `SCREEN`, parameters `I` and
   `J`, for the final positive-local-dependence model filter;
-- `source/PAS_skunits/SKVars.pas`, version 3.37, for the rule that negative
+- `source/digram_source_20260817/skunits/SKVars.pas`, version 3.37, for the rule that negative
   local dependence is reported but not included in the screen model;
 - `SkStat.RCGAMMA`, `SkStat.RCCHI`, `PNORMAL`, `PFCHI`, and
   `BenjaminiHochberg`.
@@ -927,7 +927,7 @@ end algorithm
 
 The 14 exported workflows are exactly `gRm`, `read_digram_project`, `gllrm`,
 `fit`, `screen`, `score_effects`, `ari`, `item_fit`, `local_dependence`, `dif`,
-`global_homogeneity`, `m2`, `m3`, and `model_graph`. Item-parameter values are
+`global_homogeneity`, `cm2`, `cm3`, and `model_graph`. Item-parameter values are
 part of a fitted object's documented tables; there is no exported
 `item_parameters()` workflow. Report-generation, validation, `tidy()`,
 `glance()`, `details()`, `detail_names()`, and provenance helpers are likewise
@@ -948,10 +948,12 @@ item_fit(fit, which, include_extended, ...)
 local_dependence(fit, max_step, max_delta, jobs, ...)
 dif(fit, max_step, max_delta, jobs, ...)
 global_homogeneity(fit, score_cuts, max_step, max_delta, ...)
-m2(fit, items, score_cuts, bootstrap, nsim, seed, reestimate,
-   bootstrap_max_step, keep_bootstrap_samples, resample_score_distribution, ...)
-m3(fit, items, score_cuts, bootstrap, nsim, seed, reestimate,
-   bootstrap_max_step, keep_bootstrap_samples, resample_score_distribution, ...)
+cm2(fit, items, score_cuts, bootstrap, nsim, seed, reestimate,
+   bootstrap_max_step, bootstrap_jobs, keep_bootstrap_samples,
+   resample_score_distribution, ...)
+cm3(fit, items, score_cuts, bootstrap, nsim, seed, reestimate,
+   bootstrap_max_step, bootstrap_jobs, keep_bootstrap_samples,
+   resample_score_distribution, ...)
 model_graph(object, ...)
 ```
 <!-- END EXPORTED SIGNATURES -->
@@ -981,8 +983,8 @@ print.gRm_direct_table
 print.gRm_fit
 print.gRm_global_homogeneity
 print.gRm_local_dependence
-print.gRm_m2
-print.gRm_m3
+print.gRm_cm2
+print.gRm_cm3
 print.gRm_model
 print.gRm_screen
 print.summary.gRm
@@ -994,8 +996,8 @@ summary.gRm_dif
 summary.gRm_fit
 summary.gRm_global_homogeneity
 summary.gRm_local_dependence
-summary.gRm_m2
-summary.gRm_m3
+summary.gRm_cm2
+summary.gRm_cm3
 summary.gRm_model
 summary.gRm_screen
 update.gRm_model
@@ -1224,7 +1226,8 @@ algorithm global_homogeneity_score_groups(bundle, score_cuts)
     if fra < LeastScore then fra <- LeastScore
 
     til <- c
-    if til > LargestScore then til <- LargestScore
+    SourceLargestScore <- min(LargestScore, MaxTotalScore - 1)
+    if til > SourceLargestScore then til <- SourceLargestScore
 
     if fra <= til and fra < MaxTotalScore and til > 0
       emit score group with lower bound fra and upper bound til
@@ -1234,6 +1237,13 @@ algorithm global_homogeneity_score_groups(bundle, score_cuts)
   end for
 end algorithm
 ```
+
+The score-group refits above use the interior conditional-likelihood window.
+The source's preceding uniform LD/DIF counters use a related but deliberately
+wider grouping: their first interval begins at score 0 and their final interval
+ends at `MaxTotalScore`. Thus `global_homogeneity_uniform_score_group_lookup()`
+restores those two endpoints after the displayed/refit groups have been clipped;
+scores outside the observed range contribute zero records.
 
 ```text
 algorithm global_homogeneity_values(project, score_cuts)
@@ -1340,6 +1350,17 @@ with the global complete-item `ScoreDistribution`. If a complete score group has
 no valid-background observed item margin, the source leaves that score's outfit
 contribution at zero but still includes the complete score weight in the final
 outfit denominator; infit receives no variance weight for that score.
+
+The same denominator rule applies when the fitted conditional item variance is
+zero. The extended 7.04 runtime still emits that score row. In
+`CalculateOutfit`, `range` and `resrange` are reset to zero, but the local
+`stdres` vector is assigned only inside `if variance > 0`; the observed runtime
+therefore prints the preceding score call's standardized values in this one
+row. `extended_item_fit_score_row()` models that carry-forward explicitly,
+while retaining zero residual, outfit, and infit fields and the two source 0/0
+`Nan` cells. If there is no preceding emitted score, the independent R port
+uses a zero vector rather than inventing values for uninitialized Pascal
+storage.
 
 The supplied example `ItemFits-extended.txt` does not contain the source line
 stating that incomplete item responses were included. Therefore this report
@@ -1765,11 +1786,16 @@ algorithm build_item_parameters_bundle(project)
   end for
 
   least_score <- 1
+  max_total_score <- sum_i(items[i].raw_max - 1)
+  estimation_largest_score <- max_total_score - 1
   largest_score <- maximum complete item score, or 0 when there are no
-                   complete item rows
+                   complete item rows  # observed-range report metadata
 
   for each row r
-    if score[r] is in least_score..largest_score
+    # skbias22.GLLRM_estim passes 1..highest_possible_score-1. Do not use the
+    # observed largest score as the CML bound: that would retain a maximum-
+    # possible-score record and alter Nvalid and the iteration trajectory.
+    if score[r] is in least_score..estimation_largest_score
       status[r] <- 1
       n_valid <- n_valid + 1
     end if
@@ -1780,7 +1806,7 @@ algorithm build_item_parameters_bundle(project)
       # Source Count_Margins checks the complete item score window before
       # reading/checking exogeneous values. Boundary complete-item rows do not
       # become Nuseless merely because their backgrounds are missing.
-      if row_scores[r] is outside least_score..largest_score
+      if row_scores[r] is outside least_score..estimation_largest_score
         continue
       end if
       if not complete_background_flags[r]
@@ -1796,7 +1822,7 @@ algorithm build_item_parameters_bundle(project)
   return bundle with:
     model.items
     model.backgrounds
-    model.max_total_score = sum_i(items[i].raw_max - 1)
+    model.max_total_score = max_total_score
     model.least_score = least_score
     model.largest_score = largest_score
     manifest counters
@@ -2529,10 +2555,9 @@ algorithm item_parameters_input_stats(bundle)
     complete_items <- all item fields are valid
     complete_backgrounds <- all background fields are valid
     score <- sum valid item scores in r
-    responses <- count valid item responses in r
 
     if complete_items
-      if score is outside the estimated score range
+      if score is outside 1..maximum_possible_score-1
         skip record before checking background validity
       end if
 
@@ -2542,7 +2567,17 @@ algorithm item_parameters_input_stats(bundle)
     else if complete_backgrounds
       n_incomplete <- n_incomplete + 1
 
-      if responses > 1 and score > 0 and score < maximum possible score
+      pure_items <- item responses in r
+      for each local-dependence component C
+        if any item in C is missing
+          remove every item in C from pure_items
+        end if
+      end for
+      responses <- count retained responses in pure_items
+      pure_score <- sum retained item scores
+      pure_max_score <- sum maximum scores of retained items
+
+      if responses > 1 and 0 < pure_score < pure_max_score
         n_useful <- n_useful + 1
         n_responses <- responses
       end if
@@ -2555,9 +2590,12 @@ algorithm item_parameters_input_stats(bundle)
 end algorithm
 ```
 
-Note that `Nresponses` follows `BIRT_ITEM_PARAMETERS_REPORT.pas::ReadDataStats`:
-it is overwritten by each useful incomplete row and therefore records the
-latest useful-row response count, not a sum.
+`Nresponses` follows
+`skbias12b.pas::Count_Margins.DealWithMissingInformation` and
+`DealWithPureInformation`: an incomplete LD component contributes no retained
+responses, while a zero-scored retained item still counts as a response. The
+counter is overwritten by each useful incomplete source cell and therefore
+records the latest useful-cell response count, not a sum.
 
 ```text
 algorithm item_parameters_values(fit, bundle)
@@ -2997,42 +3035,132 @@ algorithm gllrm_values(gllrm_fit, spec)
 end algorithm
 ```
 
-## CM2/CM3 and M2/M3 Diagnostics
+## CM2/CM3 Diagnostics
 
 Implemented in:
 
-- `gRm/R/api-m2-m3.R`
-- `gRm/R/m2_m3_counts.R`
-- `gRm/R/m2_m3_expected.R`
-- `gRm/R/m2_m3_specs.R`
-- `gRm/R/m2_m3_values.R`
-- `gRm/R/m2_m3_bootstrap.R`
-- `gRm/R/m2_m3_bootstrap_generate.R`
-- `gRm/R/m2_m3_bootstrap_run.R`
-- `gRm/R/m2_m3_bootstrap_summary.R`
+- `gRm/R/api-cm2-cm3.R`
+- `gRm/R/cm2_cm3_counts.R`
+- `gRm/R/cm2_cm3_expected.R`
+- `gRm/R/cm2_cm3_specs.R`
+- `gRm/R/cm2_cm3_values.R`
+- `gRm/R/cm2_cm3_bootstrap.R`
+- `gRm/R/cm2_cm3_bootstrap_generate.R`
+- `gRm/R/cm2_cm3_bootstrap_run.R`
+- `gRm/R/cm2_cm3_bootstrap_summary.R`
 - `gRm/R/source_record_policies.R`
 
 Primary source trace:
 
-- `source/PAS_skunits/skbias14.pas::Prepare_CM3tests`
-- `source/PAS_skunits/skbias14.pas::Count_IJtable`
-- `source/PAS_skunits/skbias14.pas::Count_IXtable`
-- `source/PAS_skunits/skbias14.pas::Count_IStable`
-- `source/PAS_skunits/skbias14.pas::Count_IJK`
-- `source/PAS_skunits/skbias14.pas::Count_IJXtable`
-- `source/PAS_skunits/skbias14.pas::Count_IJStable`
-- `source/PAS_skunits/skbias14.pas::Count_IXZtable`
-- `source/PAS_skunits/skbias14.pas::Count_IXStable`
-- `source/PAS_skunits/SKbias2.pas::calculate_expected_IJ_table`
-- `source/PAS_skunits/SKbias2.pas::calculate_expected_IX_table`
-- `source/PAS_skunits/SKbias2.pas::calculate_expected_IJK_table`
-- `source/PAS_skunits/SKbias2.pas::calculate_EIJX_table`
-- `source/PAS_skunits/SKbias2.pas::calculate_EIXZ_table`
-- `source/PAS_skunits/skbias14.pas::Twoway_analysis`
-- `source/PAS_skunits/skbias14.pas::Threeway_analysis`
-- `source/PAS_skunits/skbias14.pas::CM3_analysis`
-- `source/PAS_skunits/SKbias8.pas::Generate_GLLRM_boot_sample_with_exogene`
-- `source/PAS_skunits/SKbias8.pas::Generate_random_GLLRM_responses_with_exogene`
+- `source/digram_source_20260817/skunits/SKbias2.pas::SelectItems`
+- `source/digram_source_20260817/skunits/SKbias2.pas::Select_items_on_string`
+- `source/digram_source_20260817/skunits/BIASvars.pas::This_is_an_item`
+- `source/digram_source_20260817/skunits/skbias14.pas::Prepare_CM3tests`
+- `source/digram_source_20260817/skunits/skbias14.pas::Count_IJtable`
+- `source/digram_source_20260817/skunits/skbias14.pas::Count_IXtable`
+- `source/digram_source_20260817/skunits/skbias14.pas::Count_IStable`
+- `source/digram_source_20260817/skunits/skbias14.pas::Count_IJK`
+- `source/digram_source_20260817/skunits/skbias14.pas::Count_IJXtable`
+- `source/digram_source_20260817/skunits/skbias14.pas::Count_IJStable`
+- `source/digram_source_20260817/skunits/skbias14.pas::Count_IXZtable`
+- `source/digram_source_20260817/skunits/skbias14.pas::Count_IXStable`
+- `source/digram_source_20260817/skunits/SKbias2.pas::calculate_expected_IJ_table`
+- `source/digram_source_20260817/skunits/SKbias2.pas::calculate_expected_IX_table`
+- `source/digram_source_20260817/skunits/SKbias2.pas::calculate_expected_IJK_table`
+- `source/digram_source_20260817/skunits/SKbias2.pas::calculate_EIJX_table`
+- `source/digram_source_20260817/skunits/SKbias2.pas::calculate_EIXZ_table`
+- `source/digram_source_20260817/skunits/skbias14.pas::Twoway_analysis`
+- `source/digram_source_20260817/skunits/skbias14.pas::Threeway_analysis`
+- `source/digram_source_20260817/skunits/skbias14.pas::CM3_tests`
+- `source/digram_source_20260817/skunits/skbias14.pas::CM3_analysis`
+- `source/digram_source_20260817/scd/DIGRAM1f.pas`, command 197
+- `source/digram_source_20260817/skunits/skbias1.pas::ReviewComponents`
+- `source/digram_source_20260817/skunits/skbias1.pas::Generate_CompPatterns`
+- `source/digram_source_20260817/skunits/skbias1.pas::CollectComprecords`
+- `source/digram_source_20260817/skunits/SKTypes.pas::MaxItems8`
+- `source/digram_source_20260817/skunits/SKTypes.pas::NsimMax`
+- `source/digram_source_20260817/skunits/SKbias8.pas::Start_random_Gllrm_with_exogene`
+- `source/digram_source_20260817/skunits/SKbias8.pas::CalculateCondprobs`
+- `source/digram_source_20260817/skunits/SKbias8.pas::Generate_GLLRM_boot_sample_with_exogene`
+- `source/digram_source_20260817/skunits/SKbias8.pas::Generate_random_GLLRM_responses_with_exogene`
+- `source/digram_source_20260817/skunits/SKbias8.pas::Estimate_the_GLLRM`
+- `source/digram_source_20260817/skunits/SKbias8.pas::Finish_random_Gllrm`
+- `source/digram_source_20260817/skunits/SKbias8.pas::MaxnumberOfMulticomp`
+
+The public `items` selector reproduces DIGRAM's Boolean `UseItems` set while
+using fitted R item names rather than one-character dialog aliases:
+
+```text
+algorithm normalize_cm2_cm3_items(context, items)
+  fitted_items <- every current fitted item in source order
+
+  if items is NULL:
+    mode <- default_all
+    requested_items <- NULL
+    selected <- every fitted item
+  else:
+    reject zero-length selectors and every selector with dimensions
+    if items is character:
+      mode <- explicit_names
+      reject NA, empty/whitespace, unknown names, exogenous names, and score
+      resolve exact fitted R item names
+    else if items is numeric but not logical:
+      mode <- explicit_indices
+      reject NA, NaN, infinity, fractional values, and indices outside
+        1 .. number_of_fitted_items before integer coercion
+      resolve one-based indices
+    else:
+      reject the selector (including factors, logicals, and lists)
+
+    reject duplicates and fewer than two distinct fitted items
+    requested_items <- evaluated unnamed input in user order
+    selected <- resolved set sorted into source order
+
+  return schema version 1, mode, requested_items, source-ordered resolved item
+    index/label/name table, selected/model counts, all-fitted exogenous scope
+    and table, automatic score-group inclusion, and all-fitted-item score scope
+end algorithm
+```
+
+`NULL` is the sole spelling of DIGRAM's blank/default-all response. The string
+`"all"` is ordinary data and succeeds only when it is an exact fitted item
+name in an otherwise valid selection. Selection is local to the diagnostic:
+it neither changes nor refits the supplied model. Every fitted exogenous
+variable remains automatic, score groups use the total over all fitted items,
+and current LD/DIF components and parameters retain unselected partners.
+
+`Prepare_CM3tests` then builds the focal margin list in source order:
+
+```text
+algorithm prepare_cm2_cm3_margins(context, selected, include_three_way)
+  emit every selected unordered item pair except an active fitted LD pair
+  for each selected item in source order:
+    emit item-by-each-fitted-exogenous except an active fitted DIF pair
+    emit item-by-score-group
+
+  if include_three_way:
+    emit every selected unordered item triple
+    for each selected unordered item pair:
+      emit pair-by-each-fitted-exogenous, then pair-by-score-group
+    for each selected item:
+      emit item-by-each-unordered-exogenous-pair
+      emit item-by-each-exogenous-by-score-group
+    # Active LD/DIF terms suppress only their eligible two-way rows; they do
+    # not suppress any related three-way row.
+end algorithm
+```
+
+For `k` selected items and `e` fitted exogenous variables, the ordinary CM2
+row count is `choose(k,2) - l + k*e - d + k`, where `l` and `d` count eligible
+selected active-LD and active-DIF exclusions. CM3 appends
+`choose(k,3) + choose(k,2)*(e+1) + k*(choose(e,2)+e)` three-way rows. Thus two
+selected items are valid and can still have three-way rows. Models without
+exogenous variables retain the automatic score-group families.
+
+The R implementation uses dynamic margin storage. DIGRAM command 197's fixed
+`DATALENGTH = 1600` is an executable-oracle capacity, not a statistical
+restriction: production `cm2()` can prepare only its two-way projection and
+both R diagnostics may compute beyond that reference-binary storage limit.
 
 Record eligibility is intentionally routine-specific. It must not be inferred
 from the GLLRM estimation status:
@@ -3061,7 +3189,7 @@ end algorithm
 Observed tables use the following exact policies:
 
 ```text
-algorithm m2_m3_count_observed(context, margin, score_group_lookup)
+algorithm cm2_cm3_count_observed(context, margin, score_group_lookup)
   if margin is item-item, item-exogenous, item-score,
      item-item-exogenous, item-item-score, item-exogenous-exogenous,
      or item-exogenous-score:
@@ -3085,7 +3213,7 @@ item-complete row with missing exogenous data contributes only to the observed
 item-triple table; every expected table still requires complete exogenous data.
 
 ```text
-algorithm m2_m3_source_score_background_groups(context)
+algorithm cm2_cm3_source_score_background_groups(context)
   rows <- complete_item_exogenous_rows
   for each row in source order:
     total_score <- sum(all zero-based item scores)
@@ -3095,61 +3223,155 @@ algorithm m2_m3_source_score_background_groups(context)
   return grouped records
 end algorithm
 
-algorithm m2_m3_expected_table(context, fitted_state, margin)
-  groups <- m2_m3_source_score_background_groups(context)
+algorithm cm2_cm3_expected_table(context, fitted_state, margin)
+  groups <- cm2_cm3_source_score_background_groups(context)
+  initialize a fitted-state probability cache
   for each score/background group:
-    construct the current-GLLRM conditional probability table for the one-,
-      two-, or three-item focus set using Cprob1/Cprob2/Cprob3-equivalent
-      component convolution
+    for each previously unseen active-DIF background cell:
+      calculate every LD component's source-ordered configuration weights and
+        component-score gamma vector once
+      convolve component gammas in component order to obtain the full-model
+        score gamma vector
+    for each previously unseen focus set in that background cell:
+      retain only positive-weight configurations, preserving configuration and
+        component order
+      enumerate cross-component configuration rows in the same expand.grid
+        order as the scalar Cprob1/Cprob2/Cprob3-equivalent implementation
+      multiply component weights in component order and precompute the integer
+        focus-array cell for each row
+      convolve the non-focus component gammas in their original order and cache
+        the resulting complement vector by focus-component set
+    for each total score:
+      use the cached full gamma as denominator
+      traverse the cached focus rows in their original order and add
+        focus_weight * complement_gamma[total_score - focus_score] /
+        full_gamma[total_score] to the focus cell
+      cache the resulting score-specific conditional probability array
     attach the requested exogenous value or Scoregruppe result
     add group.count * conditional_probability to the expected table
   return the expected table in source category order
 end algorithm
 ```
 
-`Prepare_CM3tests` supplies margins in source order. Its transposed
-`ItemBias(.i2,i1.)` lookup is retained as a compatibility rule. For each margin,
-the Pearson statistic adds `(observed - expected)^2 / expected` only when the
-expected cell is positive. Two-way degrees of freedom are
+The background, focus-plan, complement-gamma, and final-probability caches are
+pure memoization of values invariant within one fitted state. They do not
+vectorize or reorder the final probability sum: configuration rows are still
+visited one at a time in the same order, and each contribution uses the same
+multiplication, division, and accumulation sequence. This is required both for
+source fidelity and for byte-identical fixed-seed bootstrap trajectories when
+the expected tables feed each simulated CM3 result.
+
+`Prepare_CM3tests` supplies margins in source order. DIGRAM 7.04 tests
+`ItemBias(.i1,i2.)`, with the candidate item first and the exogenous variable
+second, so an item-exogenous margin already represented by an active DIF term
+is omitted. (The transposed 7.02 expression remains only as a comment in the
+canonical unit.) For each margin, the Pearson statistic adds
+`(observed - expected)^2 / expected` only when the expected cell is positive.
+Two-way degrees of freedom are
 `(d1 - 1) * (d2 - 1)`; three-way degrees of freedom are
 `d1*d2*d3 - 1 - (d1 - 1) - (d2 - 1) - (d3 - 1)`. `source_pfchi()` supplies
 the source probability approximation.
 
-M2 sums every prepared two-way row. Item-trait sums item-score rows, and each
-invariance row sums item-exogenous rows for one exogenous variable. M3 starts
-with the complete M2 aggregate and then adds every prepared three-way row; it
+CM2 sums every prepared two-way row. Item-trait sums item-score rows, and each
+invariance row sums item-exogenous rows for one exogenous variable. CM3 starts
+with the complete CM2 aggregate and then adds every prepared three-way row; it
 is not a three-way-only statistic.
+
+`CM3_tests` initializes an invariance accumulator for every fitted exogenous
+variable before scanning margins and prints all of them. If fitted DIF terms
+suppress every eligible selected item-by-one-exogenous margin, that variable
+therefore remains `chi_square = 0`, `degrees_of_freedom = 0`, and
+`p_value = 0`; the source computes `PFCHI` only when invariance df is positive.
+This deliberate zero p-value differs from the generic empty CM2/CM3 aggregate
+convention. In bootstrap samples the initialized simulated zero p-value is
+`<=` the observed zero, so every accepted sample increments that invariance
+counter and its bootstrap p-value is exactly 1 when `nused > 0`.
 
 The public functions return deterministic/asymptotic statistics by default.
 Setting `bootstrap = TRUE` adds the source-shaped parametric calibration. The
-bootstrap is opt-in because its source default of 100 fresh GLLRM fits is much
-more expensive than the observed diagnostic.
+bootstrap is opt-in because DIGRAM 7.04's interactive prompt defaults to zero
+simulations. When users explicitly enable it, the R API defaults to 100 fresh
+GLLRM fits. Each refit defaults to the 5,000 steps and 0.0001 delta limit
+hard-coded by `SKbias8.Estimate_the_GLLRM`. The `Nsteps = 500` assigned in
+`skbias14.CM3_analysis` is merely passed into
+`Generate_GLLRM_boot_sample_with_exogene`, whose preserved implementation does
+not use it. A nondefault R `bootstrap_max_step` is therefore a documented
+runtime-control extension, not a DIGRAM command setting.
+
+The canonical application entry point is command 197 in
+`scd/DIGRAM1f.pas`. Both its ordinary `CM3` and `CM3 *` branches pass
+`Estimate = true` to `CM3_analysis`; the asterisk changes only `PrintAll`.
+Accordingly, `reestimate = TRUE` is the source command behavior.
+`reestimate = FALSE` is an explicit R extension corresponding to the
+procedure's otherwise dormant per-sample `Estimate = false` branch: generated
+samples are analyzed with the supplied fitted parameters.
+
+The final DIGRAM line `Item parameters were reestimated` cannot be used to
+infer that branch. `SKbias8.Finish_random_Gllrm` does not receive `Estimate`:
+after the loop it restores the saved IRT parameter structures, disposes the
+bootstrap stores, disables simulated-data mode, unconditionally calls
+`Estimate_the_GLLRM` on the observed data, and unconditionally prints the line.
+The package does not mutate the observed fit during bootstrapping and therefore
+needs no corresponding cleanup refit. Its returned `reestimate` metadata
+describes only the per-generated-sample `DoSomething` branch.
+
+For the observed diagnostic, `CM3_tests` collects at most the first 85
+two-way p-values and applies `BenjaminiHochberg1` at FDR 0.05, 0.01, and
+0.001. It resets the fixed `Rvector`, collects at most the first 85 three-way
+p-values, and applies the same three thresholds separately. The returned
+`cm2_bh` and `cm3_bh` tables preserve the two blocks and expose whether the
+source capacity was reached.
+
+For the observed `CM3_tests` report, canonical 7.04 comments out the former
+significance-only display guards, so every prepared two-way and three-way row
+is retained in the structured result; raw significance and BH evaluation
+annotate rows rather than filtering them. The later bootstrap-summary
+`PrintAll` rule is separate and is described below.
 
 ```text
-algorithm m2_m3_bootstrap_capability(context)
+algorithm cm2_cm3_observed_bh(tests)
+  for diagnostic in [CM2 two-way rows, CM3 three-way rows]:
+    p_values <- first min(number_of_rows, 85) raw margin p-values
+    for fdr in [0.05, 0.01, 0.001]:
+      critical_p <- source_bh_critical(p_values, fdr)
+    return diagnostic, fdr, critical_p, number used, and capacity flag
+end algorithm
+```
+
+```text
+algorithm cm2_cm3_bootstrap_capability(context)
   components <- connected item components induced by active LD terms
   active_dif_strata <- product of category counts for backgrounds used by DIF
   full_exogenous_strata <- product of all exogenous category counts
+  largest_positive_fixed_score_pattern_count <- maximum, over every multi-item
+    component, active-DIF stratum, and fixed component score, of fitted
+    response configurations having positive weight
 
   reject bootstrap generation, with explicit reasons, if:
-    item count > 40
+    item count > MaxItems8 = 10
     any LD component contains > 4 items
+    number of multi-item LD components > MaxnumberOfMulticomp = 4
     any item's maximum zero-based score > 7
     active_dif_strata > 64
     full_exogenous_strata > 216
     no complete item/exogenous record exists
+    complete item/exogenous records > NsimMax = 15,000
+    largest_positive_fixed_score_pattern_count > Byte maximum = 255
 
   return the audited bounds and observed model dimensions
 end algorithm
 ```
 
-These are generation bounds from the preserved Pascal data structures and
-`ComponentInfo`; they are not inferred statistical restrictions. An impossible
-request returns `source_status = bootstrap_not_possible` and does not silently
-fall back to a different generator.
+These are generation bounds from the preserved Pascal data structures,
+`SKTypes.MaxItems8`, `SKTypes.NsimMax`, `SKbias8.MaxnumberOfMulticomp`, and
+`ReviewComponents`; the 255-pattern guard protects
+`skbias1.CompRecords.npatterns: Byte` before `CollectComprecords` assigns its
+positive-pattern count. These are not inferred statistical restrictions. An
+impossible request returns `source_status = bootstrap_not_possible` and does
+not silently fall back to a different generator.
 
 ```text
-algorithm m2_m3_bootstrap_groups(context)
+algorithm cm2_cm3_bootstrap_groups(context)
   rows <- complete_item_exogenous_rows
   count rows by (total item score, every exogenous value)
 
@@ -3174,14 +3396,20 @@ algorithm cache_bootstrap_distribution(context, fitted_state, exogenous)
   replace every exogenous value not used by active DIF with category 1
 
   for each LD component in source item order:
-    enumerate its response configurations in source order
+    enumerate its response configurations with the first component item as the
+      outermost loop and the final component item as the innermost loop,
+      matching SKbias1.CollectComprecords rather than expand.grid order
     weight each configuration by included item, DIF, and LD gammas
     sum configuration weights by component score
+    for each component score:
+      pattern_probability <- configuration_weight / component_gamma[score]
+      cache cumulative pattern_probability in CollectComprecords order
   build suffix convolutions of component-score gamma vectors
-
-  if product(item category counts) <= the bounded joint-enumeration guard:
-    also enumerate and weight all whole-test configurations by total score
-    # this distribution-equivalent path pins the executable harness trajectory
+  for each non-final component and remaining score s0:
+    for component score s1 in ascending order:
+      probability[s1] <- gamma1[s1] * (gamma2[s0-s1] / gamma0[s0])
+        # retain CalculateCondprobs division-before-multiplication order
+    cache cumulative probability from score zero upward
 
   cache by active-DIF exogenous pattern only
 end algorithm
@@ -3194,29 +3422,33 @@ algorithm generate_bootstrap_group(context, distribution, total_score, count)
   if total_score is H:
     return count all-maximum response patterns without consuming RNG draws
 
-  if a bounded whole-test distribution is cached:
-    for each record:
-      draw one configuration conditionally on total_score using cumulative
-        source-order weights
-    return the selected configurations
-
   for each record:
     remaining <- total_score
     for each component except the last:
-      draw component_score with weight
-        component_gamma[component_score] *
-        suffix_gamma[remaining - component_score]
+      u <- delphi_random()
+      x <- 1 - u
+      draw component_score by comparing x directly with the cached normalized
+        CalculateCondprobs cumulative probabilities
       remaining <- remaining - component_score
     assign remaining to the last component
 
   for each multi-item component:
     fill score-zero and maximum-score component patterns deterministically
     for each interior component score and matching record:
-      draw a response configuration with its conditional gamma weight
+      u <- delphi_random()
+      x <- 1 - u
+      draw a positive-probability response configuration by comparing x
+        directly with cached normalized SKbias1.CollectComprecords probabilities
   single-item component response <- its component score
   return responses
 end algorithm
 ```
+
+There is deliberately no whole-test joint-enumeration shortcut. Even where it
+defines the same conditional distribution, it consumes one random value per
+record instead of DIGRAM's one value per non-final component plus one per
+interior multi-item component pattern. It therefore cannot reproduce a seeded
+CM3 trajectory or any later bootstrap replicate.
 
 For a non-extreme score group, the generated record retains all actual
 exogenous values even though model probabilities depend only on active-DIF
@@ -3226,64 +3458,156 @@ non-DIF exogenous value is category 1. The R implementation deliberately
 retains this historical asymmetry.
 
 ```text
-algorithm m2_m3_parametric_bootstrap(fit, observed_values, control)
-  capability <- m2_m3_bootstrap_capability(fitted context)
+algorithm new_cm2_cm3_bootstrap_rng(seed)
+  if seed is absent:
+    # Delphi 4 System.Randomize, called immediately before CM3's loop
+    seed <- UTC milliseconds since midnight in 0 .. 86,399,999
+  else:
+    require seed to be an exact uint32 bit pattern in 0 .. 4,294,967,295
+
+  state <- seed
+  for each requested uniform draw:
+    # Exact wrapped arithmetic; the R implementation uses 16-bit limbs so the
+    # multiplication never exceeds binary64's exact-integer range.
+    state <- (134775813 * state + 1) mod 2^32
+    uniform <- unsigned(state) / 2^32
+    return uniform in [0, 1)
+end algorithm
+
+algorithm cm2_cm3_parametric_bootstrap(fit, observed_values, control)
+  capability <- cm2_cm3_bootstrap_capability(fitted context)
   if not capability.possible: return explicit unavailable metadata
 
-  groups <- m2_m3_bootstrap_groups(context)
-  initialize private Park-Miller(48271, 2147483647) validation stream
-    from supplied seed
-  # a supplied seed never reads or changes R's global RNG state;
-  # an unseeded request consumes one global seed and then uses the private stream
+  groups <- cm2_cm3_bootstrap_groups(context)
+  selected_margin_specs <- the exact source-ordered observed focal margin list
+  cache source component distributions
+  initialize the private Delphi 4 uint32 stream at the source Randomize boundary
+  # neither a supplied nor an unseeded request reads or changes R's global RNG
 
-  for replicate in 1 .. nsim:
+  # Generate phase (CM3_analysis loop plus
+  # Generate_GLLRM_boot_sample_with_exogene):
+  # The complete generation phase remains serial and source ordered. A single
+  # Delphi RandSeed therefore has exactly the same state at every boundary,
+  # regardless of the requested bootstrap_jobs value.
+  generated_samples <- empty replicate-ordered list
+  for replicate in 1 .. nsim, strictly sequentially:
     record starting RNG state and draw count
     sample <- generate all groups from the observed fitted GLLRM
     assert each response-row sum equals its fixed total score
+    retain sample plus its starting/ending RandSeed and draw count temporarily
+    append sample to generated_samples
+
+  # Analyze phase (CM3_analysis.DoSomething and CM3_tests):
+  effective_jobs <- 1 on Windows
+    otherwise min(bootstrap_jobs, nsim, detected logical cores),
+      with a lower bound of 1 and a safe one-core fallback when detection fails
+  analyze generated_samples in replicate order:
+    use serial mapping when effective_jobs = 1
+    otherwise use ordered POSIX fork mapping with mc.set.seed = false
+    # No function in this phase consumes Delphi or R random values. Forking is
+    # an R scheduling optimization around unchanged source computations.
+
     construct a new source-shaped data bundle from the generated rows
+    override its refit score window to 0 .. highest_possible_score
+      # SKbias8.Estimate_the_GLLRM passes these inclusive bounds to
+      # Estimate_GLLRM; score-zero and all-maximum records both enter Nvalid,
+      # item margins, score margins, LD margins, and DIF margins.
 
     if reestimate:
-      fit the same GLLRM from fresh source initial values using
-        bootstrap_max_step and the observed fit tolerance
-      replicate_delta <- refitted state's final sufficient-margin discrepancy
+      initialize the same GLLRM from the saved observed-data item, IJ, and IX
+        parameters made once by Start_random_Gllrm_with_exogene.MakeIRTcopy
+        # Estimate_the_GLLRM passes ParametersInitialized=false, but
+        # skbias12b.Estimate_GLLRM detects the saved IRT copy and executes
+        # UseItemParameters; every replicate starts from that same copy, never
+        # from unit parameters or from the preceding replicate's estimates
+      recompute each item's Ifra/Itil support from the generated sample and
+        ignore copied item gamma values outside that inclusive range while
+        retaining copied values for unobserved interior scores
+      fit using
+        bootstrap_max_step (source default 5000) and source delta limit 0.0001
+      replicate_delta <- refitted state's stopping-step report_delta
+        # This is Pascal's global delta at return. Do not substitute the R-only
+        # sufficient-margin discrepancy recomputed after the loop.
     else:
-      use the supplied fitted parameters and their final discrepancy
+      use the supplied fitted parameters and their stopping-step report_delta
+      # This is the explicit R exposure of Estimate=false; canonical command
+      # 197 passes Estimate=true.
 
-    compute every prepared CM2/CM3 margin and aggregate in the generated sample
+    compute every selected_margin_specs margin and aggregate in the generated
+      sample without re-resolving or widening item selection
     accepted <- analysis succeeded and replicate_delta < 0.1
     retain fit/error metadata, every statistic, and ending RNG state/draw count
-    retain response matrices only when keep_bootstrap_samples is true
 
+  retain generated response matrices in the returned result only when
+    keep_bootstrap_samples is true; otherwise release the temporary samples
+
+  # Summarize phase (CM3_analysis.Summarize):
   nused <- count(accepted replicates)
-  for every margin, M2, M3 when requested, item-trait, and invariance row:
+  for every margin, CM2, CM3 when requested, item-trait, and invariance row:
     extreme_count <- count accepted simulated p-values <= observed p-value
     bootstrap_p <- extreme_count / nused when nused > 0, otherwise NA
   attach calibration columns to the public deterministic tables
+    # Keep every prepared row. Pascal's PrintAll/significance rule affects
+    # report display only; it does not change counters or aggregate results.
   return controls, source bounds, fixed groups, complete raw replicate tables,
-    summaries, nused/nsim, and final RNG state/draw count
+    summaries, nused/nsim, final RNG state/draw count, requested/effective
+    bootstrap worker counts, and serial/ordered-fork execution mode
 end algorithm
 ```
 
 The `<=` comparison is intentional: `CM3_analysis.DoSomething` compares each
 simulated asymptotic tail probability with the observed asymptotic tail
 probability in that direction. Acceptance also follows its strict global
-`delta < 0.1` test rather than the ordinary fit tolerance. The validation
-module independently compiles the Pascal harness and pins the seed-47
-three-item trajectory exactly, including all response-configuration counts,
-fixed score counts, per-replicate RNG states, and draw counts.
+`delta < 0.1` test rather than the ordinary fit tolerance. Exact seeded
+validation must pin the Delphi state and component-wise draw trajectory, not a
+distribution-equivalent whole-test draw. The package test suite includes both
+short known-state vectors and the independently recovered long trajectory from
+seed 61,821,250 through 2,331,644 draws to state 3,180,639,750, together with
+seeded response matrices and per-replicate draw counts.
+
+`CM3_analysis.Summarize` uses `nused`, not `nsim`, as every denominator and
+does not add one to either numerator or denominator. When `PrintAll = false`,
+it prints a margin row only when its bootstrap proportion is at most 0.05;
+command `CM3 *` passes `PrintAll = true` and prints every row. This is a report
+selection rule only. The structured R result retains all prepared rows, their
+integer exceedance counts, and the shared `nused`, so validation and downstream
+code can apply the source display rule without discarding computed values.
+
+After Pascal's summary, `Finish_random_Gllrm` restores the saved IRT parameter
+structures, disposes the bootstrap stores, disables simulated-data mode,
+refits the observed model, and prints its unconditional reestimation footer.
+These are global-state restoration and reporting side effects, not a fourth
+bootstrap statistic phase. The independent R implementation leaves its input
+fit unchanged and therefore omits them.
+
+Parallel refitting deliberately begins only after all samples have been
+generated. Interleaving generation with workers would make the shared Delphi
+state depend on scheduling and would break exact reproduction. On POSIX,
+`parallel::mclapply()` returns results in input order; `mc.set.seed = FALSE`
+prevents R from constructing unrelated worker RNG streams. Windows uses the
+same serial analysis path. The worker count affects neither which response
+matrices are generated nor any source arithmetic in fitting and CM2/CM3
+analysis.
+
+Consequently, with one fitted model, fixed seed, and identical bootstrap
+controls, changing only focal items leaves generated full-item response
+matrices, refit trajectories, accepted-replicate membership, RNG draw counts,
+and final RNG state unchanged. Only the prepared margin list, diagnostic
+aggregates, and exceedance counters may differ. The package pins this
+source-derived invariance with fixed-seed metamorphic tests.
 
 ## DIF Tests Report
 
 Source trace:
 
-- `source/PAS_scd/DGRirtD.pas`: CHECK D branch headed `Check assumptions of no DIF`
-- `source/PAS_scd/DGRirtD.pas`: `lr:=2*abs(Raschloglike-Raschloglike1)`
-- `source/PAS_scd/DGRirtD.pas`: `p := pfchi(df,lr)`
-- `source/PAS_scd/DGRirtD.pas`: significant MissingDIF rows append
+- `source/digram_source_20260817/scd/DGRirtD.pas`: CHECK D branch headed `Check assumptions of no DIF`
+- `source/digram_source_20260817/scd/DGRirtD.pas`: `lr:=2*abs(Raschloglike-Raschloglike1)`
+- `source/digram_source_20260817/scd/DGRirtD.pas`: `p := pfchi(df,lr)`
+- `source/digram_source_20260817/scd/DGRirtD.pas`: significant MissingDIF rows append
   `IJXgamma(.i,nitems+j.)`
-- `source/PAS_skunits/SKbias7.pas`: `inexpensive_itembias1` and
+- `source/digram_source_20260817/skunits/SKbias7.pas`: `inexpensive_itembias1` and
   `Item_Screening` populate `IJXgamma`/`IJXgamma_pvalues`
-- `source/PAS_scd/SkStat.pas`: `PFCHI` and `BenjaminiHochberg`
+- `source/digram_source_20260817/skunits/SkStat.pas`: `PFCHI` and `BenjaminiHochberg`
 - `pascal_harness/SourceRaschCore.pas`: source-faithful estimator subset and
   included DIF likelihood rows
 
@@ -3365,9 +3689,9 @@ diagnostic output.
 
 Source trace:
 
-- `source/PAS_scd/DGRirtD.pas`: `MissingLD`
-- `source/PAS_scd/SkStat.pas`: `PFCHI`
-- `source/PAS_skunits/SKmca.pas`: `BenjaminiHochberg`
+- `source/digram_source_20260817/scd/DGRirtD.pas`: `MissingLD`
+- `source/digram_source_20260817/skunits/SkStat.pas`: `PFCHI`
+- `source/digram_source_20260817/skunits/SKmca.pas`: `BenjaminiHochberg`
 - `pascal_harness/local_independence_report/BIRT_LOCAL_INDEPENDENCE_REPORT.pas`
 - `docs/source-traces/BIRT_LOCAL_INDEPENDENCE_SOURCE_TRACE.md`
 
@@ -3427,7 +3751,7 @@ rows remain available as structured values.
 
 Global invariance/global DIF is outside the current package scope. The
 implemented public diagnostics are `global_homogeneity()`, `local_dependence()`,
-`dif()`, `score_effects()`, `item_fit()`, `m2()`, and `m3()`. Historical
+`dif()`, `score_effects()`, `item_fit()`, `cm2()`, and `cm3()`. Historical
 source notes about global invariance remain repository history, but no current
 package algorithm or installed API is defined for that report family.
 
@@ -3439,10 +3763,10 @@ Implemented in:
 
 Source traces:
 
-- `source/PAS_skunits/DGRexe.pas`: `Execute_select_items`
-- `source/PAS_skunits/SKbias2.pas`: `SHOW_ITEMS`, `Sort_items`,
+- `source/digram_source_20260817/skunits/DGRexe.pas`: `Execute_select_items`
+- `source/digram_source_20260817/skunits/SKbias2.pas`: `SHOW_ITEMS`, `Sort_items`,
   `Calculate_scores`, `Cut_scores`
-- `source/PAS_skunits/SKbias7.pas`: `Calculate_ChronbachsAlpha`
+- `source/digram_source_20260817/skunits/SKbias7.pas`: `Calculate_ChronbachsAlpha`
 
 ```text
 algorithm items_select_values(project)
@@ -3493,16 +3817,16 @@ end algorithm
 
 Source trace:
 
-- `source/PAS_scd/SKbias2.pas`: exogenous overview, complete-case counts,
+- `source/digram_source_20260817/skunits/SKbias2.pas`: exogenous overview, complete-case counts,
   missing-exogenous diagnostics, and score distribution.
-- `source/PAS_skunits/SKbias13.pas`: `StepwiseScoreScreening`.
-- `source/PAS_scd/DIGRAM1f.pas`: final selected exogenous-variable list.
-- `source/PAS_scd/SKexa1.pas`: Benjamini-Hochberg footer and markers.
-- `source/PAS_scd/SKexa2.pas`: exact-test simulation counters in
+- `source/digram_source_20260817/skunits/SKbias13.pas`: `StepwiseScoreScreening`.
+- `source/digram_source_20260817/scd/DIGRAM1f.pas`: final selected exogenous-variable list.
+- `source/digram_source_20260817/skunits/SKexa1.pas`: Benjamini-Hochberg footer and markers.
+- `source/digram_source_20260817/skunits/SKexa2.pas`: exact-test simulation counters in
   `Inexpensive_bt_tests`.
-- `source/PAS_scd/SKrandom.pas::GENTAB1`: conditional random table generation
+- `source/digram_source_20260817/skunits/SKrandom.pas::GENTAB1`: conditional random table generation
   with fixed margins.
-- `source/PAS_scd/SkStat.pas`: normal and chi-square tail probabilities.
+- `source/digram_source_20260817/skunits/SkStat.pas`: normal and chi-square tail probabilities.
 
 ```text
 algorithm exo_select_values(project, score_cap = 56)
@@ -3646,12 +3970,12 @@ end algorithm
 
 Source trace:
 
-- `source/PAS_scd/DGRexe.pas::execute_marginal_gamma`
-- `source/PAS_scd/skbig3.pas::quick_tests`
-- `source/PAS_scd/SKxyz1.PAS::Transfer_results`
-- `source/PAS_scd/SkStat.pas::PREPARE_GAMMA_STATISTICS`
-- `source/PAS_scd/SkStat.pas::RCGAMMA`
-- `source/PAS_scd/DGRVARS.PAS::Show_gammavalues`
+- `source/digram_source_20260817/skunits/DGRexe.pas::execute_marginal_gamma`
+- `source/digram_source_20260817/skunits/skbig3.pas::quick_tests`
+- `source/digram_source_20260817/skunits/SKxyz1.PAS::Transfer_results`
+- `source/digram_source_20260817/skunits/SkStat.pas::PREPARE_GAMMA_STATISTICS`
+- `source/digram_source_20260817/skunits/SkStat.pas::RCGAMMA`
+- `source/digram_source_20260817/skunits/DGRVARS.PAS::Show_gammavalues`
 
 The `gamma.txt` report is the DIGRAM `GAMMA` command's pairwise marginal
 Goodman-Kruskal association-gamma matrix. It is not the Rasch score-gamma or
